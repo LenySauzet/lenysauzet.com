@@ -96,7 +96,7 @@ export function Footer({ className }: { className?: string }) {
           </SelectionFrame>
         </section>
 
-        <nav aria-label="Links" className="grid grid-cols-2 gap-x-8 gap-y-4 border-t-2 border-dotted pt-8 sm:grid-cols-3">
+        <nav aria-label="Links" className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
           <p className={cn(LABEL, 'col-span-2 sm:col-span-1')}>Links</p>
           <Links links={PAGES} />
           <Links links={ELSEWHERE} external />
