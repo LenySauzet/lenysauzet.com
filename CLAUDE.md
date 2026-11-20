@@ -84,7 +84,11 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   shows everything at once.
 - **Client logos are shadcn `Avatar`s** in an `AvatarGroup`, at `portfolio/clients/` on
   the CDN; until a logo is there the fallback initial shows. Hovered or focused, one
-  scales up over its neighbours, its name in a tooltip below.
+  scales up over its neighbours, its name in a tooltip below. The trigger is an
+  unscaled wrapper and only the avatar inside it grows: Radix measures the trigger
+  with its transform, so a scaled trigger dragged the tooltip along. The tooltips take
+  `disableHoverableContent`, or the pointer leaving through one held it open over the
+  next avatar.
 - **A project is a still, and maybe a video**: `image` is always probed (the masonry
   needs its ratio, the blur-up its placeholder) and stays under the video, which plays
   muted only while a quarter of it is in view, never under reduced motion. Each medium
