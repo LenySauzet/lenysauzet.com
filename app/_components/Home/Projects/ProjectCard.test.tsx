@@ -26,10 +26,21 @@ describe('ProjectCard', () => {
     expect(app).toHaveAttribute('target', '_blank');
   });
 
-  it('says an article is coming when there is nothing to open yet', () => {
+  it('names the project and its year over the media, and offers nothing to open when there is nothing', () => {
     render(<ProjectCard project={project({})} dimensions={dimensions} />);
 
+    expect(screen.getByRole('heading', { name: 'Atrean' })).toBeInTheDocument();
+    expect(screen.getByText('2025')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    expect(screen.getByText('Article coming soon')).toBeInTheDocument();
+  });
+
+  it('plays a video over its still when the project has one', () => {
+    const { container } = render(
+      <ProjectCard project={project({ video: 'atrean.mp4' })} dimensions={dimensions} />
+    );
+
+    const video = container.querySelector('video');
+    expect(video).toHaveAttribute('poster', 'https://cdn.lenysauzet.com/portfolio/atrean.jpg');
+    expect(video?.querySelector('source')).toHaveAttribute('src', 'https://cdn.lenysauzet.com/portfolio/atrean.mp4');
   });
 });

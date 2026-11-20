@@ -4,4 +4,4 @@ export interface Client {
   href: string;
 }
 
-export const clients: Client[] = [];
+export const clients: Client[] = [{ name: 'Tolk.ai', logo: 'clients/tolk-ai.svg', href: 'https://www.tolk.ai' }];

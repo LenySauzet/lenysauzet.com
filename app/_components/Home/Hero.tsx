@@ -1,35 +1,42 @@
 import { HatchBand } from '@/components/shared/HatchBand';
-import { Button } from '@/components/ui/button';
+import { SelectionFrame } from '@/components/shared/SelectionFrame';
+import siteConfig from '@/config/site';
 import { clients } from '@/content/clients';
 
 import { BookCall } from './BookCall';
 import { Clients } from './Clients';
+import { ResumeLink } from './ResumeLink';
 
 export function Hero() {
+  const { role, location } = siteConfig.author;
+
   return (
-    <section className="grid grid-cols-[minmax(0,1fr)] px-4 lg:grid-cols-[6rem_1fr_minmax(0,42rem)_1fr_6rem] lg:px-20">
+    <section className="grid grid-cols-[minmax(0,1fr)] px-4 lg:grid-cols-[6rem_1fr_minmax(0,44rem)_1fr_6rem] lg:px-20">
       <HatchBand />
 
       <div className="flex flex-col items-center pt-32 pb-20 text-center sm:pt-40 lg:col-start-3">
-        <p className="font-serif text-xl text-subtle-foreground">Innovation engineer in Montpellier</p>
-
-        <h1 className="mt-3 font-serif text-4xl leading-tight tracking-tight text-balance sm:text-5xl">
-          Building products at the <em>frontier</em> of the <em>web</em>.
-        </h1>
-
-        <p className="mt-6 max-w-xl text-base leading-7 text-pretty text-muted-foreground">
-          I design and build products from the first sketch to the thing people open every morning: interfaces
-          that feel alive, real-time 3D, and the engineering that keeps them fast.
+        <p className="rise text-sm text-subtle-foreground">
+          {role} · {location}
         </p>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:grid sm:w-full sm:max-w-lg sm:grid-cols-2">
+        <SelectionFrame className="rise mt-6 [--rise-step:1]">
+          <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-balance sm:text-5xl">
+            Turning complex challenges into <em>delightful</em> &amp; <em>fast</em> products.
+          </h1>
+        </SelectionFrame>
+
+        <p className="rise mt-8 max-w-xl text-base leading-7 text-pretty text-muted-foreground [--rise-step:2]">
+          For the past three years I have been building an enterprise conversational AI platform at Tolk.ai, 4.3
+          million conversations served for public agencies, insurers and e-commerce brands. From software
+          architecture to creative development, I take features from zero to one.
+        </p>
+
+        <div className="rise mt-10 flex flex-wrap items-center justify-center gap-3 [--rise-step:3] sm:grid sm:w-full sm:max-w-md sm:grid-cols-2">
           <BookCall className="sm:justify-self-end" />
-          <Button asChild variant="outline" size="lg" className="h-11 rounded-xl px-4 sm:justify-self-start">
-            <a href="#work">Explore my work</a>
-          </Button>
+          <ResumeLink className="sm:justify-self-start" />
         </div>
 
-        <Clients clients={clients} className="mt-10" />
+        <Clients clients={clients} className="rise mt-10 [--rise-step:4]" />
       </div>
 
       <HatchBand className="lg:col-start-5" />

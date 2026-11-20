@@ -7,7 +7,6 @@ import { usePaletteStore } from '@/hooks/use-palette-store';
 
 import { Island } from './Island';
 import { announce } from './states/announcement';
-import { availability, showsAvailability } from './states/availability';
 
 const settle = () => act(() => vi.advanceTimersByTime(300));
 
@@ -32,27 +31,7 @@ describe('Island', () => {
     vi.useRealTimers();
   });
 
-  it('shows the availability while a way to reach me is pointed at, and lets it go after', () => {
-    vi.useFakeTimers();
-    render(<Island />);
-    settle();
 
-    act(() => showsAvailability.onPointerEnter());
-    expect(screen.getByRole('button')).toHaveTextContent('Available for new projects');
-
-    act(() => showsAvailability.onPointerLeave());
-    expect(useIslandStore.getState().presented.map((state) => state.id)).not.toContain(availability.id);
-    expect(screen.getByRole('button')).toHaveTextContent('Leny');
-    vi.useRealTimers();
-  });
-
-  it('leaves the availability alone when the closing palette hands focus back', () => {
-    usePaletteStore.setState({ returningFocus: true });
-
-    showsAvailability.onFocus();
-
-    expect(useIslandStore.getState().presented).toHaveLength(0);
-  });
 
   it('reads an announcement out through a live region', () => {
     render(<Island />);

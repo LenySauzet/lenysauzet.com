@@ -39,7 +39,7 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
 | `lib/media/measure.ts` | An image's size from its header, at build time |
 | `lib/commands/` | The palette's registry, its groups and its shortcuts |
 | `lib/services/booking.ts` | cal.com's modal, loaded on first use |
-| `app/_components/Island` | The island: identity, hint, availability, announcements |
+| `app/_components/Island` | The island: identity, hint, announcements |
 | `app/_components/CommandPalette` | The launcher, always mounted, and the palette, loaded on intent |
 | `app/_components/Home` | The hero, the "+ You" button, the client logos, the project grid |
 
@@ -60,31 +60,34 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   column by column: masonry without it is CSS `grid-lanes`, to adopt once every engine
   ships it. Hidden copies are `display: none`, out of the accessibility tree, and their
   lazy images are never fetched. A missing image warns and falls back to 16:9.
-- **Pointing at a way to reach me shows the availability** on the island (`showsAvailability`
-  on the button and the "+" bubble), and it leaves with the pointer or the focus.
 - **The island speaks through a live region.** Its pill is `aria-hidden`, so an
   announcement also lands in an `sr-only` `role="status"`; a refused clipboard still
   answers, the island showing the text itself.
-- **The "+ You" button grows leftwards.** The CTA row is two equal columns from `sm`,
-  the button pinned to the centre gap, so its growth never moves "Explore my work"; a
-  touch screen has no hover and shows it grown.
+- **The CTA pills share `pillSurface`** (`ui/pill.ts`): `glass-rim` for the top-lit
+  border, `--shadow-pill` per theme, no background change on hover. "Book a call" grows
+  leftwards from a two-column row, so the resume pill never moves; "+ You" arrives in
+  blur and opacity, and a touch screen, with no hover, shows it grown.
+- **Entrances are the 404's**: `rise` (blur, opacity, half a rem) staggered by
+  `--rise-step` in the hero, `Reveal` on each card as it enters the view. Reduced motion
+  shows everything at once.
+- **Client logos are shadcn `Avatar`s** in an `AvatarGroup`, at `portfolio/clients/` on
+  the CDN; until a logo is there the fallback initial shows. Hovered or focused, one
+  scales up over its neighbours, its name in a tooltip below.
+- **A project is a still, and maybe a video**: `image` is always measured (the masonry
+  needs its ratio) and is the video's poster; the video plays muted only while a
+  quarter of it is in view, never under reduced motion. Title and year sit on the
+  media over a blurred scrim, `--media-ink` on `scrim` in both themes.
 - **The shine is CSS alone**: a registered `--sweep` animated in `@keyframes`, painted
   through `shine-text` (background-clipped over `--foreground`) and `shine-border` (a
   masked ring). The text's band dims in dark and lightens in light, `--shine-text`,
   since a white glint on near-white text is invisible; the rim's is `--shine-rim`.
   Reduced motion parks the band off the box.
-- **`ui/command.tsx` is customised**, so update it with `add command --diff`:
-  - the stock `CommandItem` tick is gone: it took `ml-auto` and pushed a row's hint to
-    the middle;
-  - the sr-only title sits inside `DialogContent`, or it renders in the page as an h2
-    before the h1;
-  - `CommandInput` is a bare input, 16px below `sm`, where iOS zooms on focus, without
-    `InputGroup`;
-  - the selection shows only under `any-pointer-fine`: cmdk always selects a row, which
-    under a finger reads as a row stuck lit. Shortcuts hide on coarse pointers and read
-    Ctrl+ off Apple systems;
-  - `CommandDialog` forwards `onOpenAutoFocus` and `onCloseAutoFocus`;
-  - every `ui/` file imports `cn` from `@/lib/utils` (the CLI wrote `from "cn"`).
+- **`ui/command.tsx` is the blog's**, not the CLI's: glass panel, Motion dialog that
+  travels its backdrop blur, a bare 16px input below `sm` (iOS zooms under it), rows
+  selected only under a fine pointer or the keyboard (`data-keyed`), a leaving dialog
+  `inert`. `FadingList` fades the list's ends. A picked command runs on
+  `onExitComplete`, so cal.com never opens over a closing dialog. Shortcuts hide on
+  coarse pointers and read Ctrl+ off Apple systems.
 - **`/resume` proxies the PDF** so `download` holds across origins, cached at the edge
   by `s-maxage`.
 - **Locally, `next/image` may refuse the blog's images** with "resolved to private IP":

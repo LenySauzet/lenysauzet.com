@@ -2,10 +2,14 @@
 
 import { useTheme } from 'next-themes';
 
-import { showsAvailability } from '@/app/_components/Island';
 import { Logo } from '@/components/shared/Logo';
+import { pillSurface } from '@/components/ui/pill';
 import { openBooking } from '@/lib/services/booking';
 import { cn } from '@/lib/utils';
+
+const REVEALED = 'group-hover:grid-cols-[1fr] group-focus-visible:grid-cols-[1fr] pointer-coarse:grid-cols-[1fr]';
+const SHOWN =
+  'group-hover:opacity-100 group-hover:filter-none group-focus-visible:opacity-100 group-focus-visible:filter-none pointer-coarse:opacity-100 pointer-coarse:filter-none';
 
 export function BookCall({ className }: { className?: string }) {
   const { resolvedTheme } = useTheme();
@@ -14,19 +18,29 @@ export function BookCall({ className }: { className?: string }) {
     <button
       type="button"
       onClick={() => openBooking(resolvedTheme)}
-      {...showsAvailability}
-      className={cn(
-        'group shine shine-border relative inline-flex h-11 cursor-pointer items-center rounded-xl border bg-card pr-4 pl-1.5 text-sm font-medium outline-none transition-[scale,background-color] duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100',
-        className
-      )}
+      className={cn(pillSurface, 'group shine shine-border cursor-pointer pr-5 pl-1.5 text-sm font-medium', className)}
     >
       <span className="grid size-8 shrink-0 place-items-center rounded-full bg-background ring-1 ring-border">
         <Logo className="size-4" />
       </span>
-      <span className="grid grid-cols-[0fr] transition-[grid-template-columns] duration-300 ease-out group-hover:grid-cols-[1fr] group-focus-visible:grid-cols-[1fr] pointer-coarse:grid-cols-[1fr] motion-reduce:transition-none">
-        <span aria-hidden className="flex items-center gap-1.5 overflow-hidden">
-          <span className="pl-1.5 text-subtle-foreground">+</span>
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs">You</span>
+      <span
+        className={cn(
+          'grid grid-cols-[0fr] transition-[grid-template-columns] duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:transition-none',
+          REVEALED
+        )}
+      >
+        <span aria-hidden className="overflow-hidden">
+          <span
+            className={cn(
+              'flex items-center gap-1.5 pl-1.5 opacity-0 blur-[6px] transition-[opacity,filter] duration-500 motion-reduce:transition-none',
+              SHOWN
+            )}
+          >
+            <span className="text-subtle-foreground">+</span>
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-[0.6875rem] ring-1 ring-border">
+              You
+            </span>
+          </span>
         </span>
       </span>
       <span className="shine-text pl-2.5">Book a call</span>

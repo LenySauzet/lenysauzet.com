@@ -8,14 +8,14 @@ const email = 'contact@lenysauzet.com';
 const author = {
   name: 'Lény Sauzet',
   firstName: 'Leny',
-  role: 'Innovation engineer',
+  role: 'AI & Software Engineer',
   location: 'Montpellier',
 };
 
 const title = `${author.name} · ${author.role}`;
 
 const description =
-  "I'm Lény, an innovation engineer based in Montpellier. I design and build products at the frontier of the web, from the first sketch to the thing people open every morning.";
+  "I'm Lény, an AI and software engineer based in Montpellier. I turn complex challenges into delightful user experiences and high-performance products.";
 
 const social = {
   github: 'https://github.com/LenySauzet',

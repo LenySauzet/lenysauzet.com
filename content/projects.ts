@@ -2,6 +2,7 @@ export interface Project {
   title: string;
   year: string;
   image: string;
+  video?: string;
   app?: string;
   article?: string;
 }
