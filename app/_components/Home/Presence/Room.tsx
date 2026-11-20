@@ -4,6 +4,7 @@ import { AnimatePresence, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { connect } from '@/lib/presence/connection';
+import { frames, type FrameEvent } from '@/lib/presence/frames';
 import type { ServerMessage } from '@/lib/presence/protocol';
 import { cn } from '@/lib/utils';
 
@@ -11,8 +12,9 @@ import { Cursor } from './Cursor';
 import { shareOwnCursor } from './own-cursor';
 import { createRemoteCursors } from './remote-cursors';
 import { createRemoteHighlights } from './remote-highlights';
+import { createRipples } from './ripple';
 
-type Attach = (id: string, element: HTMLDivElement | null) => void;
+type Attach = (id: string, element: HTMLElement | null) => void;
 
 export function Room({ url, className }: { url: string; className?: string }) {
   const [ids, setIds] = useState<string[]>([]);
@@ -30,48 +32,84 @@ export function Room({ url, className }: { url: string; className?: string }) {
     const top = layer.current;
     top?.showPopover();
 
-    const cursors = createRemoteCursors(setIds, () => Boolean(stillness.current));
-    const highlights = createRemoteHighlights();
-    const redraw = () => highlights.redraw();
+    const isStill = () => Boolean(stillness.current);
+    const ripples = createRipples();
+    const cursors = createRemoteCursors({
+      onChange: setIds,
+      onPress: (_, point) => {
+        if (!isStill()) ripples.at(point);
+      },
+      isStill,
+    });
+    const highlights = createRemoteHighlights(isStill);
+    const pulling = new Map<string, string>();
+    const replays = new Map<string, { due: number; timers: Set<number> }>();
+
+    const replay = (id: string, event: FrameEvent) => {
+      const queue = replays.get(id) ?? { due: 0, timers: new Set<number>() };
+      replays.set(id, queue);
+      queue.due = Math.max(queue.due, performance.now() + cursors.delayOf(id));
+      const timer = window.setTimeout(() => {
+        queue.timers.delete(timer);
+        frames.receive(event);
+      }, queue.due - performance.now());
+      queue.timers.add(timer);
+    };
+
+    const forget = (id: string) => {
+      for (const timer of replays.get(id)?.timers ?? []) window.clearTimeout(timer);
+      replays.delete(id);
+    };
 
     const receive = (message: ServerMessage) => {
       switch (message.type) {
         case 'snapshot': {
           cursors.keepOnly(new Set(message.cursors.map(({ id }) => id)));
           highlights.keepOnly(new Set(message.highlights.map(({ id }) => id)));
-          for (const { id, point } of message.cursors) cursors.move(id, point);
+          for (const { id, path } of message.cursors) cursors.move(id, path);
           for (const { id, span } of message.highlights) highlights.show(id, span);
           return;
         }
         case 'move':
-          return cursors.move(message.id, message.point);
+          return cursors.move(message.id, message.path);
         case 'press':
           return cursors.press(message.id);
         case 'release':
           return cursors.release(message.id);
         case 'leave':
           return cursors.remove(message.id);
-        case 'gone':
+        case 'gone': {
+          forget(message.id);
+          const frame = pulling.get(message.id);
+          if (frame) frames.receive({ type: 'drop', frame });
+          pulling.delete(message.id);
           cursors.remove(message.id);
           return highlights.hide(message.id);
+        }
         case 'highlight':
           return highlights.show(message.id, message.span);
         case 'unhighlight':
           return highlights.hide(message.id);
+        case 'pull':
+          pulling.set(message.id, message.pull.frame);
+          return replay(message.id, { type: 'pull', pull: message.pull });
+        case 'drop':
+          pulling.delete(message.id);
+          return replay(message.id, { type: 'drop', frame: message.frame });
       }
     };
 
     const connection = connect(url, receive);
     const stopSharing = shareOwnCursor(connection);
     attachTo.current = cursors.attach;
-    window.addEventListener('resize', redraw, { passive: true });
 
     return () => {
-      window.removeEventListener('resize', redraw);
+      for (const id of [...replays.keys()]) forget(id);
       stopSharing();
       connection.close();
       cursors.stop();
       highlights.stop();
+      ripples.stop();
       top?.hidePopover();
     };
   }, [url]);

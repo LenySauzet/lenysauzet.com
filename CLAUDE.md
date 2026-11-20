@@ -78,7 +78,7 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 | `lib/build-info.ts` | The commit and build date the footer shows |
 | `hooks/use-island-store.ts` | What the island presents, as data, and `announce` |
 | `hooks/use-palette-store.ts` | Whether the palette is wanted, open, and handing focus back |
-| `lib/presence/` | The cursors' wire protocol, anchors, motion maths and reconnecting socket |
+| `lib/presence/` | The cursors' wire protocol, anchors, motion maths, highlight lines, the frame channel and reconnecting socket |
 | `hooks/use-presence-store.ts` | Whether this visitor hides the others' cursors, kept in the browser |
 | `workers/presence/` | The worker: one Durable Object room, its rate budget, its tests |
 | `hooks/use-animated-icon.ts` | The animated icons' controls, and playing one from its control |
@@ -176,50 +176,85 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   in-memory tag only to cap it at four sockets. The room holds 24 and lets the idlest
   go with close code 4000 to make room, which the client honours by staying down until
   its own pointer moves; a hidden tab closes its socket the same way. Messages over
-  128 characters, unreadable, or beyond a burst of 40 at 30 a second are dropped
+  256 characters, unreadable, or beyond a burst of 120 at 75 a second are dropped
   unread. "leave" means the pointer left the page (or is scrolling) and keeps the
-  visitor's highlight; "gone" means the socket closed and clears both. "Toggle cursors", offered only to a fine pointer, closes the socket and is
-  remembered.
+  visitor's highlight; "gone" means the socket closed and clears both, and lets go of
+  any frame that visitor held. "Toggle cursors", offered only to a fine pointer,
+  closes the socket and is remembered.
 - **The room still completes the close handshake itself.** The compatibility date makes
   the runtime reply to a Close frame, yet under local wrangler sockets stayed CLOSING
   until `webSocketClose` called `close()`; the call is harmless where it is ignored.
-- **A cursor is sent as a place on an element, not a pixel.** `locate` finds the
-  nearest `data-presence` anchor under the pointer (`hero`, `headline`, `intro`,
-  `actions`, `clients`, each `project:<slug>`, `work`, `footer`, else the page) and
-  the fraction of it pointed at; each screen places that on its own copy of the
-  element, so a cursor stays on the same card in a two or a three column layout. The
-  own cursor is sent at most every 40 ms, and leaves with the window or the tab. While
-  its page scrolls it is not sent at all but leaves, and comes back where it settled
+- **A cursor is sent as a place near an element, not a pixel.** Anchors are leaves,
+  never nested: `role`, `headline`, `intro`, `actions`, `clients`, each
+  `project:<slug>`, `metadata`, `links`. `locate` picks the anchor nearest the
+  pointer (the smallest when several hold it) and sends, per sample, the fraction of
+  the box at the closest point on its edge plus the pixels beyond it. Inside, a cursor
+  scales with its element; outside, it keeps its distance, so a cursor 40 px under a
+  card is 40 px under that card in one, two or three columns. A container anchor
+  would map gaps between cards by fraction and land them inside a card elsewhere. When
+  a cursor changes anchor and its place jumps more than 120 px on this layout, it cuts
+  there and fades in rather than gliding across the page.
+- **Moves travel in batches.** The pointer is sampled on every `pointermove` and sent
+  every 33 ms as up to four samples, each with its age, all on the anchor of the
+  latest; a press or a release flushes the batch first, so it lands where it
+  happened. The receiver places samples at arrival minus age and plays them behind
+  real time by a `Cadence` delay, the measured interval between batches plus 2.5 times
+  its jitter (40 to 160 ms): enough to always hold the next sample, no more. It learns
+  only from batches that continue a motion (a gap under 250 ms and an oldest sample at
+  least 10 ms old): the batch that ends a pause would otherwise read as network jitter
+  and push the delay to its ceiling. A cut is a break in the trail at its own time,
+  played like the rest, so a press just before it still lands where it was made. Presses,
+  ripples and frame pulls replay on the same delay so they meet the cursor. While its
+  page scrolls the own cursor is not sent but leaves, and comes back where it settled
   160 ms later: sending through a scroll drew others a straight line across the page.
 - **A selection is shared as characters of an anchor.** `spanOf` counts the
-  characters before each end of the range within the nearest anchor (a selection
-  outside one is not shared), `rangeOf` walks the text nodes of the shown copy back to
-  a range, and `remote-highlights` paints it with the CSS Custom Highlight API in the
-  author's cursor hue, one `::highlight()` rule per visitor in an adopted stylesheet,
-  redrawn on resize. A snapshot replaces what a reconnecting client held, and the own
-  selection is sent again on every open.
+  characters before each end within the anchor holding its start (or its end), keeping
+  the part inside; `rangeOf` walks the text nodes of the shown copy back to a range.
+  `remote-highlights` animates the shown ends towards the shared ones in characters,
+  fractions included, so a selection sweeps along the text: the background is drawn as
+  one rounded rectangle per line in a layer on `body` (document coordinates, under the
+  island at `z-40`), its ends trimmed by the uncovered part of their character; the
+  text takes the hue through a `::highlight()` rule per visitor on the whole characters
+  covered. A cleared selection folds back to its start as it fades. `DOMRect` fields
+  are getters on its prototype, so `{ ...rect }` copies nothing: `linesFor` copies them
+  by name.
 - **The cursors live in the top layer**, a `popover="manual"` shown on mount, which
   sits above every z-index (the island, the palette, cal.com's modal at its maximum)
   and is fixed to the viewport, so the loop subtracts the scroll.
 - **The others' cursors move in one frame loop, outside React.** React only adds and
-  removes them (with an entrance in opacity, scale and blur); each frame draws the
-  path 100 ms behind through Catmull-Rom curves between the received points, damps it
-  exponentially towards that, frame-rate independent, and writes the transform: a tilt
-  and a directional SVG blur from the damped velocity, and a scale held down between a
-  press and its release (released anyway after 4 s, should the release be lost). The
-  loop stops once everything is at rest and wakes on a message, a scroll, a resize, or
-  the moment a cursor is due to rest. A cursor stays invisible until first placed,
-  sinks to a trace after 3 s still, and ten at most are shown:
-  the rest wait for a place to free rather than taking one, which would churn React
-  at the message rate. Each frame reads every box first, then writes, and rewrites the
-  blur only when its rounded value changes.
-  Reduced motion keeps the path and drops the tilt, blur, dip and scale.
-- **The selection frames can be pulled.** Each corner handle drags its corner on a
-  rubber band (`rubberBand`, the iOS curve, 40 px at most) and springs back lightly on
-  release, or eases back under reduced motion; the outline is an SVG path and the
-  hatching a `clip-path` polygon over the same four corners. `body` clips horizontal
-  overflow (`clip`, not `hidden`, so it creates no scroll container), as a corner
-  pulled at the edge of a phone would otherwise widen the page.
+  removes them (with an entrance in opacity, scale and blur); each frame reads the
+  path through Catmull-Rom curves at the cadence delay, damps it lightly (28 ms), and
+  writes the transform: a tilt and a directional SVG blur from the damped velocity,
+  four ghosts along the last 56 ms of the drawn path that fade in with speed (motion
+  blur as a shutter would record it), and a scale on a light spring (`spring`, fixed
+  1 ms steps, so any frame rate moves alike) held down between a press and its release
+  (released anyway after 4 s). A cursor sinks to a trace as soon as it stops and comes
+  back as it moves or presses. The loop stops once everything is at rest and wakes on a
+  message, a scroll, a resize, or a press due to time out. Ten cursors at most are
+  shown: the rest wait for a place to free rather than taking one, which would churn
+  React at the message rate, and their presses are dropped. Each frame reads every box
+  first, then writes, and ripples last; a cursor this page cannot place is skipped
+  without keeping the loop awake. Reduced motion keeps the path and drops the tilt, blur,
+  ghosts, spring and ripple.
+- **A press ripples the element under it (an experiment).** `ripple.ts` puts an SVG
+  filter on the anchor under the pressed point for 700 ms: a ring displacement map
+  drawn once on a canvas, laid over a neutral grey flood (an `feImage` leaves the rest
+  of its region transparent black, which would displace everything), grown from the
+  point while its strength fades, and applied three times at different strengths, one
+  per colour channel, screened back together for the chromatic aberration. Its region
+  bleeds 48 px past the element, for the hatching around a frame. `rise` fills
+  `backwards`, not `both`: a filled animation ends on `filter: none`, which beats any
+  inline filter, and the hero's paragraphs would never ripple.
+- **The selection frames are pulled like Figma's.** A corner moves its two edges on a
+  rubber band (`rubberBand`, the iOS curve, 40 px at most), so the outline stays a
+  rectangle; the hatching is 40 px larger than the frame and clipped to the edges, so
+  its pattern holds still, and the content is clipped to them while they are off
+  rest (`none` at rest, so focus rings are never cut). The frame shares its pulls
+  through `lib/presence/frames.ts`, the room sends them with the batch and replays
+  others' pulls, which the frame follows on a stiff spring unless held here, letting go
+  on a drop, a "gone", or 1.5 s of silence. `body` clips horizontal overflow (`clip`,
+  not `hidden`, so it creates no scroll container), as a corner pulled at the edge of a
+  phone would otherwise widen the page.
 - **`/resume` proxies the PDF** so `download` holds across origins; the edge caches it
   a day and a failure is never cached.
 - **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to

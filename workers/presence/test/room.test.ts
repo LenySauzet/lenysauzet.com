@@ -4,7 +4,15 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { decodeServer, encodeClient, EVICTED, type ServerMessage } from '../../../lib/presence/protocol';
 
 const ORIGIN = 'https://lenysauzet.com';
-const point = { anchor: 'project:ankhora', x: 0.25, y: 0.5 };
+const path = {
+  anchor: 'project:ankhora',
+  samples: [
+    { age: 20, x: 0.2, y: 0.5, dx: 0, dy: 0 },
+    { age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 },
+  ],
+};
+const last = { anchor: 'project:ankhora', samples: [{ age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 }] };
+const pull = { frame: 'headline', corner: 1 as const, x: 12, y: -6 };
 const span = { anchor: 'intro', start: 4, end: 12 };
 const open: { socket: WebSocket; closed: Promise<number> }[] = [];
 
@@ -71,10 +79,10 @@ describe('the presence worker', () => {
     await mover.next();
     await watcher.next();
 
-    mover.socket.send(encodeClient({ type: 'move', point }));
+    mover.socket.send(encodeClient({ type: 'move', path }));
     mover.socket.send(encodeClient({ type: 'press' }));
 
-    expect(await watcher.next()).toMatchObject({ type: 'move', point });
+    expect(await watcher.next()).toMatchObject({ type: 'move', path });
     expect(await watcher.next()).toMatchObject({ type: 'press' });
     expect(await mover.silent()).toBe(true);
   });
@@ -84,12 +92,12 @@ describe('the presence worker', () => {
     const watcher = await connect();
     await mover.next();
     await watcher.next();
-    mover.socket.send(encodeClient({ type: 'move', point }));
+    mover.socket.send(encodeClient({ type: 'move', path }));
     const moved = await watcher.next();
 
     const newcomer = await connect();
 
-    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [{ id: idOf(moved), point }], highlights: [] });
+    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [{ id: idOf(moved), path: last }], highlights: [] });
   });
 
   it('lets the others know when a cursor leaves the page or the visitor goes', async () => {
@@ -98,7 +106,7 @@ describe('the presence worker', () => {
     await leaver.next();
     await watcher.next();
 
-    leaver.socket.send(encodeClient({ type: 'move', point }));
+    leaver.socket.send(encodeClient({ type: 'move', path }));
     const id = idOf(await watcher.next());
     leaver.socket.send(encodeClient({ type: 'leave' }));
     expect(await watcher.next()).toEqual({ type: 'leave', id });
@@ -110,7 +118,7 @@ describe('the presence worker', () => {
   it('forgets where a cursor was once it has left the page', async () => {
     const leaver = await connect();
     await leaver.next();
-    leaver.socket.send(encodeClient({ type: 'move', point }));
+    leaver.socket.send(encodeClient({ type: 'move', path }));
     leaver.socket.send(encodeClient({ type: 'leave' }));
     await idle();
 
@@ -140,6 +148,20 @@ describe('the presence worker', () => {
     expect(await watcher.next()).toEqual({ type: 'release', id: idOf(highlighted) });
   });
 
+  it('relays a frame pulled and let go', async () => {
+    const puller = await connect();
+    const watcher = await connect();
+    await puller.next();
+    await watcher.next();
+
+    puller.socket.send(encodeClient({ type: 'pull', pull }));
+    puller.socket.send(encodeClient({ type: 'drop', frame: 'headline' }));
+
+    const pulled = await watcher.next();
+    expect(pulled).toMatchObject({ type: 'pull', pull });
+    expect(await watcher.next()).toEqual({ type: 'drop', id: idOf(pulled), frame: 'headline' });
+  });
+
   it('refuses a fifth connection from one address', async () => {
     for (let index = 0; index < 4; index += 1) await connect('203.0.113.7');
 
@@ -157,7 +179,7 @@ describe('the presence worker', () => {
     for (let index = 1; index < 24; index += 1) {
       const visitor = await connect(`198.51.100.${index}`);
       await visitor.next();
-      visitor.socket.send(encodeClient({ type: 'move', point }));
+      visitor.socket.send(encodeClient({ type: 'move', path }));
       others.push(visitor);
     }
     await idle();
@@ -173,7 +195,7 @@ describe('the presence worker', () => {
     await sender.next();
     await watcher.next();
 
-    sender.socket.send(`${encodeClient({ type: 'move', point })}${' '.repeat(200)}`);
+    sender.socket.send(`${encodeClient({ type: 'move', path })}${' '.repeat(300)}`);
 
     expect(await watcher.silent()).toBe(true);
   });
@@ -184,15 +206,15 @@ describe('the presence worker', () => {
     await flooder.next();
     await watcher.next();
 
-    flooder.socket.send('["m","<script>",0.5,0.5]');
-    for (let index = 0; index < 100; index += 1) flooder.socket.send(encodeClient({ type: 'press' }));
+    flooder.socket.send('["m","<script>",[0,0.5,0.5,0,0]]');
+    for (let index = 0; index < 200; index += 1) flooder.socket.send(encodeClient({ type: 'press' }));
     flooder.socket.send(encodeClient({ type: 'leave' }));
 
     const received: ServerMessage[] = [];
     for (let message = await settled(watcher.next()); message; message = await settled(watcher.next())) received.push(message);
 
     expect(received.every((message) => message.type === 'press')).toBe(true);
-    expect(received.length).toBeLessThanOrEqual(41);
+    expect(received.length).toBeLessThanOrEqual(121);
   });
 });
 

@@ -1,38 +1,53 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createRemoteCursors } from './remote-cursors';
+import type { Path } from '@/lib/presence/protocol';
 
-const point = { anchor: 'page', x: 0.5, y: 0.5 };
+import { createRemoteCursors, GHOSTS } from './remote-cursors';
+
+const at = (x: number, dx = 0): Path => ({ anchor: 'page', samples: [{ age: 0, x, y: 0, dx, dy: 0 }] });
 
 const ink = () => {
   const element = document.createElement('div');
-  element.innerHTML = '<svg><filter><feGaussianBlur stdDeviation="0 0"></feGaussianBlur></filter></svg>';
+  element.innerHTML = `<svg><filter><feGaussianBlur stdDeviation="0 0"></feGaussianBlur></filter></svg>${'<div data-cursor-ghost></div>'.repeat(GHOSTS)}<div data-cursor-main></div>`;
   return element;
 };
 
-const scaleOf = (element: HTMLElement) => Number(/scale\(([\d.]+)\)/.exec(element.style.transform)?.[1]);
+const mainOf = (element: HTMLElement) => element.querySelector<HTMLElement>('[data-cursor-main]')!;
+const scaleOf = (element: HTMLElement) => Number(/scale\(([\d.]+)\)/.exec(mainOf(element).style.transform)?.[1]);
+const opacityOf = (element: HTMLElement) => Number(mainOf(element).style.opacity);
 
 describe('the remote cursors', () => {
   let published: string[][];
+  let pressed: string[];
   let cursors: ReturnType<typeof createRemoteCursors>;
 
   beforeEach(() => {
     vi.useFakeTimers({
       toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance', 'Date', 'setTimeout', 'clearTimeout'],
     });
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1000);
+    vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(1000);
     published = [];
-    cursors = createRemoteCursors((ids) => published.push(ids), () => false);
+    pressed = [];
+    cursors = createRemoteCursors({
+      onChange: (ids) => published.push(ids),
+      onPress: (id) => pressed.push(id),
+      isStill: () => false,
+    });
   });
 
-  afterEach(() => cursors.stop());
+  afterEach(() => {
+    cursors.stop();
+    vi.restoreAllMocks();
+  });
 
   const shown = () => published.at(-1) ?? [];
 
   it('shows ten at most, and keeps them while more keep moving', () => {
-    for (let index = 0; index < 12; index += 1) cursors.move(`v${index}`, point);
+    for (let index = 0; index < 12; index += 1) cursors.move(`v${index}`, at(0.5));
     const updates = published.length;
 
-    for (let round = 0; round < 5; round += 1) for (let index = 0; index < 12; index += 1) cursors.move(`v${index}`, point);
+    for (let round = 0; round < 5; round += 1) for (let index = 0; index < 12; index += 1) cursors.move(`v${index}`, at(0.5));
 
     expect(shown()).toHaveLength(10);
     expect(shown()).not.toContain('v10');
@@ -40,7 +55,7 @@ describe('the remote cursors', () => {
   });
 
   it('gives a freed place to one who was waiting', () => {
-    for (let index = 0; index < 11; index += 1) cursors.move(`v${index}`, point);
+    for (let index = 0; index < 11; index += 1) cursors.move(`v${index}`, at(0.5));
 
     cursors.remove('v0');
 
@@ -49,40 +64,131 @@ describe('the remote cursors', () => {
   });
 
   it('keeps only the visitors a snapshot names', () => {
-    cursors.move('v0', point);
-    cursors.move('v1', point);
+    cursors.move('v0', at(0.5));
+    cursors.move('v1', at(0.5));
 
     cursors.keepOnly(new Set(['v1']));
 
     expect(shown()).toEqual(['v1']);
   });
 
-  it('dips while pressed and comes back once released', () => {
+  it('springs down when pressed, past its rest, and back once released', () => {
     const element = ink();
-    cursors.move('v0', point);
+    cursors.move('v0', at(0.5));
     cursors.attach('v0', element);
     vi.advanceTimersByTime(300);
     expect(scaleOf(element)).toBeCloseTo(1);
 
     cursors.press('v0');
-    vi.advanceTimersByTime(400);
-    expect(scaleOf(element)).toBeCloseTo(0.82, 2);
+    let lowest = 1;
+    for (let time = 0; time < 600; time += 16) {
+      vi.advanceTimersByTime(16);
+      lowest = Math.min(lowest, scaleOf(element));
+    }
+    expect(lowest).toBeLessThan(0.8);
+    expect(scaleOf(element)).toBeCloseTo(0.8, 2);
+    expect(pressed).toEqual(['v0']);
 
     cursors.release('v0');
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(800);
     expect(scaleOf(element)).toBeCloseTo(1, 2);
   });
 
-  it('fades to a trace once still, without leaving', () => {
+  it('fades to a trace as soon as it stops, and comes back when it moves', () => {
     const element = ink();
-    cursors.move('v0', point);
     cursors.attach('v0', element);
-    vi.advanceTimersByTime(500);
-    expect(element.style.opacity).toBe('1');
+    for (let time = 0; time < 300; time += 16) {
+      cursors.move('v0', at(time / 1000));
+      vi.advanceTimersByTime(16);
+    }
+    expect(opacityOf(element)).toBeGreaterThan(0.9);
 
-    vi.advanceTimersByTime(3000);
-
-    expect(element.style.opacity).toBe('0.2');
+    vi.advanceTimersByTime(900);
+    expect(opacityOf(element)).toBeLessThan(0.25);
     expect(shown()).toEqual(['v0']);
+
+    for (let time = 0; time < 200; time += 16) {
+      cursors.move('v0', at(0.3 + time / 1000));
+      vi.advanceTimersByTime(16);
+    }
+    expect(opacityOf(element)).toBeGreaterThan(0.9);
+  });
+
+  it('cuts to a new place far away instead of gliding across the page', () => {
+    const far = document.createElement('article');
+    far.dataset.presence = 'far';
+    vi.spyOn(far, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+    vi.spyOn(far, 'getBoundingClientRect').mockReturnValue({ left: 900, top: 0, width: 50, height: 50 } as DOMRect);
+    document.body.append(far);
+    const element = ink();
+    cursors.move('v0', at(0));
+    cursors.attach('v0', element);
+    vi.advanceTimersByTime(300);
+
+    cursors.move('v0', { anchor: 'far', samples: [{ age: 0, x: 0, y: 0, dx: 0, dy: 0 }] });
+    const xs: number[] = [];
+    let arrival = 1;
+    for (let time = 0; time < 300; time += 16) {
+      vi.advanceTimersByTime(16);
+      const x = Number(/translate3d\(([\d.]+)px/.exec(mainOf(element).style.transform)?.[1]);
+      if (x === 900 && xs.at(-1) !== 900) arrival = opacityOf(element);
+      xs.push(x);
+    }
+
+    expect(xs.every((x) => x === 0 || x === 900)).toBe(true);
+    expect(xs.at(-1)).toBe(900);
+    expect(arrival).toBeLessThan(0.5);
+    far.remove();
+  });
+
+  it('sleeps rather than spin on a cursor this page cannot place, and drops its presses', () => {
+    const element = ink();
+    cursors.move('v0', { anchor: 'project:elsewhere', samples: [{ age: 0, x: 0, y: 0, dx: 0, dy: 0 }] });
+    cursors.attach('v0', element);
+    cursors.press('v0');
+
+    vi.advanceTimersByTime(500);
+
+    expect(vi.getTimerCount()).toBe(0);
+    expect(pressed).toEqual([]);
+  });
+
+  it('ripples a press where it happened, even when a cut follows it', () => {
+    const far = document.createElement('article');
+    far.dataset.presence = 'far';
+    vi.spyOn(far, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+    vi.spyOn(far, 'getBoundingClientRect').mockReturnValue({ left: 900, top: 0, width: 50, height: 50 } as DOMRect);
+    document.body.append(far);
+    const ripples: number[] = [];
+    cursors.stop();
+    cursors = createRemoteCursors({
+      onChange: (ids) => published.push(ids),
+      onPress: (_, point) => ripples.push(point.x),
+      isStill: () => false,
+    });
+    cursors.move('v0', at(0.1));
+    cursors.attach('v0', ink());
+    vi.advanceTimersByTime(300);
+
+    cursors.press('v0');
+    cursors.move('v0', { anchor: 'far', samples: [{ age: 0, x: 0, y: 0, dx: 0, dy: 0 }] });
+    vi.advanceTimersByTime(300);
+
+    expect(ripples).toEqual([100]);
+    far.remove();
+  });
+
+  it('draws a trail behind a fast cursor only', () => {
+    const element = ink();
+    cursors.attach('v0', element);
+    for (let time = 0; time < 200; time += 16) {
+      cursors.move('v0', at(time / 300));
+      vi.advanceTimersByTime(16);
+    }
+    const ghost = element.querySelector<HTMLElement>('[data-cursor-ghost]')!;
+    expect(Number(ghost.style.opacity)).toBeGreaterThan(0.1);
+
+    vi.advanceTimersByTime(1000);
+    expect(Number(ghost.style.opacity)).toBe(0);
   });
 });

@@ -1,9 +1,11 @@
 import { locate, spanOf } from '@/lib/presence/anchors';
 import type { Connection } from '@/lib/presence/connection';
-import type { Vector } from '@/lib/presence/motion';
-import type { Span } from '@/lib/presence/protocol';
+import { frames } from '@/lib/presence/frames';
+import type { Timed, Vector } from '@/lib/presence/motion';
+import { MOST_SAMPLES, type Pull, type Span } from '@/lib/presence/protocol';
 
-const SEND_EVERY = 40;
+const SEND_EVERY = 33;
+const OLDEST = 1000;
 const SCROLL_SETTLES_AFTER = 160;
 const SELECTION_SETTLES_AFTER = 120;
 
@@ -13,28 +15,48 @@ export function shareOwnCursor(connection: Connection) {
   const listening = new AbortController();
   const options = { passive: true, signal: listening.signal };
   let client: Vector | undefined;
+  let taken: Timed<Vector>[] = [];
+  let pulled: Pull | undefined;
   let sentAt = -Infinity;
   let pending = 0;
   let scrolling = 0;
   let selecting = 0;
   let shared: Span | undefined;
 
-  const send = () => {
+  const take = (at: number) => {
+    if (!client) return;
+    const point = { x: client.x + window.scrollX, y: client.y + window.scrollY };
+    taken = [...taken, { at, value: point }].slice(-MOST_SAMPLES);
+  };
+
+  const flush = () => {
+    window.clearTimeout(pending);
     pending = 0;
-    if (!client || scrolling) return;
-    connection.send({ type: 'move', point: locate(client) });
-    sentAt = performance.now();
+    const now = performance.now();
+    const located = scrolling ? undefined : locate(taken.map(({ value }) => value));
+    if (located) {
+      const samples = located.placements.map((placement, index) => ({
+        age: Math.min(OLDEST, Math.max(0, Math.round(now - (taken[index]?.at ?? now)))),
+        ...placement,
+      }));
+      connection.send({ type: 'move', path: { anchor: located.anchor, samples } });
+    }
+    if (pulled) connection.send({ type: 'pull', pull: pulled });
+    taken = [];
+    pulled = undefined;
+    sentAt = now;
   };
 
   const schedule = () => {
-    if (!client || pending || scrolling) return;
+    if (pending) return;
     const wait = SEND_EVERY - (performance.now() - sentAt);
-    if (wait <= 0) send();
-    else pending = window.setTimeout(send, wait);
+    if (wait <= 0) flush();
+    else pending = window.setTimeout(flush, wait);
   };
 
   const leave = () => {
     client = undefined;
+    taken = [];
     window.clearTimeout(pending);
     pending = 0;
     connection.send({ type: 'leave' });
@@ -52,7 +74,18 @@ export function shareOwnCursor(connection: Connection) {
   connection.onOpen(() => {
     shared = undefined;
     shareSelection();
-    send();
+    take(performance.now());
+    flush();
+  });
+
+  const stopSharingFrames = frames.onShared((event) => {
+    if (event.type === 'pull') {
+      pulled = event.pull;
+      schedule();
+      return;
+    }
+    flush();
+    connection.send({ type: 'drop', frame: event.frame });
   });
 
   window.addEventListener(
@@ -60,26 +93,33 @@ export function shareOwnCursor(connection: Connection) {
     (event) => {
       if (event.pointerType !== 'mouse') return;
       client = { x: event.clientX, y: event.clientY };
+      if (scrolling) return;
+      take(event.timeStamp);
       connection.wake();
       schedule();
     },
     options
   );
-  window.addEventListener(
-    'pointerdown',
-    (event) => event.pointerType === 'mouse' && connection.send({ type: 'press' }),
-    options
-  );
-  window.addEventListener(
-    'pointerup',
-    (event) => event.pointerType === 'mouse' && connection.send({ type: 'release' }),
-    options
-  );
+  for (const [type, signal] of [
+    ['pointerdown', 'press'],
+    ['pointerup', 'release'],
+  ] as const) {
+    window.addEventListener(
+      type,
+      (event) => {
+        if (event.pointerType !== 'mouse') return;
+        flush();
+        connection.send({ type: signal });
+      },
+      options
+    );
+  }
   window.addEventListener(
     'scroll',
     () => {
       if (!client) return;
       if (!scrolling) {
+        taken = [];
         window.clearTimeout(pending);
         pending = 0;
         connection.send({ type: 'leave' });
@@ -87,7 +127,8 @@ export function shareOwnCursor(connection: Connection) {
       window.clearTimeout(scrolling);
       scrolling = window.setTimeout(() => {
         scrolling = 0;
-        send();
+        take(performance.now());
+        flush();
       }, SCROLL_SETTLES_AFTER);
     },
     options
@@ -113,6 +154,7 @@ export function shareOwnCursor(connection: Connection) {
 
   return () => {
     listening.abort();
+    stopSharingFrames();
     window.clearTimeout(pending);
     window.clearTimeout(scrolling);
     window.clearTimeout(selecting);

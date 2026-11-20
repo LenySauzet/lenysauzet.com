@@ -30,15 +30,15 @@ export function Footer({ className }: { className?: string }) {
   const { commit, built } = buildInfo;
 
   return (
-    <footer data-presence="footer" className={cn(pageGrid, className)}>
+    <footer className={cn(pageGrid, className)}>
       <RisingBand lane="first" />
 
       <div className="flex flex-col gap-8 pt-8 pb-32 sm:pb-16 lg:col-start-3">
-        <section aria-labelledby="metadata-heading" className="flex flex-col gap-4">
+        <section data-presence="metadata" aria-labelledby="metadata-heading" className="flex flex-col gap-4">
           <h2 id="metadata-heading" className={LABEL}>
             Metadata
           </h2>
-          <SelectionFrame className="lg:-mx-6 lg:px-6">
+          <SelectionFrame name="metadata" className="lg:-mx-6 lg:px-6">
             <dl className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
               <Reading label="Commit">
                 {commit ? (
@@ -68,7 +68,7 @@ export function Footer({ className }: { className?: string }) {
           </SelectionFrame>
         </section>
 
-        <nav aria-label="Links" className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
+        <nav data-presence="links" aria-label="Links" className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
           <p className={cn(LABEL, 'col-span-2 sm:col-span-1')}>Links</p>
           <LinkList>
             <li>

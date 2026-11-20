@@ -12,15 +12,15 @@ export function Hero({ className }: { className?: string }) {
   const { role, location } = siteConfig.author;
 
   return (
-    <section data-presence="hero" className={cn(pageGrid, className)}>
+    <section className={cn(pageGrid, className)}>
       <HatchBand />
 
       <div className="flex flex-col items-center pt-16 pb-20 text-center sm:pt-40 lg:col-start-3">
-        <p className="rise text-sm text-subtle-foreground">
+        <p data-presence="role" className="rise text-sm text-subtle-foreground">
           {role} · {location}
         </p>
 
-        <SelectionFrame className="rise mt-6 [--rise-step:1]">
+        <SelectionFrame name="headline" className="rise mt-6 [--rise-step:1]">
           <h1 data-presence="headline" className="font-serif text-4xl leading-[1.1] tracking-tight text-balance sm:text-5xl">
             Turning complex challenges into <em>delightful</em> &amp; <em>fast</em> products.
           </h1>

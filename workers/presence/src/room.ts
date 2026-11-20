@@ -9,7 +9,7 @@ import {
   MAX_CLIENT_MESSAGE,
   type Cursor,
   type Highlight,
-  type Point,
+  type Path,
   type ServerMessage,
   type Span,
 } from '../../../lib/presence/protocol';
@@ -17,14 +17,14 @@ import { Budget } from './budget';
 
 const CAPACITY = 24;
 const PER_ADDRESS = 4;
-const BURST = 40;
-const PER_SECOND = 30;
+const BURST = 120;
+const PER_SECOND = 75;
 const RESERVED_CODES = new Set([1004, 1005, 1006, 1015]);
 
 interface Visitor {
   id: string;
   activeAt: number;
-  point?: Point;
+  path?: Path;
   span?: Span;
 }
 
@@ -72,10 +72,10 @@ export class Room extends DurableObject<Env> {
 
     switch (message.type) {
       case 'move':
-        remember({ point: message.point });
-        return this.broadcast(socket, { type: 'move', id, point: message.point });
+        remember({ path: lastOf(message.path) });
+        return this.broadcast(socket, { type: 'move', id, path: message.path });
       case 'leave':
-        remember({ point: undefined });
+        remember({ path: undefined });
         return this.broadcast(socket, { type: 'leave', id });
       case 'highlight':
         remember({ span: message.span });
@@ -83,6 +83,12 @@ export class Room extends DurableObject<Env> {
       case 'unhighlight':
         remember({ span: undefined });
         return this.broadcast(socket, { type: 'unhighlight', id });
+      case 'pull':
+        remember({});
+        return this.broadcast(socket, { type: 'pull', id, pull: message.pull });
+      case 'drop':
+        remember({});
+        return this.broadcast(socket, { type: 'drop', id, frame: message.frame });
       default:
         remember({});
         return this.broadcast(socket, { type: message.type, id });
@@ -129,7 +135,7 @@ export class Room extends DurableObject<Env> {
       .map(visitorOf);
 
     return {
-      cursors: visitors.flatMap(({ id, point }) => (point ? [{ id, point }] : [])),
+      cursors: visitors.flatMap(({ id, path }) => (path ? [{ id, path }] : [])),
       highlights: visitors.flatMap(({ id, span }) => (span ? [{ id, span }] : [])),
     };
   }
@@ -143,3 +149,8 @@ export class Room extends DurableObject<Env> {
 }
 
 const visitorOf = (socket: WebSocket) => socket.deserializeAttachment() as Visitor;
+
+const lastOf = ({ anchor, samples }: Path): Path => ({
+  anchor,
+  samples: samples.slice(-1).map((sample) => ({ ...sample, age: 0 })),
+});
