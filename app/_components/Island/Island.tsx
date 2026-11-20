@@ -79,6 +79,7 @@ export function Island({ className }: { className?: string }) {
     <motion.div
       layout
       layoutRoot
+      data-presence-ignore
       className={cn(
         'fixed bottom-6 left-[calc(50%-var(--removed-body-scroll-bar-size,0px)/2)] z-50 -translate-x-1/2 sm:top-6 sm:bottom-auto',
         className

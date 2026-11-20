@@ -255,8 +255,11 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   ghosts, spring and ripple.
 - **A click ripples the page under it (an experiment).** A click is a press released
   within 350 ms and 8 px, leaving no selection, so selecting text or dragging never
-  ripples; the own clicks ripple too, the island's and the palette's included (a modal
-  stops the cursor being shared, not the clicks rippling). The ripples have their own
+  ripples; the own clicks ripple too, the palette's included (a modal stops the cursor
+  being shared, not the clicks rippling). The island is `data-presence-ignore`: it
+  moves with its content, so a press on it is neither shared nor rippled. A "leave"
+  plays on the same timeline as the presses before it, so the click that opens cal.com
+  still ripples for the others before that cursor goes. The ripples have their own
   popover, shown after the cursors' and never faded with it: the island opens the
   palette and "Book a call" opens cal.com, both of which hide the cursors' layer, and
   their clicks' ripples went with it. Clicks inside cal.com's iframe never reach the

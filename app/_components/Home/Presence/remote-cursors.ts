@@ -46,7 +46,7 @@ interface Precision {
   placement: Placement;
 }
 
-type Signal = 'press' | 'release';
+type Signal = 'press' | 'release' | 'leave';
 
 interface Remote {
   trail: Trail<Placed>;
@@ -120,6 +120,7 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
     };
     const scroll = { x: window.scrollX, y: window.scrollY };
     const clicks: { id: string; point: Vector }[] = [];
+    const departed: string[] = [];
     drewAt = now;
 
     const read = published.flatMap((id) => {
@@ -144,7 +145,9 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
       for (let next = remote.signals[0]; next && next.at <= time; next = remote.signals[0]) {
         remote.signals.shift();
         const { pressed } = remote;
-        if (next.value === 'press') {
+        if (next.value === 'leave') {
+          departed.push(id);
+        } else if (next.value === 'press') {
           remote.pressed = target && { at: now, value: remote.shown ?? target };
         } else if (pressed) {
           remote.pressed = undefined;
@@ -221,6 +224,10 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
     }
 
     for (const { id, point } of clicks) onClick?.(id, point);
+    if (departed.length) {
+      for (const id of departed) remotes.delete(id);
+      publish();
+    }
 
     window.clearTimeout(timer);
     if (busy) {
@@ -280,6 +287,10 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
     release: (id: string) => signal(id, 'release'),
     delayOf(id: string) {
       return remotes.get(id)?.cadence.delay ?? 0;
+    },
+    leave(id: string) {
+      if (inks.has(id) && published.includes(id)) signal(id, 'leave');
+      else if (remotes.delete(id)) publish();
     },
     remove(id: string) {
       if (remotes.delete(id)) publish();

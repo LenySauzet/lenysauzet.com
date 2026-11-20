@@ -83,7 +83,7 @@ export function Room({ url, className }: { url: string; className?: string }) {
         case 'release':
           return cursors.release(message.id);
         case 'leave':
-          return cursors.remove(message.id);
+          return cursors.leave(message.id);
         case 'gone': {
           forget(message.id);
           const frame = pulling.get(message.id);

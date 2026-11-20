@@ -10,6 +10,7 @@ const SCROLL_SETTLES_AFTER = 160;
 const SELECTION_SETTLES_AFTER = 120;
 const LONGEST_CLICK = 350;
 const CLICK_SLOP = 8;
+const UNSHARED = '[data-presence-ignore]';
 
 const sameSpan = (a?: Span, b?: Span) => a?.anchor === b?.anchor && a?.start === b?.start && a?.end === b?.end;
 
@@ -20,6 +21,7 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
   let held: string | undefined;
   let pressed: Timed<Vector> | undefined;
   let covered = false;
+  let down = false;
   let taken: Timed<Vector>[] = [];
   let pulled: Pull | undefined;
   let sentAt = -Infinity;
@@ -116,8 +118,11 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
     'pointerdown',
     (event) => {
       if (event.pointerType !== 'mouse') return;
-      pressed = event.button === 0 ? { at: event.timeStamp, value: { x: event.clientX, y: event.clientY } } : undefined;
-      if (covered) return;
+      const unshared = event.target instanceof Element && event.target.closest(UNSHARED) !== null;
+      pressed =
+        event.button === 0 && !unshared ? { at: event.timeStamp, value: { x: event.clientX, y: event.clientY } } : undefined;
+      if (covered || unshared) return;
+      down = true;
       flush();
       connection.send({ type: 'press' });
     },
@@ -127,10 +132,11 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
     'pointerup',
     (event) => {
       if (event.pointerType !== 'mouse') return;
-      if (!covered) {
+      if (down && !covered) {
         flush();
         connection.send({ type: 'release' });
       }
+      down = false;
       const click = pressed;
       pressed = undefined;
       if (

@@ -191,6 +191,22 @@ describe('the remote cursors', () => {
     card.remove();
   });
 
+  it('plays a click that opened a modal before the cursor leaves with it', () => {
+    cursors.move('v0', at(0.2));
+    cursors.attach('v0', ink());
+    vi.advanceTimersByTime(300);
+
+    cursors.press('v0');
+    vi.advanceTimersByTime(80);
+    cursors.release('v0');
+    cursors.leave('v0');
+    expect(shown()).toEqual(['v0']);
+
+    vi.advanceTimersByTime(300);
+    expect(clicked).toEqual([200]);
+    expect(shown()).toEqual([]);
+  });
+
   it('draws a trail behind a fast cursor only', () => {
     const element = ink();
     cursors.attach('v0', element);
