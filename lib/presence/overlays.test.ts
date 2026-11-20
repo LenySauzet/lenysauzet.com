@@ -23,6 +23,22 @@ describe('watchOverlays', () => {
     expect(changed.mock.calls).toEqual([[true], [false]]);
   });
 
+  it("sees cal.com's modal hidden by its close button, which leaves its state loaded", async () => {
+    const changed = vi.fn();
+    const stop = watchOverlays(changed);
+
+    const modal = document.createElement('cal-modal-box');
+    modal.setAttribute('state', 'loaded');
+    modal.style.visibility = 'visible';
+    document.body.append(modal);
+    await settle();
+    modal.style.visibility = 'hidden';
+    await settle();
+    stop();
+
+    expect(changed.mock.calls).toEqual([[true], [false]]);
+  });
+
   it("follows cal.com's modal from opening to closed", async () => {
     const changed = vi.fn();
     const stop = watchOverlays(changed);

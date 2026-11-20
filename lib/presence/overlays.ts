@@ -3,9 +3,12 @@ const CAL_MODAL = 'cal-modal-box';
 const CAL_STATE = 'state';
 const CAL_CLOSED = 'closed';
 
+const isOpen = (modal: Element) =>
+  modal.getAttribute(CAL_STATE) !== CAL_CLOSED &&
+  !(modal instanceof HTMLElement && modal.style.visibility === 'hidden');
+
 const isCovered = () =>
-  document.body.hasAttribute(SCROLL_LOCK) ||
-  [...document.querySelectorAll(CAL_MODAL)].some((modal) => modal.getAttribute(CAL_STATE) !== CAL_CLOSED);
+  document.body.hasAttribute(SCROLL_LOCK) || [...document.querySelectorAll(CAL_MODAL)].some(isOpen);
 
 export function watchOverlays(onChange: (covered: boolean) => void) {
   let covered = isCovered();
@@ -21,7 +24,7 @@ export function watchOverlays(onChange: (covered: boolean) => void) {
     for (const modal of document.querySelectorAll(CAL_MODAL)) {
       if (watched.has(modal)) continue;
       watched.add(modal);
-      modals.observe(modal, { attributes: true, attributeFilter: [CAL_STATE] });
+      modals.observe(modal, { attributes: true, attributeFilter: [CAL_STATE, 'style'] });
     }
     check();
   });

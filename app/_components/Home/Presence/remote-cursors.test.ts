@@ -4,7 +4,7 @@ import type { Path } from '@/lib/presence/protocol';
 
 import { createRemoteCursors, GHOSTS } from './remote-cursors';
 
-const at = (x: number, dx = 0): Path => ({ anchor: 'page', part: '', samples: [{ age: 0, x, y: 0, dx, dy: 0 }] });
+const at = (x: number, dx = 0): Path => ({ anchor: 'page', samples: [{ age: 0, x, y: 0, dx, dy: 0 }] });
 
 const ink = () => {
   const element = document.createElement('div');
@@ -118,7 +118,7 @@ describe('the remote cursors', () => {
 
   it('sleeps rather than spin on a cursor this page cannot place, and drops its clicks', () => {
     const element = ink();
-    cursors.move('v0', { anchor: 'project:elsewhere', part: '', samples: [{ age: 0, x: 0, y: 0, dx: 0, dy: 0 }] });
+    cursors.move('v0', { anchor: 'project:elsewhere', samples: [{ age: 0, x: 0, y: 0, dx: 0, dy: 0 }] });
     cursors.attach('v0', element);
     cursors.press('v0');
     cursors.release('v0');
@@ -154,6 +154,41 @@ describe('the remote cursors', () => {
     cursors.release('v0');
     vi.advanceTimersByTime(300);
     expect(clicked).toEqual([100]);
+  });
+
+  it('follows the motion while fast, and settles on the precise element once slow', () => {
+    const card = document.createElement('article');
+    card.dataset.presence = 'card';
+    card.innerHTML = '<a>View</a>';
+    const link = card.querySelector('a')!;
+    for (const [element, box] of [
+      [card, { left: 0, top: 0, width: 1000, height: 100 }],
+      [link, { left: 500, top: 50, width: 10, height: 10 }],
+    ] as const) {
+      vi.spyOn(element, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+      vi.spyOn(element, 'getBoundingClientRect').mockReturnValue(box as DOMRect);
+    }
+    document.body.append(card);
+    const element = ink();
+    cursors.attach('v0', element);
+    const xOf = () => Number(/translate3d\(([\d.]+)px/.exec(mainOf(element).style.transform)?.[1]);
+    const sweep = (x: number) => ({
+      anchor: 'card',
+      detail: { part: '0', x: 0.5, y: 0.5 },
+      samples: [{ age: 16, x: x - 0.016, y: 0.1, dx: 0, dy: 0 }, { age: 0, x, y: 0.1, dx: 0, dy: 0 }],
+    });
+
+    let drift = 0;
+    for (let time = 0; time < 400; time += 16) {
+      cursors.move('v0', sweep(time / 1000));
+      vi.advanceTimersByTime(16);
+      if (time > 200) drift = Math.max(drift, Math.abs(xOf() - (time - 60)));
+    }
+    expect(drift).toBeLessThan(60);
+
+    vi.advanceTimersByTime(1000);
+    expect(xOf()).toBeCloseTo(505, 0);
+    card.remove();
   });
 
   it('draws a trail behind a fast cursor only', () => {

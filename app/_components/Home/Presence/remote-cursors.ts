@@ -11,7 +11,7 @@ import {
   type Timed,
   type Vector,
 } from '@/lib/presence/motion';
-import type { Path, Target } from '@/lib/presence/protocol';
+import type { Detail, Path } from '@/lib/presence/protocol';
 
 const LAG = 28;
 const SETTLE = 90;
@@ -32,9 +32,17 @@ const FULL_SMEAR = 0.8;
 const MOST_SHOWN = 10;
 const LONGEST_FRAME = 64;
 const AT_REST = 0.05;
+const PRECISE_BELOW = 0.45;
+const CORRECTING = 110;
 
 interface Placed {
-  target: Target;
+  anchor: string;
+  placement: Placement;
+}
+
+interface Precision {
+  anchor: string;
+  detail: Detail;
   placement: Placement;
 }
 
@@ -44,6 +52,10 @@ interface Remote {
   trail: Trail<Placed>;
   cadence: Cadence;
   signals: Timed<Signal>[];
+  precisions: Timed<Precision | undefined>[];
+  correction: Vector;
+  followed?: Vector;
+  pace: number;
   pressed?: Timed<Vector>;
   shown?: Vector;
   movedAt: number;
@@ -98,7 +110,14 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
     const elapsed = Math.min(LONGEST_FRAME, now - drewAt || 16);
     const still = isStill();
     const place = createPlacer();
-    const resolve = ({ target, placement }: Placed) => place(target, placement);
+    const resolve = ({ anchor, placement }: Placed) => place({ anchor, part: '' }, placement);
+    const offsetOf = (precision: Precision | undefined): Vector => {
+      if (!precision) return { x: 0, y: 0 };
+      const { anchor, detail, placement } = precision;
+      const precise = place({ anchor, part: detail.part }, { x: detail.x, y: detail.y, dx: 0, dy: 0 });
+      const coarse = place({ anchor, part: '' }, placement);
+      return precise && coarse ? { x: precise.x - coarse.x, y: precise.y - coarse.y } : { x: 0, y: 0 };
+    };
     const scroll = { x: window.scrollX, y: window.scrollY };
     const clicks: { id: string; point: Vector }[] = [];
     drewAt = now;
@@ -108,7 +127,20 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
       const ink = inks.get(id);
       if (!remote || !ink) return [];
       const time = now - remote.cadence.delay;
-      const target = remote.trail.at(time, resolve);
+      const path = remote.trail.at(time, resolve);
+      while (remote.precisions.length > 1 && (remote.precisions[1]?.at ?? Infinity) <= time) remote.precisions.shift();
+      const due = remote.precisions[0];
+      const offset = due && due.at <= time ? offsetOf(due.value) : { x: 0, y: 0 };
+      const travelled = path && remote.followed ? Math.hypot(path.x - remote.followed.x, path.y - remote.followed.y) : 0;
+      remote.followed = path;
+      remote.pace = damp(remote.pace, travelled / elapsed, SETTLE, elapsed);
+      const weight = still ? 1 : Math.max(0, 1 - remote.pace / PRECISE_BELOW);
+      const aim = { x: offset.x * weight, y: offset.y * weight };
+      remote.correction = {
+        x: damp(remote.correction.x, aim.x, CORRECTING, elapsed),
+        y: damp(remote.correction.y, aim.y, CORRECTING, elapsed),
+      };
+      const target = path && { x: path.x + remote.correction.x, y: path.y + remote.correction.y };
       for (let next = remote.signals[0]; next && next.at <= time; next = remote.signals[0]) {
         remote.signals.shift();
         const { pressed } = remote;
@@ -120,13 +152,13 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
           if (quick && target && distance(target, pressed.value) < CLICK_SLOP) clicks.push({ id, point: pressed.value });
         }
       }
-      return target ? [{ remote, ink, time, target }] : [];
+      return target ? [{ remote, ink, time, target, aim }] : [];
     });
 
     let busy = false;
     let nextTimer = Infinity;
 
-    for (const { remote, ink, time, target } of read) {
+    for (const { remote, ink, time, target, aim } of read) {
       if (remote.pressed && now - remote.pressed.at > LONGEST_PRESS) remote.pressed = undefined;
       const pressed = remote.pressed !== undefined;
 
@@ -179,9 +211,11 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
       busy ||=
         distance(target, shown) > AT_REST ||
         speed > AT_REST / 100 ||
+        remote.pace > AT_REST / 100 ||
         Math.abs(remote.scale.value - scaleGoal) + Math.abs(remote.scale.velocity) > AT_REST / 10 ||
         Math.abs(remote.tilt) > AT_REST ||
         Math.abs(remote.opacity - opacityGoal) > AT_REST / 10 ||
+        Math.hypot(remote.correction.x - aim.x, remote.correction.y - aim.y) > AT_REST ||
         remote.signals.length > 0 ||
         (remote.trail.latest?.at ?? 0) > time;
     }
@@ -207,6 +241,9 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
         trail: new Trail(),
         cadence: new Cadence(),
         signals: [],
+        precisions: [],
+        correction: { x: 0, y: 0 },
+        pace: 0,
         movedAt: 0,
         history: [],
         velocity: { x: 0, y: 0 },
@@ -229,12 +266,14 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
   };
 
   return {
-    move(id: string, { anchor, part, samples }: Path) {
+    move(id: string, { anchor, detail, samples }: Path) {
       const now = performance.now();
       const remote = remoteOf(id);
       remote.cadence.hear(now, samples[0]?.age ?? 0);
-      for (const { age, ...placement } of samples)
-        remote.trail.push({ at: now - age, value: { target: { anchor, part }, placement } });
+      for (const { age, ...placement } of samples) remote.trail.push({ at: now - age, value: { anchor, placement } });
+      const latest = samples.at(-1);
+      const precision = detail && latest && { anchor, detail, placement: latest };
+      remote.precisions.push({ at: now - (latest?.age ?? 0), value: precision });
       wake();
     },
     press: (id: string) => signal(id, 'press'),

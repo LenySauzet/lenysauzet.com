@@ -2,7 +2,8 @@ import type { Vector } from '@/lib/presence/motion';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const DURATION = 700;
-const REACH = 140;
+const REACH = 120;
+const SIZE = REACH * 2;
 const STRENGTH = 34;
 const CHANNELS = [
   { spread: 1.3, keep: '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0' },
@@ -10,8 +11,10 @@ const CHANNELS = [
   { spread: 0.7, keep: '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0' },
 ];
 const MAP_SIZE = 256;
-const BLEED = 48;
 const RING_FROM = 0.5;
+const PLACED = 'pointer-events-none absolute rounded-full';
+const SHIMMER = 'blur(1.5px) saturate(1.8)';
+const RING_MASK = 'radial-gradient(closest-side, transparent 55%, black 80%, transparent 100%)';
 
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
@@ -30,7 +33,8 @@ function waveMap() {
       const dx = (x + 0.5 - middle) / middle;
       const dy = (y + 0.5 - middle) / middle;
       const distance = Math.hypot(dx, dy);
-      const ring = distance > RING_FROM && distance < 1 ? Math.sin((Math.PI * (distance - RING_FROM)) / (1 - RING_FROM)) : 0;
+      const ring =
+        distance > RING_FROM && distance < 1 ? Math.sin((Math.PI * (distance - RING_FROM)) / (1 - RING_FROM)) : 0;
       const index = (y * MAP_SIZE + x) * 4;
       image.data[index] = 128 + 127 * (distance ? dx / distance : 0) * ring;
       image.data[index + 1] = 128 + 127 * (distance ? dy / distance : 0) * ring;
@@ -49,28 +53,58 @@ const create = <K extends keyof SVGElementTagNameMap>(name: K, attributes: Recor
   return element;
 };
 
-export function createRipples() {
+const isWebKit = () => 'GestureEvent' in window;
+const distorts = () => CSS.supports('backdrop-filter', 'url(#ripple)') && !isWebKit();
+
+export function createRipples(layer: HTMLElement) {
   const defs = create('svg', { width: 0, height: 0, 'aria-hidden': 'true' });
   defs.style.position = 'absolute';
-  document.body.append(defs);
-  const running = new Map<HTMLElement, () => void>();
+  layer.append(defs);
+  const running = new Set<() => void>();
   let count = 0;
 
-  const ripple = (element: HTMLElement, center: Vector, size: { width: number; height: number }) => {
-    const map = waveMap();
-    if (!map) return;
-    running.get(element)?.();
+  const place = (center: Vector) => {
+    const element = document.createElement('div');
+    element.className = PLACED;
+    Object.assign(element.style, {
+      left: `${center.x - REACH}px`,
+      top: `${center.y - REACH}px`,
+      width: `${SIZE}px`,
+      height: `${SIZE}px`,
+    });
+    layer.append(element);
+    return element;
+  };
 
+  const shimmer = (center: Vector) => {
+    const element = place(center);
+    Object.assign(element.style, { backdropFilter: SHIMMER, webkitBackdropFilter: SHIMMER, maskImage: RING_MASK });
+    const animation = element.animate(
+      [
+        { transform: 'scale(0.15)', opacity: 1 },
+        { transform: 'scale(1)', opacity: 0 },
+      ],
+      { duration: DURATION, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' }
+    );
+    const end = () => {
+      element.remove();
+      running.delete(end);
+    };
+    running.add(end);
+    animation.onfinish = end;
+  };
+
+  const distort = (center: Vector, map: string) => {
     const id = `presence-ripple-${(count += 1)}`;
     const filter = create('filter', {
       id,
+      x: 0,
+      y: 0,
+      width: SIZE,
+      height: SIZE,
       filterUnits: 'userSpaceOnUse',
-      x: -BLEED,
-      y: -BLEED,
-      width: size.width + BLEED * 2,
-      height: size.height + BLEED * 2,
-      'color-interpolation-filters': 'sRGB',
       primitiveUnits: 'userSpaceOnUse',
+      'color-interpolation-filters': 'sRGB',
     });
     const image = create('feImage', { href: map, preserveAspectRatio: 'none', result: 'wave' });
     const displacements = CHANNELS.map((_, index) =>
@@ -96,23 +130,23 @@ export function createRipples() {
     );
     defs.append(filter);
 
-    const before = element.style.filter;
-    element.style.filter = `url(#${id})`;
+    const element = place(center);
+    element.style.backdropFilter = `url(#${id})`;
     const startedAt = performance.now();
     let frame = 0;
 
     const end = () => {
       window.cancelAnimationFrame(frame);
-      element.style.filter = before;
+      element.remove();
       filter.remove();
-      running.delete(element);
+      running.delete(end);
     };
 
     const step = (now: number) => {
       const t = Math.min(1, (now - startedAt) / DURATION);
       const radius = Math.max(1, REACH * easeOutCubic(t));
-      image.setAttribute('x', String(center.x - radius));
-      image.setAttribute('y', String(center.y - radius));
+      image.setAttribute('x', String(REACH - radius));
+      image.setAttribute('y', String(REACH - radius));
       image.setAttribute('width', String(radius * 2));
       image.setAttribute('height', String(radius * 2));
       const strength = STRENGTH * (1 - t) ** 2;
@@ -123,21 +157,18 @@ export function createRipples() {
       else end();
     };
 
-    running.set(element, end);
+    running.add(end);
     frame = window.requestAnimationFrame(step);
   };
 
   return {
-    at(point: Vector) {
-      const client = { x: point.x - window.scrollX, y: point.y - window.scrollY };
-      const under = document.elementFromPoint(client.x, client.y);
-      const target = under?.closest<HTMLElement>('[data-ripple]') ?? under?.closest<HTMLElement>('[data-presence]');
-      if (!target) return;
-      const box = target.getBoundingClientRect();
-      ripple(target, { x: client.x - box.left, y: client.y - box.top }, box);
+    at(client: Vector) {
+      const map = distorts() ? waveMap() : undefined;
+      if (map) distort(client, map);
+      else shimmer(client);
     },
     stop() {
-      for (const end of [...running.values()]) end();
+      for (const end of [...running]) end();
       defs.remove();
     },
   };

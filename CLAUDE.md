@@ -184,21 +184,25 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **The room still completes the close handshake itself.** The compatibility date makes
   the runtime reply to a Close frame, yet under local wrangler sockets stayed CLOSING
   until `webSocketClose` called `close()`; the call is harmless where it is ignored.
-- **A cursor is sent as a place on what it points at, not a pixel.** Anchors are
-  leaves, never nested: `role`, `headline`, `intro`, `actions`, `clients`, each
-  `project:<slug>`, `metadata`, `links`. A target is an anchor and a part, in three
-  levels: over text, the character under the pointer (`#index`, found with
-  `caretPositionFromPoint`, else `caretRangeFromPoint` for older Safari, and kept only
-  when that character's box holds the pointer), so a cursor sits on the same letter
-  however the lines wrap; over an element, the deepest one, as a path of child indices
-  from its anchor (the masonry copies share one tree); in empty space, the anchor last
-  left, held until the pointer enters another, the nearest anchor only when there was
-  none. Each sample is the fraction of the target's box at the closest point on its
-  edge plus the pixels beyond it, so a cursor keeps its distance from what it left.
-  Holding the last anchor is what keeps gaps smooth: picking the nearest anchor at
-  every sample switched anchors mid-gap, and each switch was a jump on another layout.
-  A cursor still moves across the page when its owner enters an element that sits
-  elsewhere on this layout: that is where they are.
+- **A cursor moves on its anchor and lands on its detail.** Anchors are leaves, never
+  nested: `role`, `headline`, `intro`, `actions`, `clients`, each `project:<slug>`,
+  `metadata`, `links`. Each sample is a place on one anchor: the fraction of its box at
+  the closest point on its edge plus the pixels beyond, the anchor being the one under
+  the pointer, else the one last left (held across empty space until another is
+  entered), else the nearest. That path is continuous inside an anchor and through
+  gaps, so the motion stays the owner's. The latest sample also carries a detail when
+  the pointer is on something finer: the character under it (`#index`, found with
+  `caretPositionFromPoint`, else `caretRangeFromPoint` for older Safari, kept only when
+  its box holds the pointer) or the deepest element (a path of child indices; the
+  masonry copies share one tree). The receiver adds the gap between the detail and the
+  path, weighted by how slowly the path moves (full below 0.45 px/ms is approached as
+  the pace falls, damped over 110 ms): a sweep follows the path, and a pointer that
+  slows, hovers, selects or clicks settles on the same letter or button. The pace is
+  the path's own, never the drawn cursor's, or the correction would slow itself.
+  Following the detail at full speed made a cursor jump back each time a line wrapped
+  differently; picking the nearest anchor at each sample made it jump in every gap. A
+  cursor still crosses the page when its owner enters an element that sits elsewhere
+  on this layout: that is where they are.
 - **Moves travel in batches.** The pointer is sampled on every `pointermove` and sent
   every 33 ms as up to four samples, each with its age, all on the anchor of the
   latest; a press or a release flushes the batch first, so it lands where it
@@ -241,22 +245,24 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   without keeping the loop awake.
 - **Cursors step aside for a modal.** `lib/presence/overlays.ts` watches the palette
   (Radix locks the page with `data-scroll-locked` on `body`) and cal.com's
-  `cal-modal-box` (its `state`, `closed` once dismissed). While one is open the others'
+  `cal-modal-box`, open unless its `state` is `closed` or its inline `visibility` is
+  `hidden`: its close button hides it and leaves the state `loaded`. While one is open the others'
   cursors and highlights fade out, and the own cursor leaves and is not sent: the page
   under the modal is not what its owner is looking at. Reduced motion keeps the path and drops the tilt, blur,
   ghosts, spring and ripple.
-- **A click ripples the surface under it (an experiment).** A click is a press released
+- **A click ripples the page under it (an experiment).** A click is a press released
   within 350 ms and 8 px, leaving no selection, so selecting text or dragging never
-  ripples; the own clicks ripple too. The surface is the closest `data-ripple` (a
-  selection frame, border and hatching included), else the anchor. `ripple.ts` puts an
-  SVG filter on it for 700 ms: a ring displacement map
+  ripples; the own clicks ripple too, the island's included. The ripple is an element
+  in the top layer at the click, its `backdrop-filter` an SVG filter, so it bends
+  whatever lies beneath, across cards, buttons and the island: a ring displacement map
   drawn once on a canvas, laid over a neutral grey flood (an `feImage` leaves the rest
   of its region transparent black, which would displace everything), grown from the
-  point while its strength fades, and applied three times at different strengths, one
-  per colour channel, screened back together for the chromatic aberration. Its region
-  bleeds 48 px past the element, for the hatching around a frame. `rise` fills
-  `backwards`, not `both`: a filled animation ends on `filter: none`, which beats any
-  inline filter, and the hero's paragraphs would never ripple.
+  centre while its strength fades, and applied three times at different strengths, one
+  per colour channel, screened back together for the chromatic aberration. WebKit
+  accepts `backdrop-filter: url()` and draws nothing, so Safari gets a ring of
+  backdrop blur and saturation instead (`GestureEvent` is how it is told apart, as
+  `CSS.supports` says yes). `rise` fills `backwards`, not `both`, so it never pins a
+  filter on the hero.
 - **The selection frames are pulled like Figma's.** A corner moves its two edges on a
   rubber band (`rubberBand`, the iOS curve, 40 px at most), so the outline stays a
   rectangle; the hatching is 40 px larger than the frame and clipped to the edges, so

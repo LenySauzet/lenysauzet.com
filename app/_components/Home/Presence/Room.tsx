@@ -32,14 +32,15 @@ export function Room({ url, className }: { url: string; className?: string }) {
 
   useEffect(() => {
     const top = layer.current;
-    top?.showPopover();
+    if (!top) return;
+    top.showPopover();
 
     const isStill = () => Boolean(stillness.current);
-    const ripples = createRipples();
+    const ripples = createRipples(top);
     const cursors = createRemoteCursors({
       onChange: setIds,
       onClick: (_, point) => {
-        if (!isStill()) ripples.at(point);
+        if (!isStill()) ripples.at({ x: point.x - window.scrollX, y: point.y - window.scrollY });
       },
       isStill,
     });
@@ -120,7 +121,7 @@ export function Room({ url, className }: { url: string; className?: string }) {
       cursors.stop();
       highlights.stop();
       ripples.stop();
-      top?.hidePopover();
+      top.hidePopover();
     };
   }, [url]);
 

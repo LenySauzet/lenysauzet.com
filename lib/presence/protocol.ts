@@ -11,7 +11,15 @@ export interface Target {
   part: string;
 }
 
-export interface Path extends Target {
+export interface Detail {
+  part: string;
+  x: number;
+  y: number;
+}
+
+export interface Path {
+  anchor: string;
+  detail?: Detail;
   samples: Sample[];
 }
 
@@ -71,7 +79,7 @@ export const EVICTED = 4000;
 
 const NAME = /^[a-z0-9][a-z0-9:-]{0,63}$/;
 const ID = /^[a-z0-9]{1,16}$/;
-const PART = /^(?:\d{1,3}(?:\.\d{1,3}){0,15}|#\d{1,5})?$/;
+const PART = /^(?:\d{1,3}(?:\.\d{1,3}){0,15}|#\d{1,5})$/;
 const PRECISION = 1e4;
 const LONGEST_TEXT = 20_000;
 const FARTHEST = 4000;
@@ -105,8 +113,16 @@ const sampleFrom = (value: unknown): Sample | undefined => {
     : undefined;
 };
 
-const pathFrom = ([anchor, part, ...fields]: unknown[]): Path | undefined => {
-  if (!isName(anchor) || !isPart(part) || fields.length === 0 || fields.length > MOST_SAMPLES) return undefined;
+const detailFrom = (value: unknown): Detail | null | undefined => {
+  if (value === null) return null;
+  if (!Array.isArray(value)) return undefined;
+  const [part, x, y, ...rest] = value;
+  return rest.length === 0 && isPart(part) && isFraction(x) && isFraction(y) ? { part, x, y } : undefined;
+};
+
+const pathFrom = ([anchor, rawDetail, ...fields]: unknown[]): Path | undefined => {
+  const detail = detailFrom(rawDetail);
+  if (!isName(anchor) || detail === undefined || fields.length === 0 || fields.length > MOST_SAMPLES) return undefined;
   const samples: Sample[] = [];
   for (const field of fields) {
     const sample = sampleFrom(field);
@@ -114,7 +130,7 @@ const pathFrom = ([anchor, part, ...fields]: unknown[]): Path | undefined => {
     if (!sample || (previous && sample.age > previous.age)) return undefined;
     samples.push(sample);
   }
-  return { anchor, part, samples };
+  return detail ? { anchor, detail, samples } : { anchor, samples };
 };
 
 const spanFrom = ([anchor, start, end, ...rest]: unknown[]): Span | undefined =>
@@ -130,7 +146,11 @@ const pullFrom = ([frame, corner, x, y, ...rest]: unknown[]): Pull | undefined =
 const dropFrom = ([frame, ...rest]: unknown[]) => (rest.length === 0 && isName(frame) ? frame : undefined);
 
 const sampleTo = ({ age, x, y, dx, dy }: Sample) => [Math.round(age), round(x), round(y), Math.round(dx), Math.round(dy)];
-const pathTo = ({ anchor, part, samples }: Path) => [anchor, part, ...samples.map(sampleTo)];
+const pathTo = ({ anchor, detail, samples }: Path) => [
+  anchor,
+  detail ? [detail.part, round(detail.x), round(detail.y)] : null,
+  ...samples.map(sampleTo),
+];
 const spanTo = ({ anchor, start, end }: Span) => [anchor, start, end];
 const pullTo = ({ frame, corner, x, y }: Pull) => [frame, corner, round(x, 10), round(y, 10)];
 

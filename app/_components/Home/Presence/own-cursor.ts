@@ -2,7 +2,7 @@ import { locate, spanOf } from '@/lib/presence/anchors';
 import type { Connection } from '@/lib/presence/connection';
 import { frames } from '@/lib/presence/frames';
 import type { Timed, Vector } from '@/lib/presence/motion';
-import { MOST_SAMPLES, type Pull, type Span, type Target } from '@/lib/presence/protocol';
+import { MOST_SAMPLES, type Pull, type Span } from '@/lib/presence/protocol';
 
 const SEND_EVERY = 33;
 const OLDEST = 1000;
@@ -17,7 +17,7 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
   const listening = new AbortController();
   const options = { passive: true, signal: listening.signal };
   let client: Vector | undefined;
-  let aimed: Target | undefined;
+  let held: string | undefined;
   let pressed: Timed<Vector> | undefined;
   let covered = false;
   let taken: Timed<Vector>[] = [];
@@ -38,14 +38,19 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
     window.clearTimeout(pending);
     pending = 0;
     const now = performance.now();
-    const located = scrolling || covered ? undefined : locate(taken.map(({ value }) => value), aimed);
+    const located = scrolling || covered ? undefined : locate(taken.map(({ value }) => value), held);
     if (located) {
-      aimed = located.target;
+      held = located.anchor;
       const samples = located.placements.map((placement, index) => ({
         age: Math.min(OLDEST, Math.max(0, Math.round(now - (taken[index]?.at ?? now)))),
         ...placement,
       }));
-      connection.send({ type: 'move', path: { ...located.target, samples } });
+      connection.send({
+        type: 'move',
+        path: located.detail
+          ? { anchor: located.anchor, detail: located.detail, samples }
+          : { anchor: located.anchor, samples },
+      });
     }
     if (pulled) connection.send({ type: 'pull', pull: pulled });
     taken = [];
@@ -62,7 +67,7 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
 
   const leave = () => {
     client = undefined;
-    aimed = undefined;
+    held = undefined;
     pressed = undefined;
     taken = [];
     window.clearTimeout(pending);
@@ -132,7 +137,7 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
         Math.hypot(event.clientX - click.value.x, event.clientY - click.value.y) < CLICK_SLOP &&
         document.getSelection()?.isCollapsed !== false
       )
-        onClick({ x: click.value.x + window.scrollX, y: click.value.y + window.scrollY });
+        onClick(click.value);
     },
     options
   );

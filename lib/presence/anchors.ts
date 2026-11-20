@@ -1,5 +1,5 @@
 import type { Vector } from './motion';
-import type { Sample, Span, Target } from './protocol';
+import type { Detail, Sample, Span, Target } from './protocol';
 
 const ANCHOR_ATTRIBUTE = 'data-presence';
 const PAGE_ANCHOR = 'page';
@@ -193,21 +193,24 @@ function boxOf({ anchor, part }: Target): Box | undefined {
   return documentBox((element && isShown(element) ? element : root).getBoundingClientRect());
 }
 
-const nearestTarget = (point: Vector): Target => ({
-  anchor: nearest(shownAnchors(), point)?.anchor ?? PAGE_ANCHOR,
-  part: '',
-});
-
-export function locate(points: Vector[], previous?: Target): { target: Target; placements: Placement[] } | undefined {
+export function locate(
+  points: Vector[],
+  held?: string
+): { anchor: string; placements: Placement[]; detail?: Detail } | undefined {
   const last = points.at(-1);
   if (!last) return undefined;
-  const held: Target | undefined = previous && { anchor: previous.anchor, part: '' };
-  const target =
-    aim({ x: last.x - window.scrollX, y: last.y - window.scrollY }) ??
-    (held && boxOf(held) ? held : undefined) ??
-    nearestTarget(last);
-  const box = boxOf(target) ?? pageBox();
-  return { target, placements: points.map((point) => placeOn(box, point)) };
+  const aimed = aim({ x: last.x - window.scrollX, y: last.y - window.scrollY });
+  const anchor =
+    aimed?.anchor ??
+    (held && boxOf({ anchor: held, part: '' }) ? held : undefined) ??
+    nearest(shownAnchors(), last)?.anchor ??
+    PAGE_ANCHOR;
+  const box = boxOf({ anchor, part: '' }) ?? pageBox();
+  const placements = points.map((point) => placeOn(box, point));
+  const partBox = aimed?.part ? boxOf(aimed) : undefined;
+  if (!aimed?.part || !partBox) return { anchor, placements };
+  const { x, y } = placeOn(partBox, last);
+  return { anchor, placements, detail: { part: aimed.part, x, y } };
 }
 
 export function createPlacer() {

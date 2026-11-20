@@ -75,13 +75,14 @@ describe('locate and place', () => {
     vi.restoreAllMocks();
   });
 
-  it('aim at the deepest element under the pointer, as a path from its anchor', () => {
+  it('move on the anchor, and name the deepest element under the pointer as a detail', () => {
     card(false, 0);
     under = card(true, 500).querySelector('a');
 
     expect(locate([{ x: 530, y: 40 }])).toEqual({
-      target: { anchor: 'project:ankhora', part: '0.1' },
-      placements: [{ x: 0.25, y: 0.5, dx: 0, dy: 0 }],
+      anchor: 'project:ankhora',
+      placements: [{ x: 0.3, y: 0.8, dx: 0, dy: 0 }],
+      detail: { part: '0.1', x: 0.25, y: 0.5 },
     });
   });
 
@@ -90,8 +91,8 @@ describe('locate and place', () => {
     const far = card(true, 0);
     far.dataset.presence = 'project:far';
 
-    expect(locate([{ x: 550, y: 200 }], { anchor: 'project:ankhora', part: '0.1' })).toEqual({
-      target: { anchor: 'project:ankhora', part: '' },
+    expect(locate([{ x: 550, y: 200 }], 'project:ankhora')).toEqual({
+      anchor: 'project:ankhora',
       placements: [{ x: 0.5, y: 1, dx: 0, dy: 150 }],
     });
   });
@@ -101,7 +102,7 @@ describe('locate and place', () => {
     card(true, 500);
 
     expect(locate([{ x: 400, y: 25 }, { x: 550, y: 80 }])).toEqual({
-      target: { anchor: 'project:ankhora', part: '' },
+      anchor: 'project:ankhora',
       placements: [
         { x: 0, y: 0.5, dx: -100, dy: 0 },
         { x: 0.5, y: 1, dx: 0, dy: 30 },
@@ -125,8 +126,8 @@ describe('locate and place', () => {
 
     const located = locate([{ x: 116, y: 10 }]);
 
-    expect(located?.target).toEqual({ anchor: 'intro', part: '#1' });
-    expect(located?.placements).toEqual([{ x: 0.6, y: 0.5, dx: 0, dy: 0 }]);
+    expect(located?.anchor).toBe('intro');
+    expect(located?.detail).toEqual({ part: '#1', x: 0.6, y: 0.5 });
     expect(createPlacer()({ anchor: 'intro', part: '#4' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({ x: 145, y: 10 });
     Reflect.deleteProperty(document, 'caretPositionFromPoint');
     Reflect.deleteProperty(Range.prototype, 'getClientRects');

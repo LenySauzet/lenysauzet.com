@@ -150,8 +150,7 @@ export class Room extends DurableObject<Env> {
 
 const visitorOf = (socket: WebSocket) => socket.deserializeAttachment() as Visitor;
 
-const lastOf = ({ anchor, part, samples }: Path): Path => ({
-  anchor,
-  part,
-  samples: samples.slice(-1).map((sample) => ({ ...sample, age: 0 })),
+const lastOf = (path: Path): Path => ({
+  ...path,
+  samples: path.samples.slice(-1).map((sample) => ({ ...sample, age: 0 })),
 });
