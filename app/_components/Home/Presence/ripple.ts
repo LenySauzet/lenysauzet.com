@@ -13,6 +13,8 @@ const CHANNELS = [
 const MAP_SIZE = 256;
 const RING_FROM = 0.5;
 const PLACED = 'pointer-events-none absolute rounded-full';
+const RIM = 'absolute inset-0 rounded-full border border-foreground/20';
+const FRINGE = '-1.5px 0 0 rgb(255 60 120 / 0.45), 1.5px 0 0 rgb(60 160 255 / 0.45), 0 0 14px rgb(255 255 255 / 0.12)';
 const SHIMMER = 'blur(1.5px) saturate(1.8)';
 const RING_MASK = 'radial-gradient(closest-side, transparent 55%, black 80%, transparent 100%)';
 
@@ -72,12 +74,16 @@ export function createRipples(layer: HTMLElement) {
       width: `${SIZE}px`,
       height: `${SIZE}px`,
     });
+    const rim = document.createElement('div');
+    rim.className = RIM;
+    rim.style.boxShadow = FRINGE;
+    element.append(rim);
     layer.append(element);
-    return element;
+    return { element, rim };
   };
 
   const shimmer = (center: Vector) => {
-    const element = place(center);
+    const { element } = place(center);
     Object.assign(element.style, { backdropFilter: SHIMMER, webkitBackdropFilter: SHIMMER, maskImage: RING_MASK });
     const animation = element.animate(
       [
@@ -130,7 +136,7 @@ export function createRipples(layer: HTMLElement) {
     );
     defs.append(filter);
 
-    const element = place(center);
+    const { element, rim } = place(center);
     element.style.backdropFilter = `url(#${id})`;
     const startedAt = performance.now();
     let frame = 0;
@@ -150,6 +156,8 @@ export function createRipples(layer: HTMLElement) {
       image.setAttribute('width', String(radius * 2));
       image.setAttribute('height', String(radius * 2));
       const strength = STRENGTH * (1 - t) ** 2;
+      rim.style.transform = `scale(${radius / REACH})`;
+      rim.style.opacity = String((1 - t) ** 1.5);
       displacements.forEach((displacement, index) =>
         displacement.setAttribute('scale', String(strength * (CHANNELS[index]?.spread ?? 1)))
       );

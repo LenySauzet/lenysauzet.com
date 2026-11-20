@@ -262,7 +262,10 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   drawn once on a canvas, laid over a neutral grey flood (an `feImage` leaves the rest
   of its region transparent black, which would displace everything), grown from the
   centre while its strength fades, and applied three times at different strengths, one
-  per colour channel, screened back together for the chromatic aberration. WebKit
+  per colour channel, screened back together for the chromatic aberration. A rim grows
+  with it, a faint `foreground` border with red and blue fringes: a modal's veil goes up
+  over the page as its opening click ripples, and bending a flat veil shows nothing, so
+  without the rim those ripples were invisible. WebKit
   accepts `backdrop-filter: url()` and draws nothing, so Safari gets a ring of
   backdrop blur and saturation instead (`GestureEvent` is how it is told apart, as
   `CSS.supports` says yes). `rise` fills `backwards`, not `both`, so it never pins a
