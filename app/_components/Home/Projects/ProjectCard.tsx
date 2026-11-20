@@ -1,32 +1,35 @@
 import { ArrowRight02Icon, ArrowUpRight01Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import Image from 'next/image';
+import { HugeiconsIcon } from '@hugeicons/react';
 
 import siteConfig from '@/config/site';
-import type { Project } from '@/content/projects';
+import type { Project, ProjectAction } from '@/content/projects';
 import { resolveMedia } from '@/lib/media/cdn';
-import type { Dimensions } from '@/lib/media/measure';
+import type { Probe } from '@/lib/media/probe';
 import { cn } from '@/lib/utils';
 
-import { ProjectVideo } from './ProjectVideo';
-
-const WELL = 'flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-well text-sm';
+import { ProjectMedia } from './ProjectMedia';
 
 interface ProjectCardProps {
   project: Project;
-  dimensions: Dimensions;
+  probe: Probe;
   className?: string;
 }
 
-function Action({ href, label, icon, external }: { href: string; label: string; icon: IconSvgElement; external?: boolean }) {
+const ACTIONS = {
+  article: { label: 'Read article', icon: ArrowRight02Icon },
+  app: { label: 'View app', icon: ArrowUpRight01Icon },
+  source: { label: 'View code', icon: ArrowUpRight01Icon },
+};
+
+function Action({ action }: { action: ProjectAction }) {
+  const { label, icon } = ACTIONS[action.kind];
+  const external = action.kind !== 'article';
+
   return (
     <a
-      href={href}
+      href={external ? action.href : `${siteConfig.blogUrl}/posts/${action.slug}`}
       {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
-      className={cn(
-        WELL,
-        'group/action text-muted-foreground outline-none transition-colors duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary'
-      )}
+      className="group/action flex h-11 items-center justify-center gap-1.5 rounded-xl bg-well text-sm text-muted-foreground outline-none transition-colors duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
     >
       {label}
       <HugeiconsIcon
@@ -38,27 +41,15 @@ function Action({ href, label, icon, external }: { href: string; label: string; 
   );
 }
 
-export function ProjectCard({ project, dimensions, className }: ProjectCardProps) {
-  const image = resolveMedia(project.image);
-
+export function ProjectCard({ project, probe, className }: ProjectCardProps) {
   return (
     <article className={cn('flex flex-col gap-1.5 rounded-2xl border bg-card p-1.5', className)}>
-      <div
-        className="relative overflow-hidden rounded-xl bg-well"
-        style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}` }}
-      >
-        {project.video ? (
-          <ProjectVideo src={resolveMedia(project.video)} poster={image} className="size-full object-cover" />
-        ) : (
-          <Image
-            src={image}
-            alt=""
-            width={dimensions.width}
-            height={dimensions.height}
-            sizes="(min-width: 64rem) 33vw, (min-width: 48rem) 50vw, 100vw"
-            className="size-full object-cover"
-          />
-        )}
+      <div className="relative overflow-hidden rounded-xl bg-well" style={{ aspectRatio: `${probe.width} / ${probe.height}` }}>
+        <ProjectMedia
+          image={resolveMedia(project.image)}
+          video={project.video && resolveMedia(project.video)}
+          probe={probe}
+        />
         <div
           aria-hidden
           className="absolute inset-x-0 bottom-0 h-28 backdrop-blur-[3px] mask-[linear-gradient(to_top,black_30%,transparent)]"
@@ -70,14 +61,7 @@ export function ProjectCard({ project, dimensions, className }: ProjectCardProps
         </div>
       </div>
 
-      {(project.article || project.app) && (
-        <div className="flex gap-1.5">
-          {project.article && (
-            <Action href={`${siteConfig.blogUrl}/posts/${project.article}`} label="Read article" icon={ArrowRight02Icon} />
-          )}
-          {project.app && <Action href={project.app} label="View app" icon={ArrowUpRight01Icon} external />}
-        </div>
-      )}
+      {project.action && <Action action={project.action} />}
     </article>
   );
 }

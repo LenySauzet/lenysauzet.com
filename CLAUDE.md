@@ -36,7 +36,7 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
 | `config/site.ts` | Identity, links, the cal.com handle, the resume, root metadata |
 | `content/projects.ts`, `content/clients.ts` | What the page shows, typed, by hand |
 | `lib/masonry.ts` | Tiles into columns, shortest column first |
-| `lib/media/measure.ts` | An image's size from its header, at build time |
+| `lib/media/probe.ts` | An image's size and a 16px blur placeholder, read with sharp at build time |
 | `lib/commands/` | The palette's registry, its groups and its shortcuts |
 | `lib/services/booking.ts` | cal.com's modal, loaded on first use |
 | `app/_components/Island` | The island: identity, hint, announcements |
@@ -53,7 +53,7 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   opened over a closing dialog fights it for focus. Radix hands focus back to a trigger
   and the palette has none, so it notes what held focus on opening and returns it,
   under `returningFocus`, which keeps the island from reading that as pointing.
-- **The masonry is decided at build time.** Each image is measured from its header, the
+- **The masonry is decided at build time.** Each image is probed at build time, the
   tiles are spread one, two and three columns wide, and CSS shows the layout for the
   width, so nothing moves on load. Each tile goes to the shortest column, so tiles appear
   newest first by their top edge, but the DOM, and so Tab and a screen reader, runs
@@ -68,14 +68,20 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   leftwards from a two-column row, so the resume pill never moves; "+ You" arrives in
   blur and opacity, and a touch screen, with no hover, shows it grown.
 - **Entrances are the 404's**: `rise` (blur, opacity, half a rem) staggered by
-  `--rise-step` in the hero, `Reveal` on each card as it enters the view. Reduced motion
+  `--rise-step` in the hero, `Reveal` on each card as it enters the view. `Reveal`
+  animates blur and opacity only: Motion runs those on the compositor, while a
+  translate ran on the main thread and stuttered through hydration as a jump. Reduced motion
   shows everything at once.
 - **Client logos are shadcn `Avatar`s** in an `AvatarGroup`, at `portfolio/clients/` on
   the CDN; until a logo is there the fallback initial shows. Hovered or focused, one
   scales up over its neighbours, its name in a tooltip below.
-- **A project is a still, and maybe a video**: `image` is always measured (the masonry
-  needs its ratio) and is the video's poster; the video plays muted only while a
-  quarter of it is in view, never under reduced motion. Title and year sit on the
+- **A project is a still, and maybe a video**: `image` is always probed (the masonry
+  needs its ratio, the blur-up its placeholder) and stays under the video, which plays
+  muted only while a quarter of it is in view, never under reduced motion. Each medium
+  arrives out of blur over the placeholder once it has loaded or started playing, so a
+  cached image and a lazy one below the fold behave alike; next/image replays a load
+  or error that happened before hydration. A failed image leaves hatching and an icon.
+  A project has at most one action: an article, an app or its code. Title and year sit on the
   media over a blurred scrim, `--media-ink` on `scrim` in both themes.
 - **The shine is CSS alone**: a registered `--sweep` animated in `@keyframes`, painted
   through `shine-text` (background-clipped over `--foreground`) and `shine-border` (a
@@ -90,9 +96,10 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   coarse pointers and read Ctrl+ off Apple systems.
 - **`/resume` proxies the PDF** so `download` holds across origins, cached at the edge
   by `s-maxage`.
-- **Locally, `next/image` may refuse the blog's images** with "resolved to private IP":
-  a NAT64 network answers `64:ff9b::` addresses. It works in production. Never set
-  `dangerouslyAllowLocalIP`; serve the original in a Playwright route to look at it.
+- **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to
+  `64:ff9b::`, which the optimizer refuses as a private IP, so dev serves the originals
+  and production optimizes. Never set `dangerouslyAllowLocalIP`; to look at a local
+  production build, serve the original through a Playwright route.
 
 ## Branches
 
