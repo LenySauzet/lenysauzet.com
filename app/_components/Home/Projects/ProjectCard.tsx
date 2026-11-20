@@ -29,7 +29,7 @@ function Action({ action }: { action: ProjectAction }) {
     <a
       href={external ? action.href : `${siteConfig.blogUrl}/posts/${action.slug}`}
       {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
-      className="group/action flex h-11 items-center justify-center gap-1.5 rounded-xl bg-well text-sm text-muted-foreground outline-none transition-colors duration-200 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
+      className="group/action flex h-11 items-center justify-center gap-1.5 rounded-xl bg-well text-sm text-muted-foreground outline-none transition-colors duration-200 hover:bg-well-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
     >
       {label}
       <HugeiconsIcon
@@ -52,12 +52,12 @@ export function ProjectCard({ project, probe, className }: ProjectCardProps) {
         />
         <div
           aria-hidden
-          className="absolute inset-x-0 bottom-0 h-28 backdrop-blur-[3px] mask-[linear-gradient(to_top,black_30%,transparent)]"
+          className="absolute inset-x-0 bottom-0 h-20 backdrop-blur-[3px] mask-[linear-gradient(to_top,black_30%,transparent)]"
         />
-        <div aria-hidden className="absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-scrim/70 to-transparent" />
+        <div aria-hidden className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-scrim/95 via-scrim/50 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 flex items-baseline justify-between gap-4 px-4 pb-3.5 text-sm text-media-ink">
           <h3 className="truncate font-medium">{project.title}</h3>
-          <span className="shrink-0 tabular-nums text-media-ink/80">{project.year}</span>
+          <span className="shrink-0 tabular-nums">{project.year}</span>
         </div>
       </div>
 
