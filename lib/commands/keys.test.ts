@@ -1,34 +1,52 @@
 import { describe, expect, it } from 'vitest';
 
-import { commandFor, keyLabel, modifierLabel, togglesPalette } from './keys';
+import { chordKey, commandFor, keyLabel, modifierLabel, platformOf, type Chord } from './keys';
 import { commands } from './registry';
 
-const press = (key: string, modifier: 'meta' | 'ctrl' | null = 'meta') => ({
-  key,
-  metaKey: modifier === 'meta',
-  ctrlKey: modifier === 'ctrl',
+const chord = (fields: Partial<Chord>): Chord => ({
+  key: 'd',
+  code: 'KeyD',
+  metaKey: true,
+  ctrlKey: false,
+  altKey: false,
+  shiftKey: false,
+  repeat: false,
+  isComposing: false,
+  defaultPrevented: false,
+  ...fields,
 });
 
-describe('togglesPalette', () => {
-  it('answers ⌘K and Ctrl+K, never K alone', () => {
-    expect(togglesPalette(press('k'))).toBe(true);
-    expect(togglesPalette(press('k', 'ctrl'))).toBe(true);
-    expect(togglesPalette(press('k', null))).toBe(false);
+describe('chordKey', () => {
+  it('reads ⌘ on Apple systems and Ctrl elsewhere, never the other', () => {
+    expect(chordKey(chord({}), 'apple')).toBe('d');
+    expect(chordKey(chord({ metaKey: false, ctrlKey: true }), 'apple')).toBeUndefined();
+    expect(chordKey(chord({ metaKey: false, ctrlKey: true }), 'other')).toBe('d');
+    expect(chordKey(chord({}), 'other')).toBeUndefined();
+  });
+
+  it('ignores a key held down, another modifier, a composition and a key already handled', () => {
+    for (const disturbance of [{ repeat: true }, { altKey: true }, { shiftKey: true }, { isComposing: true }, { defaultPrevented: true }])
+      expect(chordKey(chord(disturbance), 'apple')).toBeUndefined();
+  });
+
+  it('reads the letter whatever Caps Lock or the layout says', () => {
+    expect(chordKey(chord({ key: 'D' }), 'apple')).toBe('d');
+    expect(chordKey(chord({ key: 'в' }), 'apple')).toBe('d');
+    expect(chordKey(chord({ key: 'ArrowUp', code: 'ArrowUp' }), 'apple')).toBe('ArrowUp');
   });
 });
 
 describe('commandFor', () => {
-  it('finds the command a shortcut names, only with a modifier held', () => {
-    expect(commandFor(commands, press('d'))?.id).toBe('toggle-theme');
-    expect(commandFor(commands, press('d', null))).toBeUndefined();
-    expect(commandFor(commands, press('q'))).toBeUndefined();
+  it('finds the command a shortcut names', () => {
+    expect(commandFor(commands, 'd')?.id).toBe('toggle-theme');
+    expect(commandFor(commands, 'q')).toBeUndefined();
   });
 });
 
 describe('modifierLabel', () => {
   it('names the Command key on Apple systems and Ctrl elsewhere', () => {
-    expect(modifierLabel('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')).toBe('⌘');
-    expect(modifierLabel('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')).toBe('Ctrl+');
+    expect(modifierLabel(platformOf('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'))).toBe('⌘');
+    expect(modifierLabel(platformOf('Mozilla/5.0 (Windows NT 10.0; Win64; x64)'))).toBe('Ctrl+');
   });
 });
 

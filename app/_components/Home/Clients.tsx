@@ -1,22 +1,19 @@
-'use client';
-
 import { Add01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { useTheme } from 'next-themes';
 import type { ReactNode } from 'react';
 
+import { focusRing } from '@/components/shared/styles';
 import { Avatar, AvatarFallback, AvatarGroup, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Client } from '@/content/clients';
 import { resolveMedia } from '@/lib/media/cdn';
-import { openBooking } from '@/lib/services/booking';
+import { cn } from '@/lib/utils';
 
-const TRIGGER =
-  'group/client relative cursor-pointer rounded-full outline-none hover:z-10 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+import { BookingButton } from './BookingButton';
+
+const TRIGGER = cn('group/client relative cursor-pointer rounded-full hover:z-10 focus-visible:z-10', focusRing);
 const RAISED =
   'ring-2 ring-background transition-[scale] duration-200 ease-out group-hover/client:scale-110 group-focus-visible/client:scale-110 motion-reduce:transition-none motion-reduce:group-hover/client:scale-100 motion-reduce:group-focus-visible/client:scale-100';
-
-const initials = (name: string) => name.slice(0, 1).toUpperCase();
 
 function Tip({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -30,8 +27,6 @@ function Tip({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function Clients({ clients, className }: { clients: Client[]; className?: string }) {
-  const { resolvedTheme } = useTheme();
-
   return (
     <AvatarGroup className={className}>
       {clients.map((client) => (
@@ -39,24 +34,19 @@ export function Clients({ clients, className }: { clients: Client[]; className?:
           <a href={client.href} target="_blank" rel="noopener noreferrer" aria-label={client.name} className={TRIGGER}>
             <Avatar size="lg" className={RAISED}>
               <AvatarImage src={resolveMedia(client.logo)} alt="" />
-              <AvatarFallback className="font-medium">{initials(client.name)}</AvatarFallback>
+              <AvatarFallback className="font-medium">{client.name.charAt(0)}</AvatarFallback>
             </Avatar>
           </a>
         </Tip>
       ))}
       <Tip label="Your company next?">
-        <button
-          type="button"
-          aria-label="Your company next? Book a call"
-          onClick={() => openBooking(resolvedTheme)}
-          className={TRIGGER}
-        >
+        <BookingButton aria-label="Your company next? Book a call" className={TRIGGER}>
           <Avatar size="lg" className={RAISED}>
             <AvatarFallback className="text-subtle-foreground">
               <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-4" />
             </AvatarFallback>
           </Avatar>
-        </button>
+        </BookingButton>
       </Tip>
     </AvatarGroup>
   );

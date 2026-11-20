@@ -1,8 +1,8 @@
 import { getCalApi } from '@calcom/embed-react';
 import { Calendar01Icon } from '@hugeicons/core-free-icons';
 
-import { announce } from '@/app/_components/Island';
 import siteConfig from '@/config/site';
+import { announce } from '@/hooks/use-island-store';
 
 export async function openBooking(theme: string | undefined) {
   try {

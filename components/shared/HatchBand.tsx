@@ -8,7 +8,7 @@ export function HatchBand({ className, style }: { className?: string; style?: CS
       aria-hidden
       style={style}
       className={cn(
-        'relative hidden border-x border-border mask-[linear-gradient(to_bottom,black_70%,transparent)] lg:block',
+        'relative hidden border-x mask-[linear-gradient(to_bottom,black_70%,transparent)] lg:block',
         className
       )}
     >

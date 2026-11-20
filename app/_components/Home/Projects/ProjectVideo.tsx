@@ -1,19 +1,19 @@
 'use client';
 
 import { useReducedMotion } from 'motion/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-import { cn } from '@/lib/utils';
+const IN_VIEW = 0.25;
 
 interface ProjectVideoProps {
   src: string;
+  onPlaying: () => void;
   className?: string;
 }
 
-export function ProjectVideo({ src, className }: ProjectVideoProps) {
+export function ProjectVideo({ src, onPlaying, className }: ProjectVideoProps) {
   const video = useRef<HTMLVideoElement>(null);
   const still = useReducedMotion();
-  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     const element = video.current;
@@ -21,7 +21,7 @@ export function ProjectVideo({ src, className }: ProjectVideoProps) {
 
     const watched = new IntersectionObserver(
       ([entry]) => (entry.isIntersecting ? element.play().catch(() => {}) : element.pause()),
-      { threshold: 0.25 }
+      { threshold: IN_VIEW }
     );
     watched.observe(element);
 
@@ -36,8 +36,8 @@ export function ProjectVideo({ src, className }: ProjectVideoProps) {
       playsInline
       preload="none"
       aria-hidden
-      onPlaying={() => setPlaying(true)}
-      className={cn(className, !playing && 'scale-[1.03] opacity-0 blur-lg')}
+      onPlaying={onPlaying}
+      className={className}
     >
       <source src={src} type="video/mp4" />
     </video>

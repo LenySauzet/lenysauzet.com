@@ -1,16 +1,18 @@
+import type { IconSvgElement } from '@hugeicons/react';
 import { create } from 'zustand';
 
-import type { IslandState } from '@/app/_components/Island/types';
+export type Presence = { id: 'hint' } | { id: 'announcement'; message: string; icon?: IconSvgElement; at: number };
 
 interface IslandStore {
-  presented: IslandState[];
-  present: (state: IslandState, options?: { ttl?: number }) => void;
-  dismiss: (id: string) => void;
+  presented: Presence[];
+  present: (presence: Presence, options?: { ttl?: number }) => void;
+  dismiss: (id: Presence['id']) => void;
 }
 
-const expiries = new Map<string, number>();
+const ANNOUNCEMENT_TTL = 2600;
+const expiries = new Map<Presence['id'], number>();
 
-const forget = (id: string) => {
+const forget = (id: Presence['id']) => {
   window.clearTimeout(expiries.get(id));
   expiries.delete(id);
 };
@@ -18,15 +20,18 @@ const forget = (id: string) => {
 export const useIslandStore = create<IslandStore>((set, get) => ({
   presented: [],
 
-  present: (state, { ttl } = {}) => {
-    forget(state.id);
-    set({ presented: [...get().presented.filter((raised) => raised.id !== state.id), state] });
-    if (ttl) expiries.set(state.id, window.setTimeout(() => get().dismiss(state.id), ttl));
+  present: (presence, { ttl } = {}) => {
+    forget(presence.id);
+    set({ presented: [...get().presented.filter(({ id }) => id !== presence.id), presence] });
+    if (ttl) expiries.set(presence.id, window.setTimeout(() => get().dismiss(presence.id), ttl));
   },
 
   dismiss: (id) => {
     forget(id);
-    const presented = get().presented.filter((raised) => raised.id !== id);
+    const presented = get().presented.filter((presence) => presence.id !== id);
     if (presented.length !== get().presented.length) set({ presented });
   },
 }));
+
+export const announce = (message: string, icon?: IconSvgElement) =>
+  useIslandStore.getState().present({ id: 'announcement', message, icon, at: Date.now() }, { ttl: ANNOUNCEMENT_TTL });

@@ -2,13 +2,13 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useIslandStore } from '@/hooks/use-island-store';
+import { announce, useIslandStore } from '@/hooks/use-island-store';
 import { usePaletteStore } from '@/hooks/use-palette-store';
 
 import { Island } from './Island';
-import { announce } from './states/announcement';
 
 const settle = () => act(() => vi.advanceTimersByTime(300));
+const nextTask = () => act(() => new Promise((resolve) => setTimeout(resolve)));
 
 describe('Island', () => {
   beforeEach(() => {
@@ -26,18 +26,20 @@ describe('Island', () => {
     expect(island).toHaveTextContent('Leny');
 
     await user.hover(island);
-    expect(island).toHaveTextContent('Click or ⌘K for commands');
+    expect(island).toHaveTextContent('Click or Ctrl+K for commands');
     expect(usePaletteStore.getState().wanted).toBe(true);
-    vi.useRealTimers();
   });
 
-
-
-  it('reads an announcement out through a live region', () => {
+  it('reads an announcement out through a live region, again when it repeats', async () => {
     render(<Island />);
 
     act(() => announce('Email copied'));
+    await nextTask();
+    expect(screen.getByRole('status')).toHaveTextContent('Email copied');
 
+    act(() => announce('Email copied'));
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    await nextTask();
     expect(screen.getByRole('status')).toHaveTextContent('Email copied');
   });
 

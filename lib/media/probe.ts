@@ -3,17 +3,18 @@ import 'server-only';
 import { cache } from 'react';
 import sharp from 'sharp';
 
-export interface Probe {
+export interface ImageMeta {
   width: number;
   height: number;
   placeholder?: string;
 }
 
-const FALLBACK: Probe = { width: 1600, height: 900 };
+const FALLBACK: ImageMeta = { width: 1600, height: 900 };
 const PLACEHOLDER_WIDTH = 16;
+const PROBE_TIMEOUT = 15_000;
 
-async function read(url: string): Promise<Probe> {
-  const response = await fetch(url);
+async function read(url: string): Promise<ImageMeta> {
+  const response = await fetch(url, { signal: AbortSignal.timeout(PROBE_TIMEOUT) });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
 
   const image = sharp(Buffer.from(await response.arrayBuffer()));
@@ -24,7 +25,7 @@ async function read(url: string): Promise<Probe> {
   return { width, height, placeholder: `data:image/webp;base64,${tiny.toString('base64')}` };
 }
 
-export const probeImage = cache(async (url: string): Promise<Probe> => {
+export const probeImage = cache(async (url: string): Promise<ImageMeta> => {
   try {
     return await read(url);
   } catch (error) {

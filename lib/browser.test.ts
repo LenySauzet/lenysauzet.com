@@ -14,6 +14,14 @@ describe('browserName', () => {
       'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1',
       'Safari',
     ],
+    [
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/131.0.6778.73 Mobile/15E148 Safari/604.1',
+      'Chromium',
+    ],
+    [
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/133.0 Mobile/15E148 Safari/605.1.15',
+      'Firefox',
+    ],
     ['curl/8.7.1', 'Unknown'],
   ])('names %s', (userAgent, name) => {
     expect(browserName(userAgent)).toBe(name);

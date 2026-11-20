@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { distribute } from './masonry';
+import { distribute, laneOf } from './masonry';
 
 const tiles = (...heights: number[]) => heights.map((height, item) => ({ item, height }));
 
@@ -14,7 +14,10 @@ describe('distribute', () => {
   });
 
   it('keeps the order inside each column', () => {
-    expect(distribute(tiles(1, 2, 1, 2, 1), 2).flat().sort()).toEqual([0, 1, 2, 3, 4]);
+    expect(distribute(tiles(1, 2, 1, 2, 1), 2)).toEqual([
+      [0, 2, 3],
+      [1, 4],
+    ]);
   });
 
   it('gives a single column everything, in order', () => {
@@ -23,5 +26,12 @@ describe('distribute', () => {
 
   it('leaves the extra columns empty when there are fewer tiles', () => {
     expect(distribute(tiles(1), 3)).toEqual([[0], [], []]);
+  });
+});
+
+describe('laneOf', () => {
+  it('names the outer lanes, and a single lane first', () => {
+    expect([0, 1, 2].map((index) => laneOf(index, 3))).toEqual(['first', undefined, 'last']);
+    expect(laneOf(0, 1)).toBe('first');
   });
 });

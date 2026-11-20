@@ -13,5 +13,5 @@ export const usePaletteStore = create<PaletteStore>((set) => ({
   isOpen: false,
   returningFocus: false,
   want: () => set({ wanted: true }),
-  setIsOpen: (isOpen) => set({ isOpen, wanted: true }),
+  setIsOpen: (isOpen) => set(isOpen ? { isOpen, wanted: true } : { isOpen }),
 }));

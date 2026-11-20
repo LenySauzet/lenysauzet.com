@@ -1,18 +1,11 @@
 import '@testing-library/jest-dom/vitest';
 
+import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
-window.matchMedia = (query: string) =>
-  ({
-    matches: /prefers-reduced-motion/.test(query),
-    media: query,
-    onchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
-    dispatchEvent: () => false,
-  }) as MediaQueryList;
+import { matchMedia, resetMedia } from '@/test/media';
+
+window.matchMedia = matchMedia;
 
 if (!window.PointerEvent) {
   class PointerEventPolyfill extends MouseEvent {
@@ -48,5 +41,8 @@ if (!window.ResizeObserver) {
 }
 
 afterEach(() => {
+  cleanup();
   vi.restoreAllMocks();
+  vi.useRealTimers();
+  resetMedia();
 });

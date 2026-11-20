@@ -2,7 +2,7 @@
 
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useTheme } from 'next-themes';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import {
   Command as CommandRoot,
@@ -15,25 +15,33 @@ import {
   CommandShortcut,
 } from '@/components/ui/command';
 import { usePaletteStore } from '@/hooks/use-palette-store';
-import { keyLabel, modifierLabel } from '@/lib/commands/keys';
+import { keyLabel, modifierLabel, platformOf } from '@/lib/commands/keys';
 import { commands } from '@/lib/commands/registry';
 import { GROUPS, type Command } from '@/lib/commands/types';
 
 import { FadingList } from './FadingList';
 
-export default function CommandPalette() {
+export function CommandPalette({ className }: { className?: string }) {
   const isOpen = usePaletteStore((state) => state.isOpen);
   const setIsOpen = usePaletteStore((state) => state.setIsOpen);
   const { resolvedTheme, setTheme } = useTheme();
   const picked = useRef<Command | null>(null);
-  const modifier = modifierLabel(navigator.userAgent);
+  const modifier = modifierLabel(platformOf(navigator.userAgent));
+
+  useEffect(() => {
+    if (isOpen) picked.current = null;
+  }, [isOpen]);
 
   const pick = (command: Command) => {
     picked.current = command;
     setIsOpen(false);
   };
 
-  const runPicked = () => {
+  const closed = (returnFocus: () => void) => {
+    usePaletteStore.setState({ returningFocus: true });
+    returnFocus();
+    usePaletteStore.setState({ returningFocus: false });
+
     const command = picked.current;
     picked.current = null;
     void command?.run({ resolvedTheme, setTheme });
@@ -43,12 +51,13 @@ export default function CommandPalette() {
     <CommandDialog
       open={isOpen}
       onOpenChange={setIsOpen}
-      onExitComplete={runPicked}
+      onClosed={closed}
       title="Commands"
       description="Reach me, download my resume or change the theme."
+      className={className}
     >
-      <CommandRoot>
-        <CommandInput placeholder="Type a command..."/>
+      <CommandRoot label="Commands">
+        <CommandInput placeholder="Type a command..." />
         <FadingList>
           <CommandEmpty>Nothing matches that.</CommandEmpty>
           {GROUPS.map((group) => (

@@ -3,17 +3,19 @@
 import { motion, useReducedMotion } from 'motion/react';
 import type { ReactNode } from 'react';
 
+import { blurred, sharp } from '@/lib/motion';
+
 import { FADE } from './motion';
 
-export function Presentation({ children }: { children: ReactNode }) {
+export function Presentation({ children, className }: { children: ReactNode; className?: string }) {
   const still = useReducedMotion();
 
   return (
     <motion.div
-      initial={{ opacity: 0, filter: 'blur(10px)' }}
-      animate={{ opacity: 1, filter: 'blur(0px)' }}
-      transition={still ? { duration: 0 } : { opacity: FADE, filter: FADE }}
-      className="flex w-full items-center"
+      initial={blurred(10)}
+      animate={sharp}
+      transition={still ? { duration: 0 } : FADE}
+      className={className}
     >
       {children}
     </motion.div>

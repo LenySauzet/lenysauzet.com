@@ -1,6 +1,6 @@
 import type { Project } from '@/content/projects';
 import { resolveMedia } from '@/lib/media/cdn';
-import type { Probe } from '@/lib/media/probe';
+import type { ImageMeta } from '@/lib/media/probe';
 import { cn } from '@/lib/utils';
 
 import { ProjectLink } from './ProjectLink';
@@ -8,18 +8,18 @@ import { ProjectMedia } from './ProjectMedia';
 
 interface ProjectCardProps {
   project: Project;
-  probe: Probe;
+  image: ImageMeta;
   className?: string;
 }
 
-export function ProjectCard({ project, probe, className }: ProjectCardProps) {
+export function ProjectCard({ project, image, className }: ProjectCardProps) {
   return (
     <article className={cn('flex flex-col gap-1.5 rounded-2xl border bg-card p-1.5', className)}>
-      <div className="relative overflow-hidden rounded-xl bg-well" style={{ aspectRatio: `${probe.width} / ${probe.height}` }}>
+      <div className="relative overflow-hidden rounded-xl bg-well" style={{ aspectRatio: `${image.width} / ${image.height}` }}>
         <ProjectMedia
           image={resolveMedia(project.image)}
+          meta={image}
           video={project.video && resolveMedia(project.video)}
-          probe={probe}
         />
         <div
           aria-hidden
@@ -32,7 +32,7 @@ export function ProjectCard({ project, probe, className }: ProjectCardProps) {
         </div>
       </div>
 
-      {project.action && <ProjectLink action={project.action} />}
+      {project.action && <ProjectLink action={project.action} project={project.title} />}
     </article>
   );
 }

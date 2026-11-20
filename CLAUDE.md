@@ -17,127 +17,142 @@ bun run test          # Vitest; `bun test` is Bun's own runner and will not work
 ## Verification gate
 
 `bun lint && bun run type-check && bun run test && bun run build`, exactly what
-`.github/workflows/ci.yml` runs. Then look at both themes, at phone and desktop widths.
+`.github/workflows/ci.yml` runs, on the Bun `packageManager` names. Then look at both
+themes, at phone and desktop widths, in Chromium and in WebKit.
 
 ## Writing style
 
-English, single quotes, no em dash. **No comments in the code**: names, types and
-structure carry the meaning, and every trap is written down here instead. Never run
-`prettier` on a directory, only `--single-quote` on exact paths.
+English, single quotes, trailing commas, no em dash. **No comments in the code**:
+names, types and structure carry the meaning, and every trap is written down here
+instead. Never run `prettier` on a directory, only `--single-quote` on exact paths.
 
-## Architecture
+## Layout and conventions
 
-Next.js 16 App Router, statically generated. Tailwind v4 and shadcn/ui (`radix-vega`,
-Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default blue.
-`next-themes` puts `light` or `dark` on `<html>`, dark by default as on the blog.
+Next.js 16 App Router. Every page is static; `/resume` alone runs on request. Server
+Components by default, `'use client'` only for state, effects or browser APIs.
+
+- **`app/_components/`** is what the pages share (Island, CommandPalette, Footer,
+  StatusPage, HomeLink, ResumeAnchor, ThemeColor, the error body, `document.ts`, the
+  fonts and body classes the root layout and `global-error` both need), and `Home/` the
+  home page. A component with parts is a folder with an `index.ts`; a single file stays
+  flat.
+- **`components/`** is what is not tied to a page: `ui/` the shadcn primitives,
+  `icons/` the animated icons, `shared/` the logo, the hatching, the selection frame and
+  `styles.ts`, the class strings several places compose (`focusRing`, `pillSurface`,
+  `pageGrid`).
+- **`lib/`** is logic, by domain (`commands/`, `media/`, `seo/`, `services/`, `theme/`),
+  with what every domain uses at its root (`utils`, `motion`, `masonry`, `browser`,
+  `build-info`). It never imports from `app/`.
+- **`hooks/`** holds the Zustand stores and the hooks shared across components.
+- **`content/`** is what the page shows, typed, by hand; **`config/site.ts`** the
+  identity, links and handles everything else derives from.
+- Named exports everywhere but where Next.js asks for a default, and `siteConfig`.
+  Every component accepts and forwards `className`. Hugeicons only, `motion/react`
+  only, tokens only.
+- Tests sit beside their file, run in jsdom with reduced motion on unless a test asks
+  otherwise (`test/media.ts`), and every one was proved by breaking what it guards.
 
 | Path | What it owns |
 |---|---|
-| `config/site.ts` | Identity, links, the cal.com handle, the resume, root metadata |
-| `content/projects.ts`, `content/clients.ts` | What the page shows, typed, by hand |
-| `lib/masonry.ts` | Tiles into columns, shortest column first |
+| `config/site.ts` | Identity, handle, time zone, links, profiles, the resume, cal.com |
+| `content/projects.ts`, `content/clients.ts` | The work and the logos; a client may be the employer |
+| `lib/masonry.ts` | Tiles into columns, shortest first, and the lane contract the footer reads |
 | `lib/media/probe.ts` | An image's size and a 16px blur placeholder, read with sharp at build time |
-| `lib/commands/` | The palette's registry, its groups and its shortcuts |
-| `lib/services/booking.ts` | cal.com's modal, loaded on first use |
-| `app/_components/Island` | The island: identity, hint, announcements |
-| `app/_components/CommandPalette` | The launcher, always mounted, and the palette, loaded on intent |
-| `app/_components/Home` | The hero, the "+ You" button, the client logos, the project grid |
+| `lib/media/cdn.ts` | A bare media path to its URL under `portfolio/` on the CDN |
+| `lib/commands/` | The palette's registry, its groups, and how a key chord maps to a command |
+| `lib/services/` | cal.com's modal; the resume's route, anchor and announcement |
+| `lib/seo/structured-data.ts` | The `Person` and `ProfilePage` JSON-LD |
+| `lib/theme/` | The view-transition sweep, and the stored theme `global-error` reads |
+| `lib/build-info.ts` | The commit and build date the footer shows |
+| `hooks/use-island-store.ts` | What the island presents, as data, and `announce` |
+| `hooks/use-palette-store.ts` | Whether the palette is wanted, open, and handing focus back |
+| `hooks/use-animated-icon.ts` | The animated icons' controls, and playing one from its control |
 
 ## What the code does not say
 
-- **The palette loads on intent.** `PaletteLauncher` holds the keyboard (⌘K and every
-  shortcut) and mounts the palette through `next/dynamic` once it is `wanted`: pointing
-  at or focusing the island, or the first ⌘K. A visitor who never opens it never
-  downloads cmdk or the dialog. The shortcuts match the blog's, so habits carry over.
-- **A command runs once the palette has closed**, in `onCloseAutoFocus`: cal.com's modal
-  opened over a closing dialog fights it for focus. Radix hands focus back to a trigger
-  and the palette has none, so it notes what held focus on opening and returns it,
-  under `returningFocus`, which keeps the island from reading that as pointing.
-- **The masonry is decided at build time.** Each image is probed at build time, the
-  tiles are spread one, two and three columns wide, and CSS shows the layout for the
-  width, so nothing moves on load. Each tile goes to the shortest column, so tiles appear
-  newest first by their top edge, but the DOM, and so Tab and a screen reader, runs
-  column by column: masonry without it is CSS `grid-lanes`, to adopt once every engine
-  ships it. Hidden copies are `display: none`, out of the accessibility tree, and their
-  lazy images are never fetched. A missing image warns and falls back to 16:9.
-- **The island speaks through a live region.** Its pill is `aria-hidden`, so an
-  announcement also lands in an `sr-only` `role="status"`; a refused clipboard still
-  answers, the island showing the text itself.
-- **The CTA pills share `pillSurface`** (`ui/pill.ts`): `rounded-xl`, never full, so they
-  do not echo the island; `glass-rim` for the top-lit border, `--shadow-pill` per theme,
-  no background change on hover. Three sit on a `1fr auto 1fr` grid, Email centred, so
-  "Book a call" grows leftwards and the other two never move. Its "+ You" is not
-  clipped and not delayed: it scales from 0 at its left edge on the same curve and
-  duration as the space opening, so it fills the gap as it grows. A clip showed the
-  blur's hard edge and cut the circle; a delay read as a pause. The space is an explicit
-  width (`w-13`, the pair's own), not a `0fr` grid track: WebKit sizes a collapsed track
-  from its unclipped content, so the pill rested open with a hole in it. The three labels share
-  `--foreground`, which `shine-text` paints under its band.
-- **Animated icons are Hugeicons Animated** (community, MIT), installed with
-  `bunx --bun shadcn@latest add @hugeicons-animated/<name>` into `components/ui/`,
-  comments stripped, with `lib/use-icon-animation.ts`. An icon plays when its whole
-  control is hovered or focused, through `useAnimatedIcon`, never by moving the icon.
-- **The theme changes under the blog's sweep**: `withThemeTransition` wraps the change in
-  a view transition, and the new theme grows from the top left as a blurred circle.
-- **Entrances are the 404's**: `rise` (blur, opacity, half a rem) staggered by
-  `--rise-step` in the hero, `Reveal` on each card as it enters the view. `Reveal`
-  animates blur and opacity only: Motion runs those on the compositor, while a
-  translate ran on the main thread and stuttered through hydration as a jump. Reduced motion
-  shows everything at once.
-- **Client logos are shadcn `Avatar`s** in an `AvatarGroup`, at `portfolio/clients/` on
-  the CDN; until a logo is there the fallback initial shows. Hovered or focused, one
-  scales up over its neighbours, its name in a tooltip below. The trigger is an
-  unscaled wrapper and only the avatar inside it grows: Radix measures the trigger
-  with its transform, so a scaled trigger dragged the tooltip along. The tooltips take
-  `disableHoverableContent`, or the pointer leaving through one held it open over the
-  next avatar.
-- **A project is a still, and maybe a video**: `image` is always probed (the masonry
-  needs its ratio, the blur-up its placeholder) and stays under the video, which plays
-  muted only while a quarter of it is in view, never under reduced motion. Each medium
-  arrives out of blur over the placeholder once it has loaded or started playing, so a
-  cached image and a lazy one below the fold behave alike; next/image replays a load
-  or error that happened before hydration. A failed image leaves hatching and an icon.
-  A project has at most one action: an article, an app or its code. Title and year sit on the
-  media over a blurred scrim, `--media-ink` on `scrim` in both themes.
-- **The shine is CSS alone**: a registered `--sweep` animated in `@keyframes`, painted
-  through `shine-text` (background-clipped over `--foreground`) and `shine-border` (a
-  masked ring). The text's band dims in dark and lightens in light, `--shine-text`,
-  since a white glint on near-white text is invisible; the rim's is `--shine-rim`.
-  Reduced motion parks the band off the box.
+- **The island renders data.** Its store holds presences (`hint`, `announcement` with
+  its message and icon), never markup, so `lib/` announces without reaching into
+  `app/`; `views.tsx` turns each into its pill. An announcement also lands in an
+  `sr-only` `role="status"`, emptied and refilled a task later so the same message,
+  repeated, is read again. The hint names the modifier of the visitor's platform.
+- **The palette loads on intent.** `PaletteLauncher` holds the keyboard and mounts the
+  palette through `next/dynamic` once it is `wanted`: pointing at or focusing the island,
+  or opening it. A shortcut runs its command without loading it. Shortcuts are ⌘ on
+  Apple systems and Ctrl elsewhere, never both, and ignore a held key, Alt, Shift and a
+  composition; a letter is read from `code` when the layout's `key` is not Latin. ⌘D, ⌘S
+  and ⌘L take over the browser's own, as on the blog, on purpose.
+- **A picked command runs once focus is back**, from the dialog's `onClosed`, which
+  Radix fires after the exit: focus returns first, without scrolling, under
+  `returningFocus` (which keeps the island from reading it as pointing), then the
+  command runs, so "Go to top" is not undone and cal.com opens over a settled page.
+  Reopening before the exit ends forgets the pick. Radix has no trigger to hand focus
+  back to, so the dialog notes what held it on opening.
 - **`ui/command.tsx` is the blog's**, not the CLI's: glass panel, Motion dialog that
   travels its backdrop blur, a bare 16px input below `sm` (iOS zooms under it), rows
   selected only under a fine pointer or the keyboard (`data-keyed`), a leaving dialog
-  `inert`. `FadingList` fades the list's ends. A picked command runs on
-  `onExitComplete`, so cal.com never opens over a closing dialog. Shortcuts hide on
-  coarse pointers and read Ctrl+ off Apple systems.
-- **The palette's input is named `search`**: password managers (iCloud Passwords
-  among them) offer themselves on a text field despite `autocomplete="off"`, and cmdk
-  forces `type="text"`. Unverified against the extension itself.
-- **A resume download is announced** in the island, from the pill or the palette,
-  through `announceResume` in `lib/services/resume.ts`.
-- **The 404 is the blog's `StatusPage`**: the status as a hairline outline of Departure
-  Mono (stroked at twice its width, then covered by the same text in `--background`, so
-  only the outer half shows), the serif title, the copy, faded hatched bands, all on
-  `rise`. Tooltips are the blog's too: `--card` with a border, no arrow.
-- **The footer is Maxime Heckel's metadata block in our type**: commit (Vercel's SHA,
-  else git), browser, Montpellier's time, the window, last update, then links. The live
-  readings are `useSyncExternalStore` with a `null` server snapshot, so the static HTML
-  shows a dash and nothing mismatches on hydration.
-- **The footer's bands rise to their own column**: `RisingBand` measures where the
-  masonry's first or last lane ends (`data-lane`, lanes `self-start` so each is only
-  as tall as its cards) and reaches up to 2rem below it, fading in over 8rem. They
-  wait hidden until measured, so they appear once, already in place.
-- **The home page carries JSON-LD** (`lib/seo/structured-data.ts`): a `Person` at
-  `https://lenysauzet.com/#person`, every spelling of the name, `sameAs` to each
-  profile and the blog, inside a `ProfilePage`. The blog should point at that `@id`.
-- **Below `sm`, "Book a call" is shown grown and spans the row**, Email and Resume
-  halving the one beneath: a phone has no hover to reveal "+ You".
-- **`/resume` proxies the PDF** so `download` holds across origins, cached at the edge
-  by `s-maxage`.
+  `inert`. `FadingList` fades the list's ends. Its input is named `search`: password
+  managers offer themselves on a text field despite `autocomplete="off"`, and cmdk
+  forces `type="text"`.
+- **The masonry is decided at build time.** Each image is probed (timing out to a 16:9
+  fallback and a warning rather than failing the build), the tiles are spread one, two
+  and three columns wide, and CSS shows the layout for the width, so nothing moves on
+  load. The DOM, and so Tab and a screen reader, runs column by column: masonry without
+  it is CSS `grid-lanes`, to adopt once every engine ships it. The three copies are the
+  price of a static layout; hidden ones are `display: none`, and their lazy images are
+  never fetched.
+- **A project is a still, and maybe a video**, with at most one action: an article, an
+  app or its code. The still is always probed and stays under the video, which plays
+  muted only while a quarter of it is in view, never under reduced motion. Each medium
+  arrives out of blur over the placeholder once loaded or playing; next/image replays a
+  load or error from before hydration. A failed image leaves hatching and an icon.
+  `video` and articles wait for content: no project uses them yet. A card's link is
+  named after its project, and says when it opens a new tab.
+- **Entrances are the 404's**: `rise` staggered by `--rise-step` in the hero, `Reveal`
+  on each card as it enters the view. `Reveal` animates blur and opacity only, which
+  Motion runs on the compositor; a translate ran on the main thread and stuttered
+  through hydration. Its initial state never depends on the reader's preference, which
+  the server cannot know: reduced motion only makes the entrance instant.
+- **The CTA pills share `pillSurface`**: `rounded-xl`, never full, so they do not echo
+  the island; `glass-rim` for the top-lit border, `--shadow-pill` per theme, no
+  background change on hover. On a `1fr auto 1fr` grid, Email centred, "Book a call"
+  grows leftwards and the other two never move. Its "+ You" scales from 0 at its left
+  edge on the curve and duration of the space opening, unclipped, so it fills the gap
+  as it grows. The space is an explicit width (`w-13`, the pair's own), not a `0fr`
+  track: WebKit sizes a collapsed track from its unclipped content. Below `sm` or under
+  a coarse pointer it is shown grown and spans the row.
+- **Animated icons are Hugeicons Animated** (community, MIT), added with
+  `bunx --bun shadcn@latest add @hugeicons-animated/<name>` and then rewritten into
+  `components/icons/`: `ref` as a prop, one shared handle, no hover of their own. An
+  icon plays when its whole control is hovered or focused, through `useAnimatedIcon`.
+- **The theme changes under the blog's sweep** (`withThemeTransition`), and
+  `ThemeColor` copies the body's background into `theme-color` a frame after each
+  change, so the browser's chrome follows the site's theme, not the system's.
+- **Client logos are shadcn `Avatar`s.** The trigger is an unscaled wrapper and only
+  the avatar inside it grows: Radix measures the trigger with its transform. The
+  tooltips take `disableHoverableContent`, or a pointer leaving through one held it
+  open over the next avatar. Until a logo is on the CDN the initial shows.
+- **The shine is CSS alone**: a registered `--sweep` animated in `@keyframes`, painted
+  through `shine-text` and `shine-border`. The text's band dims in dark and lightens in
+  light (`--shine-text`), the rim's is `--shine-rim`. Reduced motion parks it.
+- **The status pages share `StatusPage`**: the status as a hairline outline of
+  Departure Mono (stroked at twice its width, then covered by the same text in
+  `--background`, so only the outer half shows), the serif title, the copy, faded
+  bands. `global-error` replaces the root layout, so it brings the fonts and applies
+  the stored theme itself. The 404 declares no canonical URL.
+- **The footer is a metadata block**: commit, browser, the local time, the window and
+  the build date, then links. The live readings use `useSyncExternalStore` with a
+  pending server snapshot; the clock ticks on the second. Its bands rise to their own
+  column: `RisingBand` reads where the masonry's first or last lane ends and stays
+  hidden until it has, so on a page without the work they never show.
+- **The home page carries JSON-LD**: a `Person` at `https://lenysauzet.com/#person`,
+  every spelling of the name, `sameAs` each profile and the blog, inside a
+  `ProfilePage`. The blog should point its author at that `@id`.
+- **`/resume` proxies the PDF** so `download` holds across origins; the edge caches it
+  a day and a failure is never cached.
 - **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to
-  `64:ff9b::`, which the optimizer refuses as a private IP, so dev serves the originals
-  and production optimizes. Never set `dangerouslyAllowLocalIP`; to look at a local
-  production build, serve the original through a Playwright route.
+  `64:ff9b::`, which the optimizer refuses as a private IP. Never set
+  `dangerouslyAllowLocalIP`; to look at a local production build, serve the original
+  through a Playwright route.
 
 ## Branches
 

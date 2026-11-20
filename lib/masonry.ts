@@ -14,3 +14,13 @@ export function distribute<T>(tiles: Tile<T>[], columns: number): T[][] {
 
   return lanes.map((lane) => lane.items);
 }
+
+export const WORK_ID = 'work';
+
+export type Lane = 'first' | 'last';
+
+export const laneOf = (index: number, count: number): Lane | undefined => {
+  if (index === 0) return 'first';
+  if (index === count - 1) return 'last';
+  return undefined;
+};

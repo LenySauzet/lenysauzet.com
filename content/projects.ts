@@ -1,3 +1,5 @@
+import siteConfig from '@/config/site';
+
 export type ProjectAction = { kind: 'article'; slug: string } | { kind: 'app' | 'source'; href: string };
 
 export interface Project {
@@ -8,10 +10,7 @@ export interface Project {
   action?: ProjectAction;
 }
 
-const source = (repository: string): ProjectAction => ({
-  kind: 'source',
-  href: `https://github.com/LenySauzet/${repository}`,
-});
+const source = (repository: string): ProjectAction => ({ kind: 'source', href: `${siteConfig.social.github}/${repository}` });
 
 export const projects: Project[] = [
   { title: 'Ankhora', year: '2026', image: 'projects/ankhora/cover.jpg', action: source('Ankhora') },

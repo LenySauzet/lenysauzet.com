@@ -1,19 +1,21 @@
 import siteConfig from '@/config/site';
 
-const FILENAME = siteConfig.resumeUrl.split('/').pop() ?? 'resume.pdf';
+const { file, url } = siteConfig.resume;
 
 export async function GET() {
-  const upstream = await fetch(siteConfig.resumeUrl);
+  const upstream = await fetch(url);
 
   if (!upstream.ok || !upstream.body) {
-    return new Response('Resume unavailable', { status: 502 });
+    return new Response('Resume unavailable', { status: 502, headers: { 'Cache-Control': 'no-store' } });
   }
 
-  return new Response(upstream.body, {
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${FILENAME}"`,
-      'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
-    },
+  const headers = new Headers({
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': `attachment; filename="${file}"`,
+    'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400',
   });
+  const length = upstream.headers.get('Content-Length');
+  if (length) headers.set('Content-Length', length);
+
+  return new Response(upstream.body, { headers });
 }

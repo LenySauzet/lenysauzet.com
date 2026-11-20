@@ -1,55 +1,47 @@
-import type { Metadata } from 'next';
-
+const handle = 'LenySauzet';
 const url = 'https://lenysauzet.com';
-const blogUrl = 'https://blog.lenysauzet.com';
 const cdnUrl = 'https://cdn.lenysauzet.com';
-const email = 'contact@lenysauzet.com';
+const resumeFile = 'Leny-Sauzet-Resume.pdf';
 
 const author = {
   name: 'Lény Sauzet',
   firstName: 'Leny',
+  handle,
   role: 'AI & Software Engineer',
   location: 'Montpellier',
+  timeZone: 'Europe/Paris',
 };
 
-const title = `${author.name} · ${author.role}`;
-
-const description =
-  "I'm Lény, an AI and software engineer based in Montpellier. I transform complex challenges into delightful user experiences and high-performance solutions, from the models and the architecture to the interface people touch.";
-
 const social = {
-  github: 'https://github.com/LenySauzet',
-  x: 'https://x.com/LenySauzet',
-  bluesky: 'https://bsky.app/profile/lenysauzet.bsky.social',
+  github: `https://github.com/${handle}`,
   linkedin: 'https://www.linkedin.com/in/lenysauzet/',
+  x: `https://x.com/${handle}`,
+  bluesky: 'https://bsky.app/profile/lenysauzet.bsky.social',
   roadmap: 'https://www.figma.com/board/CCTdvk3lomDhgiCsQu9hlb/Leny-s-Public-Roadmap',
   support: 'https://buymeacoffee.com/lenysauzet',
 };
 
+const profiles = [
+  { name: 'GitHub', url: social.github },
+  { name: 'LinkedIn', url: social.linkedin },
+  { name: 'X', url: social.x },
+  { name: 'Bluesky', url: social.bluesky },
+];
+
 const siteConfig = {
   url,
-  blogUrl,
+  blogUrl: 'https://blog.lenysauzet.com',
   cdnUrl,
-  email,
-  author,
-  title,
-  description,
-  social,
+  repository: `${social.github}/lenysauzet.com`,
+  email: 'contact@lenysauzet.com',
   calHandle: 'lenysauzet',
-  resumeUrl: `${cdnUrl}/files/Leny-Sauzet-Resume.pdf`,
+  author,
+  social,
+  profiles,
+  title: `${author.name} · ${author.role}`,
+  description:
+    "I'm Lény, an AI and software engineer based in Montpellier. I transform complex challenges into delightful user experiences and high-performance solutions, from the models and the architecture to the interface people touch.",
+  resume: { file: resumeFile, url: `${cdnUrl}/files/${resumeFile}` },
 };
 
 export default siteConfig;
-
-export const rootMetadata: Metadata = {
-  metadataBase: new URL(url),
-  title: { default: title, template: `%s · ${author.name}` },
-  description,
-  applicationName: author.name,
-  authors: [{ name: author.name, url }],
-  creator: author.name,
-  alternates: { canonical: '/' },
-  openGraph: { type: 'website', url, title, description, siteName: author.name, locale: 'en_US' },
-  twitter: { card: 'summary_large_image', title, description, creator: '@LenySauzet' },
-  robots: { index: true, follow: true },
-};

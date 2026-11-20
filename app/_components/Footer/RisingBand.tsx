@@ -3,24 +3,25 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { HatchBand } from '@/components/shared/HatchBand';
+import { WORK_ID, type Lane } from '@/lib/masonry';
 import { cn } from '@/lib/utils';
 
 const CLEARANCE = 32;
 
-function laneBottom(side: 'first' | 'last') {
-  const lane = [...document.querySelectorAll<HTMLElement>(`#work [data-lane="${side}"]`)].find(
+function laneBottom(lane: Lane) {
+  const shown = [...document.querySelectorAll<HTMLElement>(`#${WORK_ID} [data-lane="${lane}"]`)].find(
     (candidate) => candidate.offsetParent
   );
-  return lane && lane.getBoundingClientRect().bottom;
+  return shown?.getBoundingClientRect().bottom;
 }
 
-export function RisingBand({ side, className }: { side: 'first' | 'last'; className?: string }) {
+export function RisingBand({ lane, className }: { lane: Lane; className?: string }) {
   const cell = useRef<HTMLDivElement>(null);
   const [reach, setReach] = useState<number>();
 
   useEffect(() => {
     const measure = () => {
-      const bottom = laneBottom(side);
+      const bottom = laneBottom(lane);
       if (!cell.current || bottom === undefined) return;
       setReach(Math.min(0, bottom + CLEARANCE - cell.current.getBoundingClientRect().top));
     };
@@ -29,7 +30,7 @@ export function RisingBand({ side, className }: { side: 'first' | 'last'; classN
     const watched = new ResizeObserver(measure);
     watched.observe(document.documentElement);
     return () => watched.disconnect();
-  }, [side]);
+  }, [lane]);
 
   return (
     <div ref={cell} aria-hidden className={cn('relative hidden lg:block', className)}>

@@ -4,7 +4,7 @@ export const GROUPS = ['Contact', 'Tools', 'Links'] as const;
 
 export type Group = (typeof GROUPS)[number];
 
-export interface CommandContext {
+interface CommandContext {
   resolvedTheme: string | undefined;
   setTheme: (theme: string) => void;
 }

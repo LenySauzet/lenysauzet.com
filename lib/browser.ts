@@ -1,10 +1,10 @@
-const ENGINES: [RegExp, string][] = [
-  [/Edg\//, 'Edge'],
+const BROWSERS: [RegExp, string][] = [
+  [/Edg(iOS|A)?\//, 'Edge'],
   [/OPR\//, 'Opera'],
-  [/Firefox\//, 'Firefox'],
-  [/Chrome\//, 'Chromium'],
+  [/(Firefox|FxiOS)\//, 'Firefox'],
+  [/(Chrome|CriOS)\//, 'Chromium'],
   [/Safari\//, 'Safari'],
 ];
 
 export const browserName = (userAgent: string) =>
-  ENGINES.find(([pattern]) => pattern.test(userAgent))?.[1] ?? 'Unknown';
+  BROWSERS.find(([pattern]) => pattern.test(userAgent))?.[1] ?? 'Unknown';

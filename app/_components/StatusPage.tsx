@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { HatchBand } from '@/components/shared/HatchBand';
+import { pageGrid } from '@/components/shared/styles';
 import { cn } from '@/lib/utils';
 
 const FADED = 'mask-[linear-gradient(to_bottom,transparent,black_20%,black_80%,transparent)]';
@@ -14,12 +15,7 @@ interface StatusPageProps {
 
 export function StatusPage({ status, title, children, className }: StatusPageProps) {
   return (
-    <section
-      className={cn(
-        'grid min-h-dvh grid-cols-[minmax(0,1fr)] px-4 lg:grid-cols-[6rem_minmax(2rem,1fr)_minmax(0,42rem)_minmax(2rem,1fr)_6rem] lg:px-20',
-        className
-      )}
-    >
+    <section className={cn(pageGrid, 'min-h-dvh', className)}>
       <HatchBand className={FADED} />
 
       <div className="flex flex-col items-center justify-center py-24 text-center lg:col-start-3">

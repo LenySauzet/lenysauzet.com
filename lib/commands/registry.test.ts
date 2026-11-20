@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useIslandStore } from '@/hooks/use-island-store';
 
@@ -8,9 +8,10 @@ import { GROUPS } from './types';
 const byId = (id: string) => commands.find((command) => command.id === id)!;
 const context = { resolvedTheme: 'dark', setTheme: vi.fn() };
 const announced = () => {
-  const state = useIslandStore.getState().presented.at(-1);
-  return state ? JSON.stringify(state.render()) : '';
+  const presence = useIslandStore.getState().presented.at(-1);
+  return presence?.id === 'announcement' ? presence.message : undefined;
 };
+const clipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
 
 describe('the registry', () => {
   it('gives every command its own id and every shortcut to one command', () => {
@@ -35,20 +36,29 @@ describe('Toggle theme', () => {
 });
 
 describe('Copy email', () => {
+  beforeEach(() => useIslandStore.setState({ presented: [] }));
+  afterEach(() => {
+    if (clipboard) Object.defineProperty(navigator, 'clipboard', clipboard);
+    else Reflect.deleteProperty(navigator, 'clipboard');
+  });
+
   it('says so once the address is on the clipboard', async () => {
-    Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true });
 
     await byId('copy-email').run(context);
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('contact@lenysauzet.com');
-    expect(announced()).toContain('Email copied');
+    expect(announced()).toBe('Email copied');
   });
 
   it('shows the address itself when the browser refuses the clipboard', async () => {
-    Object.assign(navigator, { clipboard: { writeText: vi.fn().mockRejectedValue(new Error('denied')) } });
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+      configurable: true,
+    });
 
     await byId('copy-email').run(context);
 
-    expect(announced()).toContain('contact@lenysauzet.com');
+    expect(announced()).toBe('contact@lenysauzet.com');
   });
 });

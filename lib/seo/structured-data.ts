@@ -1,12 +1,12 @@
 import siteConfig from '@/config/site';
 import { clients } from '@/content/clients';
 
-const { url, blogUrl, author, description, social } = siteConfig;
+const { url, blogUrl, author, description, profiles } = siteConfig;
 
 export const PERSON_ID = `${url}/#person`;
 
 export function structuredData() {
-  const [employer] = clients;
+  const employer = clients.find((client) => client.employer);
 
   return {
     '@context': 'https://schema.org',
@@ -15,7 +15,7 @@ export function structuredData() {
         '@type': 'Person',
         '@id': PERSON_ID,
         name: author.name,
-        alternateName: ['Leny Sauzet', 'LenySauzet'],
+        alternateName: ['Leny Sauzet', author.handle],
         givenName: 'Lény',
         familyName: 'Sauzet',
         jobTitle: author.role,
@@ -27,7 +27,7 @@ export function structuredData() {
         worksFor: employer && { '@type': 'Organization', name: employer.name, url: employer.href },
         alumniOf: { '@type': 'EducationalOrganization', name: 'Epitech', url: 'https://www.epitech.eu' },
         knowsAbout: ['Artificial intelligence', 'Conversational AI', 'Software architecture', 'Web development'],
-        sameAs: [social.github, social.linkedin, social.x, social.bluesky, blogUrl],
+        sameAs: [...profiles.map((profile) => profile.url), blogUrl],
       },
       {
         '@type': 'ProfilePage',

@@ -15,8 +15,9 @@ import {
   PaintBoardIcon,
 } from '@hugeicons/core-free-icons';
 
-import { announce } from '@/app/_components/Island';
 import siteConfig from '@/config/site';
+import { announce } from '@/hooks/use-island-store';
+import { prefersReducedMotion } from '@/lib/motion';
 import { openBooking } from '@/lib/services/booking';
 import { announceResume, RESUME_ROUTE } from '@/lib/services/resume';
 import { withThemeTransition } from '@/lib/theme/theme-transition';
@@ -38,17 +39,23 @@ const copy = async (text: string, message: string, icon: Command['icon']) => {
   }
 };
 
-const stillOrSmooth = (): ScrollBehavior =>
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+const shortUrl = (url: string) => url.replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '');
 
-const link = (
-  id: string,
-  label: string,
-  icon: Command['icon'],
-  url: string,
-  hint: string,
-  keywords: string[]
-): Command => ({ id, label, icon, group: 'Links', keywords, hint, run: visit(url) });
+interface Link {
+  id: string;
+  label: string;
+  icon: Command['icon'];
+  url: string;
+  keywords: string[];
+  hint?: string;
+}
+
+const link = ({ url, hint = shortUrl(url), ...rest }: Link): Command => ({
+  ...rest,
+  group: 'Links',
+  hint,
+  run: visit(url),
+});
 
 export const commands: Command[] = [
   {
@@ -119,13 +126,39 @@ export const commands: Command[] = [
     group: 'Tools',
     keywords: ['scroll', 'beginning'],
     shortcut: 'ArrowUp',
-    run: () => window.scrollTo({ top: 0, behavior: stillOrSmooth() }),
+    run: () => window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' }),
   },
-  link('blog', 'Blog', News01Icon, siteConfig.blogUrl, 'blog.lenysauzet.com', ['articles', 'writing', 'posts']),
-  link('github', 'GitHub', Github01Icon, social.github, 'github.com/LenySauzet', ['code', 'source']),
-  link('x', 'X', NewTwitterIcon, social.x, 'x.com/LenySauzet', ['twitter', 'social']),
-  link('bluesky', 'Bluesky', BlueskyIcon, social.bluesky, 'lenysauzet.bsky.social', ['social', 'bsky']),
-  link('linkedin', 'LinkedIn', Linkedin01Icon, social.linkedin, 'linkedin.com/in/lenysauzet', ['social', 'work']),
-  link('roadmap', 'Roadmap', PaintBoardIcon, social.roadmap, 'figma.com', ['figma', 'plans', 'next']),
-  link('support', 'Support me', Coffee01Icon, social.support, 'buymeacoffee.com/lenysauzet', ['donate', 'coffee', 'sponsor']),
+  link({
+    id: 'blog',
+    label: 'Blog',
+    icon: News01Icon,
+    url: siteConfig.blogUrl,
+    keywords: ['articles', 'writing', 'posts'],
+  }),
+  link({ id: 'github', label: 'GitHub', icon: Github01Icon, url: social.github, keywords: ['code', 'source'] }),
+  link({ id: 'x', label: 'X', icon: NewTwitterIcon, url: social.x, keywords: ['twitter', 'social'] }),
+  link({
+    id: 'bluesky',
+    label: 'Bluesky',
+    icon: BlueskyIcon,
+    url: social.bluesky,
+    hint: 'lenysauzet.bsky.social',
+    keywords: ['social', 'bsky'],
+  }),
+  link({ id: 'linkedin', label: 'LinkedIn', icon: Linkedin01Icon, url: social.linkedin, keywords: ['social', 'work'] }),
+  link({
+    id: 'roadmap',
+    label: 'Roadmap',
+    icon: PaintBoardIcon,
+    url: social.roadmap,
+    hint: 'figma.com',
+    keywords: ['figma', 'plans', 'next'],
+  }),
+  link({
+    id: 'support',
+    label: 'Support me',
+    icon: Coffee01Icon,
+    url: social.support,
+    keywords: ['donate', 'coffee', 'sponsor'],
+  }),
 ];

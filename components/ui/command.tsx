@@ -1,25 +1,18 @@
 'use client';
 
-import * as React from 'react';
 import { Command as CommandPrimitive } from 'cmdk';
-import {
-  AnimatePresence,
-  motion,
-  useIsPresent,
-  useReducedMotion
-} from 'motion/react';
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
+import * as React from 'react';
 
-import { usePaletteStore } from '@/hooks/use-palette-store';
 import { cn } from '@/lib/utils';
 
-function Command({
-  className,
-  onKeyDown,
-  onPointerDown,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive>) {
+const SELECTED_TEXT =
+  'any-pointer-fine:group-data-selected/command-item:text-foreground in-data-keyed:group-data-selected/command-item:text-foreground';
+
+function Command({ className, onKeyDown, onPointerDown, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
   const [keyed, setKeyed] = React.useState(false);
+
   return (
     <CommandPrimitive
       data-slot="command"
@@ -32,32 +25,23 @@ function Command({
         setKeyed(false);
         onPointerDown?.(event);
       }}
-      className={cn(
-        'flex size-full flex-col overflow-hidden rounded-xl! bg-transparent text-popover-foreground',
-        className
-      )}
+      className={cn('flex size-full flex-col overflow-hidden bg-transparent text-foreground', className)}
       {...props}
     />
   );
 }
 
-function CommandDialog({
-  title = 'Command Palette',
-  description = 'Search for a command to run...',
-  open,
-  onOpenChange,
-  onExitComplete,
-  children,
-  className
-}: {
+interface CommandDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onExitComplete?: () => void;
-  title?: string;
-  description?: string;
+  onClosed?: (returnFocus: () => void) => void;
+  title: string;
+  description: string;
   children: React.ReactNode;
   className?: string;
-}) {
+}
+
+function CommandDialog({ open, onOpenChange, onClosed, title, description, children, className }: CommandDialogProps) {
   const still = useReducedMotion();
   const returnTo = React.useRef<HTMLElement | null>(null);
   const transition = { duration: 0.15, ease: 'easeOut' } as const;
@@ -65,14 +49,10 @@ function CommandDialog({
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <AnimatePresence onExitComplete={onExitComplete}>
+      <AnimatePresence>
         {open && (
           <DialogPrimitive.Portal forceMount>
-            <DialogPrimitive.Overlay
-              data-slot="dialog-overlay"
-              forceMount
-              asChild
-            >
+            <DialogPrimitive.Overlay data-slot="dialog-overlay" forceMount asChild>
               <motion.div
                 className="fixed inset-0 isolate z-50 bg-background/80"
                 initial={{ opacity: 0 }}
@@ -86,22 +66,19 @@ function CommandDialog({
               forceMount
               asChild
               onOpenAutoFocus={() => {
-                returnTo.current =
-                  document.activeElement instanceof HTMLElement
-                    ? document.activeElement
-                    : null;
+                returnTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
               }}
               onCloseAutoFocus={(event) => {
                 event.preventDefault();
-                if (!returnTo.current?.isConnected) return;
-                usePaletteStore.setState({ returningFocus: true });
-                returnTo.current.focus();
-                usePaletteStore.setState({ returningFocus: false });
+                const target = returnTo.current?.isConnected ? returnTo.current : null;
+                const returnFocus = () => target?.focus({ preventScroll: true });
+                if (onClosed) onClosed(returnFocus);
+                else returnFocus();
               }}
             >
               <Panel
                 className={cn(
-                  'fixed top-[20%] left-1/2 z-50 w-[600px] max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-xl border border-muted-foreground/15 bg-card/75 text-sm text-popover-foreground outline-none backdrop-blur-(--dialog-blur) backdrop-saturate-[115%]',
+                  'fixed top-1/5 left-1/2 z-50 w-150 max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-xl border border-muted-foreground/15 bg-card/75 text-sm text-foreground outline-hidden backdrop-blur-(--dialog-blur) backdrop-saturate-[115%]',
                   className
                 )}
                 initial={away}
@@ -109,12 +86,8 @@ function CommandDialog({
                 exit={away}
                 transition={transition}
               >
-                <DialogPrimitive.Title className="sr-only">
-                  {title}
-                </DialogPrimitive.Title>
-                <DialogPrimitive.Description className="sr-only">
-                  {description}
-                </DialogPrimitive.Description>
+                <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
+                <DialogPrimitive.Description className="sr-only">{description}</DialogPrimitive.Description>
                 {children}
               </Panel>
             </DialogPrimitive.Content>
@@ -127,6 +100,7 @@ function CommandDialog({
 
 function Panel(props: React.ComponentProps<typeof motion.div>) {
   const present = useIsPresent();
+
   return (
     <motion.div
       {...props}
@@ -138,43 +112,34 @@ function Panel(props: React.ComponentProps<typeof motion.div>) {
   );
 }
 
-function CommandInput({
-  className,
-  hint,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input> & {
-  hint?: React.ReactNode;
-}) {
+function CommandInput({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
-    <div data-slot="command-input-wrapper">
-      <div className="flex h-[55px] items-center gap-3 border-b-[1.5px] border-foreground/10 px-[18px]">
-        <CommandPrimitive.Input
-          data-slot="command-input"
-          name="search"
-          enterKeyHint="go"
-          data-1p-ignore
-          data-lpignore="true"
-          className={cn(
-            'w-full bg-transparent text-base outline-hidden placeholder:text-subtle-foreground sm:text-sm disabled:cursor-not-allowed disabled:opacity-50',
-            className
-          )}
-          {...props}
-        />
-        {hint}
-      </div>
+    <div
+      data-slot="command-input-wrapper"
+      className="flex h-13.75 items-center border-b-[1.5px] border-foreground/10 px-4.5"
+    >
+      <CommandPrimitive.Input
+        data-slot="command-input"
+        name="search"
+        enterKeyHint="go"
+        data-1p-ignore
+        data-lpignore="true"
+        className={cn(
+          'w-full bg-transparent text-base outline-hidden placeholder:text-subtle-foreground disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm',
+          className
+        )}
+        {...props}
+      />
     </div>
   );
 }
 
-function CommandList({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.List>) {
+function CommandList({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.List>) {
   return (
     <CommandPrimitive.List
       data-slot="command-list"
       className={cn(
-        'no-scrollbar max-h-[min(460px,50vh)] scroll-py-2 overflow-x-hidden overflow-y-auto p-2 outline-none',
+        'no-scrollbar max-h-[min(460px,50vh)] scroll-py-2 overflow-x-hidden overflow-y-auto p-2 outline-hidden',
         className
       )}
       {...props}
@@ -182,28 +147,18 @@ function CommandList({
   );
 }
 
-function CommandEmpty({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Empty>) {
+function CommandEmpty({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Empty>) {
   return (
-    <CommandPrimitive.Empty
-      data-slot="command-empty"
-      className={cn('py-6 text-center text-sm', className)}
-      {...props}
-    />
+    <CommandPrimitive.Empty data-slot="command-empty" className={cn('py-6 text-center text-sm', className)} {...props} />
   );
 }
 
-function CommandGroup({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Group>) {
+function CommandGroup({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Group>) {
   return (
     <CommandPrimitive.Group
       data-slot="command-group"
       className={cn(
-        'overflow-hidden text-foreground not-first:mt-2 **:[[cmdk-group-heading]]:px-3 **:[[cmdk-group-heading]]:py-2 **:[[cmdk-group-heading]]:text-[0.8125rem] **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-subtle-foreground',
+        'overflow-hidden not-first:mt-2 **:[[cmdk-group-heading]]:px-3 **:[[cmdk-group-heading]]:py-2 **:[[cmdk-group-heading]]:text-[0.8125rem] **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-subtle-foreground',
         className
       )}
       {...props}
@@ -211,62 +166,34 @@ function CommandGroup({
   );
 }
 
-function CommandSeparator({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Separator>) {
-  return (
-    <CommandPrimitive.Separator
-      data-slot="command-separator"
-      className={cn('-mx-1 h-px w-auto bg-border', className)}
-      {...props}
-    />
-  );
-}
-
-function CommandItem({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Item>) {
+function CommandItem({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Item>) {
   return (
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "group/command-item relative flex h-11 cursor-pointer items-center gap-3 rounded-lg px-3 text-sm font-medium text-muted-foreground outline-hidden select-none in-data-[slot=dialog-content]:rounded-lg! transition-[scale] duration-100 active:scale-[0.99] data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-40 data-[disabled=true]:active:scale-100 any-pointer-fine:data-selected:bg-foreground/5 any-pointer-fine:data-selected:text-foreground in-data-keyed:data-selected:bg-foreground/5 in-data-keyed:data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[1.15rem] any-pointer-fine:data-selected:**:[svg]:text-foreground in-data-keyed:data-selected:**:[svg]:text-foreground",
+        "group/command-item relative flex h-11 cursor-pointer items-center gap-3 rounded-lg px-3 text-sm font-medium text-muted-foreground outline-hidden select-none transition-[scale] duration-100 active:scale-[0.99] data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-40 data-[disabled=true]:active:scale-100 any-pointer-fine:data-selected:bg-foreground/5 any-pointer-fine:data-selected:text-foreground in-data-keyed:data-selected:bg-foreground/5 in-data-keyed:data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[1.15rem] any-pointer-fine:data-selected:**:[svg]:text-foreground in-data-keyed:data-selected:**:[svg]:text-foreground",
         className
       )}
       {...props}
-    >
-      {children}
-    </CommandPrimitive.Item>
+    />
   );
 }
-
-const commandHint =
-  'ml-auto truncate pl-6 text-sm font-normal text-subtle-foreground any-pointer-fine:group-data-selected/command-item:text-foreground in-data-keyed:group-data-selected/command-item:text-foreground';
 
 function CommandHint({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
       data-slot="command-hint"
-      className={cn(commandHint, className)}
+      className={cn('ml-auto truncate pl-6 text-sm font-normal text-subtle-foreground', SELECTED_TEXT, className)}
       {...props}
     />
   );
 }
 
-function CommandShortcut({
-  className,
-  ...props
-}: React.ComponentProps<'span'>) {
+function CommandShortcut({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
       data-slot="command-shortcut"
-      className={cn(
-        'ml-auto text-xs tracking-widest text-muted-foreground any-pointer-fine:group-data-selected/command-item:text-foreground in-data-keyed:group-data-selected/command-item:text-foreground',
-        className
-      )}
+      className={cn('ml-auto text-xs tracking-widest text-muted-foreground', SELECTED_TEXT, className)}
       {...props}
     />
   );
@@ -275,13 +202,11 @@ function CommandShortcut({
 export {
   Command,
   CommandDialog,
-  CommandInput,
-  CommandList,
   CommandEmpty,
   CommandGroup,
-  CommandItem,
   CommandHint,
-  commandHint,
+  CommandInput,
+  CommandItem,
+  CommandList,
   CommandShortcut,
-  CommandSeparator
 };

@@ -3,8 +3,10 @@
 import { motion, useReducedMotion } from 'motion/react';
 import type { ReactNode } from 'react';
 
-const HIDDEN = { opacity: 0, filter: 'blur(12px)' };
-const SHOWN = { opacity: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } };
+import { blurred, EASE_OUT, sharp } from '@/lib/motion';
+
+const ENTRANCE = { duration: 0.9, ease: EASE_OUT };
+const AT_ONCE = { duration: 0 };
 
 export function Reveal({ children, className }: { children: ReactNode; className?: string }) {
   const still = useReducedMotion();
@@ -12,10 +14,10 @@ export function Reveal({ children, className }: { children: ReactNode; className
   return (
     <motion.div
       className={className}
-      initial={still ? false : HIDDEN}
-      whileInView={SHOWN}
+      initial={blurred(12)}
+      whileInView={sharp}
       viewport={{ once: true, margin: '0px 0px -10% 0px' }}
-      transition={{ duration: 0.9, ease: [0.22, 0.61, 0.36, 1] }}
+      transition={still ? AT_ONCE : ENTRANCE}
     >
       {children}
     </motion.div>

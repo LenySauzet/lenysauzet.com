@@ -10,13 +10,18 @@ const setTheme = vi.fn();
 vi.mock('next-themes', () => ({ useTheme: () => ({ resolvedTheme: 'dark', setTheme }) }));
 vi.mock('next/dynamic', () => ({ default: () => () => <div data-testid="palette" /> }));
 
-const press = (key: string) =>
+const press = (key: string, init: KeyboardEventInit = {}) =>
   act(() => {
-    document.dispatchEvent(new KeyboardEvent('keydown', { key, metaKey: true, cancelable: true }));
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key, code: `Key${key.toUpperCase()}`, ctrlKey: true, cancelable: true, ...init })
+    );
   });
 
 describe('PaletteLauncher', () => {
-  beforeEach(() => usePaletteStore.setState({ wanted: false, isOpen: false }));
+  beforeEach(() => {
+    setTheme.mockClear();
+    usePaletteStore.setState({ wanted: false, isOpen: false });
+  });
 
   it('mounts nothing until the palette is wanted', () => {
     const { queryByTestId } = render(<PaletteLauncher />);
@@ -26,7 +31,7 @@ describe('PaletteLauncher', () => {
     expect(queryByTestId('palette')).toBeInTheDocument();
   });
 
-  it('opens and closes the palette on ⌘K', () => {
+  it('opens and closes the palette on the modifier and K', () => {
     render(<PaletteLauncher />);
 
     press('k');
@@ -36,13 +41,21 @@ describe('PaletteLauncher', () => {
     expect(usePaletteStore.getState().isOpen).toBe(false);
   });
 
-  it('runs a shortcut without the palette, closing it if open', () => {
+  it('runs a shortcut without loading the palette', () => {
     render(<PaletteLauncher />);
-    press('k');
 
     press('d');
 
     expect(setTheme).toHaveBeenCalledWith('light');
-    expect(usePaletteStore.getState().isOpen).toBe(false);
+    expect(usePaletteStore.getState().wanted).toBe(false);
+  });
+
+  it('lets a held key or another modifier through untouched', () => {
+    render(<PaletteLauncher />);
+
+    press('d', { repeat: true });
+    press('d', { shiftKey: true });
+
+    expect(setTheme).not.toHaveBeenCalled();
   });
 });

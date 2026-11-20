@@ -1,18 +1,18 @@
 import { HatchBand } from '@/components/shared/HatchBand';
 import { SelectionFrame } from '@/components/shared/SelectionFrame';
+import { pageGrid } from '@/components/shared/styles';
 import siteConfig from '@/config/site';
 import { clients } from '@/content/clients';
+import { cn } from '@/lib/utils';
 
-import { BookCall } from './BookCall';
+import { Actions } from './Actions';
 import { Clients } from './Clients';
-import { EmailLink } from './EmailLink';
-import { ResumeLink } from './ResumeLink';
 
-export function Hero() {
+export function Hero({ className }: { className?: string }) {
   const { role, location } = siteConfig.author;
 
   return (
-    <section className="grid grid-cols-[minmax(0,1fr)] px-4 lg:grid-cols-[6rem_minmax(2rem,1fr)_minmax(0,44rem)_minmax(2rem,1fr)_6rem] lg:px-20">
+    <section className={cn(pageGrid, className)}>
       <HatchBand />
 
       <div className="flex flex-col items-center pt-16 pb-20 text-center sm:pt-40 lg:col-start-3">
@@ -33,11 +33,7 @@ export function Hero() {
           both remote and in-office roles.
         </p>
 
-        <div className="rise mt-10 grid w-full max-w-sm grid-cols-2 gap-3 [--rise-step:3] sm:max-w-2xl sm:grid-cols-[1fr_auto_1fr]">
-          <BookCall className="col-span-2 justify-center sm:col-span-1 sm:justify-self-end" />
-          <EmailLink className="justify-center" />
-          <ResumeLink className="justify-center sm:justify-self-start" />
-        </div>
+        <Actions className="rise mt-10 [--rise-step:3]" />
 
         <Clients clients={clients} className="rise mt-10 [--rise-step:4]" />
       </div>

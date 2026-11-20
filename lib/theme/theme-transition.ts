@@ -1,7 +1,9 @@
 import { flushSync } from 'react-dom';
 
+import { prefersReducedMotion } from '@/lib/motion';
+
 export function withThemeTransition(change: () => void) {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !document.startViewTransition) {
+  if (prefersReducedMotion() || !document.startViewTransition) {
     change();
     return;
   }

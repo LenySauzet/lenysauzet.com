@@ -2,21 +2,29 @@
 
 import { useSyncExternalStore } from 'react';
 
+import siteConfig from '@/config/site';
 import { browserName } from '@/lib/browser';
 
-const none = () => () => {};
-const unknown = () => null;
+const PENDING = '-';
 
 const time = new Intl.DateTimeFormat('en-US', {
   hour: 'numeric',
   minute: '2-digit',
   second: '2-digit',
-  timeZone: 'Europe/Paris',
+  timeZone: siteConfig.author.timeZone,
 });
 
-const everySecond = (change: () => void) => {
-  const timer = setInterval(change, 1000);
-  return () => clearInterval(timer);
+const unchanging = () => () => {};
+const pending = () => PENDING;
+
+const onEverySecond = (change: () => void) => {
+  let timer = 0;
+  const tick = () => {
+    change();
+    timer = window.setTimeout(tick, 1000 - (Date.now() % 1000));
+  };
+  timer = window.setTimeout(tick, 1000 - (Date.now() % 1000));
+  return () => window.clearTimeout(timer);
 };
 
 const onResize = (change: () => void) => {
@@ -25,13 +33,13 @@ const onResize = (change: () => void) => {
 };
 
 export function Clock() {
-  return useSyncExternalStore(everySecond, () => time.format(Date.now()), unknown) ?? '—';
+  return useSyncExternalStore(onEverySecond, () => time.format(Date.now()), pending);
 }
 
 export function Dimensions() {
-  return useSyncExternalStore(onResize, () => `${window.innerWidth}x${window.innerHeight}`, unknown) ?? '—';
+  return useSyncExternalStore(onResize, () => `${window.innerWidth}x${window.innerHeight}`, pending);
 }
 
 export function Browser() {
-  return useSyncExternalStore(none, () => browserName(navigator.userAgent), unknown) ?? '—';
+  return useSyncExternalStore(unchanging, () => browserName(navigator.userAgent), pending);
 }
