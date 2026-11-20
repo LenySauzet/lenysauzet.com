@@ -31,7 +31,7 @@ export function Clients({ clients, className }: { clients: Client[]; className?:
               </a>
             </Avatar>
           </TooltipTrigger>
-          <TooltipContent side="bottom">{client.name}</TooltipContent>
+          <TooltipContent side="bottom" sideOffset={10}>{client.name}</TooltipContent>
         </Tooltip>
       ))}
       <Tooltip>
@@ -44,7 +44,7 @@ export function Clients({ clients, className }: { clients: Client[]; className?:
             </button>
           </Avatar>
         </TooltipTrigger>
-        <TooltipContent side="bottom">Your company next?</TooltipContent>
+        <TooltipContent side="bottom" sideOffset={10}>Your company next?</TooltipContent>
       </Tooltip>
     </AvatarGroup>
   );

@@ -8,9 +8,9 @@ import { openBooking } from '@/lib/services/booking';
 import { cn } from '@/lib/utils';
 
 const EASE = 'duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none';
-const OPEN = 'group-hover:grid-cols-[1fr] group-focus-visible:grid-cols-[1fr] pointer-coarse:grid-cols-[1fr]';
+const OPEN = 'group-hover:grid-cols-[1fr] group-focus-visible:grid-cols-[1fr] pointer-coarse:grid-cols-[1fr] max-sm:grid-cols-[1fr]';
 const GROWN =
-  'group-hover:scale-100 group-hover:opacity-100 group-hover:filter-none group-focus-visible:scale-100 group-focus-visible:opacity-100 group-focus-visible:filter-none pointer-coarse:scale-100 pointer-coarse:opacity-100 pointer-coarse:filter-none';
+  'group-hover:scale-100 group-hover:opacity-100 group-hover:filter-none group-focus-visible:scale-100 group-focus-visible:opacity-100 group-focus-visible:filter-none pointer-coarse:scale-100 pointer-coarse:opacity-100 pointer-coarse:filter-none max-sm:scale-100 max-sm:opacity-100 max-sm:filter-none';
 
 export function BookCall({ className }: { className?: string }) {
   const { resolvedTheme } = useTheme();

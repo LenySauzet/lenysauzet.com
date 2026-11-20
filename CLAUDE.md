@@ -113,6 +113,15 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   Mono (stroked at twice its width, then covered by the same text in `--background`, so
   only the outer half shows), the serif title, the copy, faded hatched bands, all on
   `rise`. Tooltips are the blog's too: `--card` with a border, no arrow.
+- **The footer is Maxime Heckel's metadata block in our type**: commit (Vercel's SHA,
+  else git), browser, Montpellier's time, the window, last update, then links. The live
+  readings are `useSyncExternalStore` with a `null` server snapshot, so the static HTML
+  shows a dash and nothing mismatches on hydration.
+- **The home page carries JSON-LD** (`lib/seo/structured-data.ts`): a `Person` at
+  `https://lenysauzet.com/#person`, every spelling of the name, `sameAs` to each
+  profile and the blog, inside a `ProfilePage`. The blog should point at that `@id`.
+- **Below `sm`, "Book a call" is shown grown and spans the row**, Email and Resume
+  halving the one beneath: a phone has no hover to reveal "+ You".
 - **`/resume` proxies the PDF** so `download` holds across origins, cached at the edge
   by `s-maxage`.
 - **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to

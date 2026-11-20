@@ -12,10 +12,10 @@ export function Hero() {
   const { role, location } = siteConfig.author;
 
   return (
-    <section className="grid grid-cols-[minmax(0,1fr)] px-4 lg:grid-cols-[6rem_1fr_minmax(0,44rem)_1fr_6rem] lg:px-20">
+    <section className="grid grid-cols-[minmax(0,1fr)] px-4 lg:grid-cols-[6rem_minmax(2rem,1fr)_minmax(0,44rem)_minmax(2rem,1fr)_6rem] lg:px-20">
       <HatchBand />
 
-      <div className="flex flex-col items-center pt-32 pb-20 text-center sm:pt-40 lg:col-start-3">
+      <div className="flex flex-col items-center pt-16 pb-20 text-center sm:pt-40 lg:col-start-3">
         <p className="rise text-sm text-subtle-foreground">
           {role} · {location}
         </p>
@@ -32,10 +32,10 @@ export function Hero() {
           carries ambitious products to success, remote or in the office.
         </p>
 
-        <div className="rise mt-10 flex flex-wrap items-center justify-center gap-3 [--rise-step:3] sm:grid sm:w-full sm:max-w-2xl sm:grid-cols-[1fr_auto_1fr]">
-          <BookCall className="sm:justify-self-end" />
-          <EmailLink />
-          <ResumeLink className="sm:justify-self-start" />
+        <div className="rise mt-10 grid w-full max-w-sm grid-cols-2 gap-3 [--rise-step:3] sm:max-w-2xl sm:grid-cols-[1fr_auto_1fr]">
+          <BookCall className="col-span-2 justify-center sm:col-span-1 sm:justify-self-end" />
+          <EmailLink className="justify-center" />
+          <ResumeLink className="justify-center sm:justify-self-start" />
         </div>
 
         <Clients clients={clients} className="rise mt-10 [--rise-step:4]" />

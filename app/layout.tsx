@@ -6,6 +6,7 @@ import { rootMetadata } from '@/config/site';
 
 import { PaletteLauncher } from './_components/CommandPalette/PaletteLauncher';
 import { bodyClassName } from './_components/document';
+import { Footer } from './_components/Footer';
 import { Island } from './_components/Island';
 import { ThemeProvider } from './_components/theme-provider';
 import './globals.css';
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Island />
             <PaletteLauncher />
             <main>{children}</main>
+            <Footer />
           </TooltipProvider>
         </ThemeProvider>
       </body>

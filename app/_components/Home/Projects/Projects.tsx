@@ -30,7 +30,7 @@ export async function Projects({ className }: { className?: string }) {
   }));
 
   return (
-    <section id="work" aria-labelledby="work-heading" className={cn('px-4 pb-32 lg:px-6', className)}>
+    <section id="work" aria-labelledby="work-heading" className={cn('px-4 pb-16 lg:px-6', className)}>
       <h2 id="work-heading" className="sr-only">
         Work
       </h2>
