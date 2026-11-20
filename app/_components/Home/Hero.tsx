@@ -27,9 +27,10 @@ export function Hero() {
         </SelectionFrame>
 
         <p className="rise mt-8 max-w-xl text-base leading-7 text-pretty text-muted-foreground [--rise-step:2]">
-          I&apos;m Lény, an AI and software engineer who takes ownership and ships faster than expected. From the
-          models and the architecture to the interface people touch, I bring the cross-disciplinary expertise that
-          carries ambitious products to success, remote or in the office.
+          I&apos;m Lény, an AI and software engineer. I transform complex challenges into delightful user
+          experiences and high-performance solutions. From the models and the architecture to the interface people
+          touch, I bring the cross-disciplinary expertise that carries ambitious products to success. Familiar with
+          both remote and in-office roles.
         </p>
 
         <div className="rise mt-10 grid w-full max-w-sm grid-cols-2 gap-3 [--rise-step:3] sm:max-w-2xl sm:grid-cols-[1fr_auto_1fr]">

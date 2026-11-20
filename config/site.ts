@@ -15,7 +15,7 @@ const author = {
 const title = `${author.name} · ${author.role}`;
 
 const description =
-  "I'm Lény, an AI and software engineer based in Montpellier. I turn complex challenges into delightful user experiences and high-performance products.";
+  "I'm Lény, an AI and software engineer based in Montpellier. I transform complex challenges into delightful user experiences and high-performance solutions, from the models and the architecture to the interface people touch.";
 
 const social = {
   github: 'https://github.com/LenySauzet',

@@ -58,7 +58,7 @@
   --input: oklch(0.92 0.004 var(--base-hue));
   --ring: oklch(0.705 0.015 var(--base-hue));
   --shine-text: oklch(0.82 0.02 var(--base-hue));
-  --shine-rim: oklch(0.6 0.14 var(--base-hue));
+  --shine-rim: oklch(0.5 0.02 var(--base-hue));
   --well: oklch(0.955 0.004 var(--base-hue));
   --well-hover: oklch(0.93 0.005 var(--base-hue));
   --media-ink: oklch(0.86 0.008 var(--base-hue));
