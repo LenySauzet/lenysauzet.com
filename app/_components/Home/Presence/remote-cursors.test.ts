@@ -93,7 +93,7 @@ describe('the remote cursors', () => {
     expect(scaleOf(element)).toBeCloseTo(1, 2);
   });
 
-  it('fades to a trace after two seconds still, and comes back when it moves', () => {
+  it('fades to a trace after a second still, and comes back when it moves', () => {
     const element = ink();
     cursors.attach('v0', element);
     for (let time = 0; time < 300; time += 16) {
@@ -102,10 +102,10 @@ describe('the remote cursors', () => {
     }
     expect(opacityOf(element)).toBeGreaterThan(0.9);
 
-    vi.advanceTimersByTime(1500);
+    vi.advanceTimersByTime(700);
     expect(opacityOf(element)).toBe(1);
 
-    vi.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(1300);
     expect(opacityOf(element)).toBeLessThan(0.25);
     expect(shown()).toEqual(['v0']);
 

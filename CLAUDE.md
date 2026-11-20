@@ -236,7 +236,7 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   four ghosts along the last 56 ms of the drawn path that fade in with speed (motion
   blur as a shutter would record it), and a scale on a light spring (`spring`, fixed
   1 ms steps, so any frame rate moves alike) held down between a press and its release
-  (released anyway after 4 s). A cursor sinks to a trace after 2 s still and comes back
+  (released anyway after 4 s). A cursor sinks to a trace after 1 s still and comes back
   as it moves or presses; a timer wakes the stopped loop for that fade. The loop stops once everything is at rest and wakes on a
   message, a scroll, a resize, or a press due to time out. Ten cursors at most are
   shown: the rest wait for a place to free rather than taking one, which would churn
