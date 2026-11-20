@@ -1,9 +1,12 @@
 import type { Vector } from './motion';
-import type { Sample, Span } from './protocol';
+import type { Sample, Span, Target } from './protocol';
 
 const ANCHOR_ATTRIBUTE = 'data-presence';
 const PAGE_ANCHOR = 'page';
 const LONGEST_ANCHOR = 64;
+const DEEPEST = 16;
+const CHARACTER = '#';
+const SLACK = 2;
 
 export interface Box {
   left: number;
@@ -77,10 +80,12 @@ const pageBox = (): Box => ({
   height: document.documentElement.scrollHeight,
 });
 
-const documentBox = (element: Element): Box => {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left: left + window.scrollX, top: top + window.scrollY, width, height };
-};
+const documentBox = ({ left, top, width, height }: DOMRect | Box): Box => ({
+  left: left + window.scrollX,
+  top: top + window.scrollY,
+  width,
+  height,
+});
 
 const shownAnchor = (anchor: string) =>
   [...document.querySelectorAll(`[${ANCHOR_ATTRIBUTE}="${anchor}"]`)].find(isShown);
@@ -88,35 +93,8 @@ const shownAnchor = (anchor: string) =>
 const shownAnchors = (): Anchored[] =>
   [...document.querySelectorAll(`[${ANCHOR_ATTRIBUTE}]`)].filter(isShown).flatMap((element) => {
     const anchor = element.getAttribute(ANCHOR_ATTRIBUTE);
-    return anchor ? [{ anchor, box: documentBox(element) }] : [];
+    return anchor ? [{ anchor, box: documentBox(element.getBoundingClientRect()) }] : [];
   });
-
-export function locate(points: Vector[]): { anchor: string; placements: Placement[] } | undefined {
-  const last = points.at(-1);
-  if (!last) return undefined;
-  const { anchor, box } = nearest(shownAnchors(), last) ?? { anchor: PAGE_ANCHOR, box: pageBox() };
-  return { anchor, placements: points.map((point) => placeOn(box, point)) };
-}
-
-export function createPlacer() {
-  const boxes = new Map<string, Box | undefined>();
-  const page = pageBox();
-
-  const boxOf = (anchor: string) => {
-    if (!boxes.has(anchor)) {
-      const element = anchor === PAGE_ANCHOR ? undefined : shownAnchor(anchor);
-      boxes.set(anchor, anchor === PAGE_ANCHOR ? page : element && documentBox(element));
-    }
-    return boxes.get(anchor);
-  };
-
-  return (anchor: string, placement: Placement): Vector | undefined => {
-    const box = boxOf(anchor);
-    if (!box) return undefined;
-    const point = pointOn(box, placement);
-    return { x: clamp(point.x, 0, page.width), y: clamp(point.y, 0, page.height) };
-  };
-}
 
 const anchorOf = (node: Node) =>
   (node instanceof Element ? node : node.parentElement)?.closest(`[${ANCHOR_ATTRIBUTE}]`) ?? undefined;
@@ -128,22 +106,7 @@ const offsetWithin = (anchor: Node, node: Node, offset: number) => {
   return before.toString().length;
 };
 
-export function spanOf(range: Range): Span | undefined {
-  const anchor = anchorOf(range.startContainer) ?? anchorOf(range.endContainer);
-  const name = anchor?.getAttribute(ANCHOR_ATTRIBUTE);
-  if (!anchor || !name) return undefined;
-
-  const start = anchor.contains(range.startContainer) ? offsetWithin(anchor, range.startContainer, range.startOffset) : 0;
-  const end = anchor.contains(range.endContainer)
-    ? offsetWithin(anchor, range.endContainer, range.endOffset)
-    : (anchor.textContent?.length ?? 0);
-  return end > start ? { anchor: name, start, end } : undefined;
-}
-
-export function rangeOf({ anchor, start, end }: Span): Range | undefined {
-  const root = shownAnchor(anchor);
-  if (!root) return undefined;
-
+function rangeWithin(root: Element, start: number, end: number): Range | undefined {
   const range = document.createRange();
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let passed = 0;
@@ -163,4 +126,117 @@ export function rangeOf({ anchor, start, end }: Span): Range | undefined {
   }
 
   return undefined;
+}
+
+const characterBox = (root: Element, index: number) => {
+  const rect = rangeWithin(root, index, index + 1)?.getClientRects()[0];
+  return rect && rect.width > 0 ? rect : undefined;
+};
+
+const pathTo = (root: Element, element: Element) => {
+  const steps: number[] = [];
+  for (let node: Element | null = element; node && node !== root; node = node.parentElement) {
+    const parent: Element | null = node.parentElement;
+    if (!parent) return '';
+    steps.unshift([...parent.children].indexOf(node));
+  }
+  return steps.slice(0, DEEPEST).join('.');
+};
+
+const elementAt = (root: Element, path: string) => {
+  let element: Element | undefined = root;
+  for (const step of path ? path.split('.') : []) element = element?.children[Number(step)];
+  return element;
+};
+
+const caretAt = (x: number, y: number): { node: Node; offset: number } | undefined => {
+  if (typeof document.caretPositionFromPoint === 'function') {
+    const position = document.caretPositionFromPoint(x, y);
+    return position ? { node: position.offsetNode, offset: position.offset } : undefined;
+  }
+  const range = typeof document.caretRangeFromPoint === 'function' ? document.caretRangeFromPoint(x, y) : null;
+  return range ? { node: range.startContainer, offset: range.startOffset } : undefined;
+};
+
+const holds = (rect: DOMRect, { x, y }: Vector) =>
+  x >= rect.left - SLACK && x <= rect.right + SLACK && y >= rect.top - SLACK && y <= rect.bottom + SLACK;
+
+function characterUnder(root: Element, client: Vector) {
+  const caret = caretAt(client.x, client.y);
+  if (!caret || caret.node.nodeType !== Node.TEXT_NODE || !root.contains(caret.node)) return undefined;
+  const index = offsetWithin(root, caret.node, caret.offset);
+  return [index, index - 1].find((candidate) => {
+    if (candidate < 0) return false;
+    const rect = characterBox(root, candidate);
+    return rect !== undefined && holds(rect, client);
+  });
+}
+
+export function aim(client: Vector): Target | undefined {
+  const element = document.elementFromPoint(client.x, client.y);
+  const root = element?.closest(`[${ANCHOR_ATTRIBUTE}]`);
+  const anchor = root?.getAttribute(ANCHOR_ATTRIBUTE);
+  if (!element || !root || !anchor) return undefined;
+  const character = characterUnder(root, client);
+  return { anchor, part: character === undefined ? pathTo(root, element) : `${CHARACTER}${character}` };
+}
+
+function boxOf({ anchor, part }: Target): Box | undefined {
+  if (anchor === PAGE_ANCHOR) return pageBox();
+  const root = shownAnchor(anchor);
+  if (!root) return undefined;
+  if (part.startsWith(CHARACTER)) {
+    const rect = characterBox(root, Number(part.slice(CHARACTER.length)));
+    return documentBox(rect ?? root.getBoundingClientRect());
+  }
+  const element = elementAt(root, part);
+  return documentBox((element && isShown(element) ? element : root).getBoundingClientRect());
+}
+
+const nearestTarget = (point: Vector): Target => ({
+  anchor: nearest(shownAnchors(), point)?.anchor ?? PAGE_ANCHOR,
+  part: '',
+});
+
+export function locate(points: Vector[], previous?: Target): { target: Target; placements: Placement[] } | undefined {
+  const last = points.at(-1);
+  if (!last) return undefined;
+  const held: Target | undefined = previous && { anchor: previous.anchor, part: '' };
+  const target =
+    aim({ x: last.x - window.scrollX, y: last.y - window.scrollY }) ??
+    (held && boxOf(held) ? held : undefined) ??
+    nearestTarget(last);
+  const box = boxOf(target) ?? pageBox();
+  return { target, placements: points.map((point) => placeOn(box, point)) };
+}
+
+export function createPlacer() {
+  const boxes = new Map<string, Box | undefined>();
+  const page = pageBox();
+
+  return (target: Target, placement: Placement): Vector | undefined => {
+    const key = `${target.anchor} ${target.part}`;
+    if (!boxes.has(key)) boxes.set(key, boxOf(target));
+    const box = boxes.get(key);
+    if (!box) return undefined;
+    const point = pointOn(box, placement);
+    return { x: clamp(point.x, 0, page.width), y: clamp(point.y, 0, page.height) };
+  };
+}
+
+export function spanOf(range: Range): Span | undefined {
+  const anchor = anchorOf(range.startContainer) ?? anchorOf(range.endContainer);
+  const name = anchor?.getAttribute(ANCHOR_ATTRIBUTE);
+  if (!anchor || !name) return undefined;
+
+  const start = anchor.contains(range.startContainer) ? offsetWithin(anchor, range.startContainer, range.startOffset) : 0;
+  const end = anchor.contains(range.endContainer)
+    ? offsetWithin(anchor, range.endContainer, range.endOffset)
+    : (anchor.textContent?.length ?? 0);
+  return end > start ? { anchor: name, start, end } : undefined;
+}
+
+export function rangeOf({ anchor, start, end }: Span): Range | undefined {
+  const root = shownAnchor(anchor);
+  return root && rangeWithin(root, start, end);
 }

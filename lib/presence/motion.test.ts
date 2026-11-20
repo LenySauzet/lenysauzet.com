@@ -44,15 +44,6 @@ describe('Trail', () => {
     expect(trail.at(150, identity)!.x).toBeCloseTo(15);
   });
 
-  it('holds still up to a cut, then jumps, rather than curving across it', () => {
-    const trail = new Trail<Vector>();
-    for (const [time, x] of [[0, 0], [100, 10], [200, 500], [300, 510]]) trail.push({ at: time!, value: at(x!) });
-    trail.cut(200);
-
-    expect(trail.at(150, identity)).toEqual(at(10));
-    expect(trail.at(250, identity)!.x).toBeCloseTo(505);
-  });
-
   it('skips a sample it cannot place', () => {
     const trail = new Trail<Vector | null>();
     trail.push({ at: 0, value: at(0) });

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { connect } from '@/lib/presence/connection';
 import { frames, type FrameEvent } from '@/lib/presence/frames';
+import { watchOverlays } from '@/lib/presence/overlays';
 import type { ServerMessage } from '@/lib/presence/protocol';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +19,7 @@ type Attach = (id: string, element: HTMLElement | null) => void;
 
 export function Room({ url, className }: { url: string; className?: string }) {
   const [ids, setIds] = useState<string[]>([]);
+  const [covered, setCovered] = useState(false);
   const layer = useRef<HTMLDivElement>(null);
   const still = useReducedMotion();
   const stillness = useRef(still);
@@ -36,7 +38,7 @@ export function Room({ url, className }: { url: string; className?: string }) {
     const ripples = createRipples();
     const cursors = createRemoteCursors({
       onChange: setIds,
-      onPress: (_, point) => {
+      onClick: (_, point) => {
         if (!isStill()) ripples.at(point);
       },
       isStill,
@@ -100,12 +102,20 @@ export function Room({ url, className }: { url: string; className?: string }) {
     };
 
     const connection = connect(url, receive);
-    const stopSharing = shareOwnCursor(connection);
+    const sharing = shareOwnCursor(connection, (point) => {
+      if (!isStill()) ripples.at(point);
+    });
+    const stopWatching = watchOverlays((next) => {
+      setCovered(next);
+      sharing.cover(next);
+      highlights.cover(next);
+    });
     attachTo.current = cursors.attach;
 
     return () => {
       for (const id of [...replays.keys()]) forget(id);
-      stopSharing();
+      stopWatching();
+      sharing.stop();
       connection.close();
       cursors.stop();
       highlights.stop();
@@ -120,7 +130,8 @@ export function Room({ url, className }: { url: string; className?: string }) {
       popover="manual"
       aria-hidden
       className={cn(
-        'pointer-events-none fixed inset-0 m-0 size-full max-h-none max-w-none overflow-hidden border-0 bg-transparent p-0',
+        'pointer-events-none fixed inset-0 m-0 size-full max-h-none max-w-none overflow-hidden border-0 bg-transparent p-0 transition-opacity duration-200',
+        covered && 'opacity-0',
         className
       )}
     >

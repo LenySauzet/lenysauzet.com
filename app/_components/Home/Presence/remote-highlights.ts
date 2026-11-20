@@ -8,7 +8,7 @@ const SWEEP = 70;
 const FADE = 90;
 const LONGEST_FRAME = 64;
 const AT_REST = 0.01;
-const LAYER = 'pointer-events-none absolute top-0 left-0 z-40';
+const LAYER = 'pointer-events-none absolute top-0 left-0 z-40 transition-opacity duration-200';
 const LINE = 'absolute top-0 left-0 rounded-[3px]';
 
 interface Mark {
@@ -48,7 +48,7 @@ function linesFor({ anchor, start, end }: Mark): Rect[] {
 }
 
 export function createRemoteHighlights(isStill: () => boolean) {
-  if (!('highlights' in CSS)) return { show() {}, hide() {}, keepOnly() {}, stop() {} };
+  if (!('highlights' in CSS)) return { show() {}, hide() {}, keepOnly() {}, cover() {}, stop() {} };
 
   const sheet = new CSSStyleSheet();
   const owners = new Map<string, Owner>();
@@ -59,8 +59,9 @@ export function createRemoteHighlights(isStill: () => boolean) {
   document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
   let frame = 0;
   let drewAt = 0;
+  let covered = false;
 
-  const style = () => sheet.replaceSync([...owners.keys()].map(ruleFor).join('\n'));
+  const style = () => sheet.replaceSync(covered ? '' : [...owners.keys()].map(ruleFor).join('\n'));
 
   const wake = () => {
     if (!frame) frame = window.requestAnimationFrame(draw);
@@ -194,6 +195,11 @@ export function createRemoteHighlights(isStill: () => boolean) {
     hide,
     keepOnly(ids: Set<string>) {
       for (const id of owners.keys()) if (!ids.has(id)) hide(id);
+    },
+    cover(next: boolean) {
+      covered = next;
+      layer.style.opacity = covered ? '0' : '';
+      style();
     },
     stop() {
       window.cancelAnimationFrame(frame);

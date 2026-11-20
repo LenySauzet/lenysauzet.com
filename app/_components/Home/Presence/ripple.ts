@@ -130,7 +130,8 @@ export function createRipples() {
   return {
     at(point: Vector) {
       const client = { x: point.x - window.scrollX, y: point.y - window.scrollY };
-      const target = document.elementFromPoint(client.x, client.y)?.closest<HTMLElement>('[data-presence]');
+      const under = document.elementFromPoint(client.x, client.y);
+      const target = under?.closest<HTMLElement>('[data-ripple]') ?? under?.closest<HTMLElement>('[data-presence]');
       if (!target) return;
       const box = target.getBoundingClientRect();
       ripple(target, { x: client.x - box.left, y: client.y - box.top }, box);

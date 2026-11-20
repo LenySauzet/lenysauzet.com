@@ -39,20 +39,13 @@ export function catmullRom(p0: Vector, p1: Vector, p2: Vector, p3: Vector, t: nu
 }
 
 export class Trail<T> {
-  private samples: Timed<T>[] = [];
-  private breaks: number[] = [];
+  private readonly samples: Timed<T>[] = [];
 
   push(sample: Timed<T>) {
     let index = this.samples.length;
     while (index > 0 && (this.samples[index - 1]?.at ?? -Infinity) > sample.at) index -= 1;
     this.samples.splice(index, 0, sample);
     if (this.samples.length > TRAIL_LENGTH) this.samples.shift();
-    const oldest = this.samples[0]?.at ?? -Infinity;
-    this.breaks = this.breaks.filter((at) => at > oldest);
-  }
-
-  cut(at: number) {
-    this.breaks.push(at);
   }
 
   get latest() {
@@ -60,15 +53,10 @@ export class Trail<T> {
   }
 
   at(time: number, resolve: (value: T) => Vector | undefined): Vector | undefined {
-    const from = Math.max(-Infinity, ...this.breaks.filter((at) => at <= time));
-    const until = Math.min(Infinity, ...this.breaks.filter((at) => at > time));
-    const segment = this.samples.filter(({ at }) => at >= from && at < until);
-    const points = (segment.length ? segment : this.samples.filter(({ at }) => at >= from)).flatMap(
-      ({ at, value }) => {
-        const point = resolve(value);
-        return point ? [{ at, point }] : [];
-      }
-    );
+    const points = this.samples.flatMap(({ at, value }) => {
+      const point = resolve(value);
+      return point ? [{ at, point }] : [];
+    });
     const after = points.findIndex(({ at }) => at > time);
 
     if (after === -1) return points.at(-1)?.point;

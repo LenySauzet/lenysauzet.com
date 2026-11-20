@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { decodeClient, decodeServer, encodeClient, encodeServer, type ClientMessage, type ServerMessage } from './protocol';
+import {
+  decodeClient,
+  decodeServer,
+  encodeClient,
+  encodeServer,
+  MAX_CLIENT_MESSAGE,
+  type ClientMessage,
+  type ServerMessage,
+} from './protocol';
 
 const path = {
   anchor: 'project:ankhora',
+  part: '1.0.2',
   samples: [
     { age: 30, x: 0.25, y: 0.5, dx: 0, dy: 0 },
     { age: 0, x: 1, y: 0.5, dx: 12, dy: -4 },
@@ -29,32 +38,38 @@ describe('the client messages', () => {
   it('round what they carry to keep messages small', () => {
     const sample = { age: 16.4, x: 0.123456789, y: 1 / 3, dx: 4.6, dy: -0.4 };
 
-    expect(encodeClient({ type: 'move', path: { anchor: 'intro', samples: [sample] } })).toBe(
-      '["m","intro",[16,0.1235,0.3333,5,0]]'
+    expect(encodeClient({ type: 'move', path: { anchor: 'intro', part: '#12', samples: [sample] } })).toBe(
+      '["m","intro","#12",[16,0.1235,0.3333,5,0]]'
     );
     expect(encodeClient({ type: 'pull', pull: { ...pull, x: 1 / 3 } })).toBe('["d","headline",2,0.3,-3]');
   });
 
-  it('fit four samples on the longest anchor within what the room reads', () => {
+  it('fit four samples on the longest anchor and part within what the room reads', () => {
     const sample = { age: 999, x: 0.1234, y: 0.5678, dx: -3999, dy: -3999 };
-    const longest = { anchor: 'a'.repeat(64), samples: [sample, sample, sample, sample] };
+    const part = Array(16).fill('999').join('.');
+    const longest = { anchor: 'a'.repeat(64), part, samples: [sample, sample, sample, sample] };
 
-    expect(encodeClient({ type: 'move', path: longest }).length).toBeLessThanOrEqual(256);
+    expect(decodeClient(encodeClient({ type: 'move', path: longest }))).toBeDefined();
+    expect(encodeClient({ type: 'move', path: longest }).length).toBeLessThanOrEqual(MAX_CLIENT_MESSAGE);
   });
 
   it.each([
     'not json',
     '{"m":1}',
-    '["m","intro"]',
-    '["m","Intro",[0,0.5,0.5,0,0]]',
-    '["m","intro",[0,0.5,1.5,0,0]]',
-    '["m","intro",[0,0.5,0.5,0.5,0]]',
-    '["m","intro",[0,0.5,0.5,0,5000]]',
-    '["m","intro",[-1,0.5,0.5,0,0]]',
-    '["m","intro",[0,0.5,0.5,0,0],[10,0.5,0.5,0,0]]',
-    '["m","intro",[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0]]',
-    '["m","intro",[0,0.5,0.5,0]]',
-    `["m","${'a'.repeat(65)}",[0,0.5,0.5,0,0]]`,
+    '["m","intro",""]',
+    '["m","intro",[0,0.5,0.5,0,0]]',
+    '["m","Intro","",[0,0.5,0.5,0,0]]',
+    '["m","intro","a.b",[0,0.5,0.5,0,0]]',
+    '["m","intro","#",[0,0.5,0.5,0,0]]',
+    '["m","intro","1..2",[0,0.5,0.5,0,0]]',
+    '["m","intro","",[0,0.5,1.5,0,0]]',
+    '["m","intro","",[0,0.5,0.5,0.5,0]]',
+    '["m","intro","",[0,0.5,0.5,0,5000]]',
+    '["m","intro","",[-1,0.5,0.5,0,0]]',
+    '["m","intro","",[0,0.5,0.5,0,0],[10,0.5,0.5,0,0]]',
+    '["m","intro","",[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0]]',
+    '["m","intro","",[0,0.5,0.5,0]]',
+    `["m","${'a'.repeat(65)}","",[0,0.5,0.5,0,0]]`,
     '["h","intro",12,4]',
     '["h","intro",1.5,4]',
     '["h","intro",0,99999]',
@@ -89,10 +104,10 @@ describe('the server messages', () => {
   });
 
   it.each([
-    '["s",[["a1","intro"]],[]]',
+    '["s",[["a1","intro",""]],[]]',
     '["s",[]]',
     '["s",[],[],1]',
-    '["m","A-1","intro",[0,0.5,0.5,0,0]]',
+    '["m","A-1","intro","",[0,0.5,0.5,0,0]]',
     '["d","a1","headline",0,0]',
     '["e","a1"]',
     '["l"]',

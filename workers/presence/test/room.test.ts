@@ -6,12 +6,13 @@ import { decodeServer, encodeClient, EVICTED, type ServerMessage } from '../../.
 const ORIGIN = 'https://lenysauzet.com';
 const path = {
   anchor: 'project:ankhora',
+  part: '0',
   samples: [
     { age: 20, x: 0.2, y: 0.5, dx: 0, dy: 0 },
     { age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 },
   ],
 };
-const last = { anchor: 'project:ankhora', samples: [{ age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 }] };
+const last = { anchor: 'project:ankhora', part: '0', samples: [{ age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 }] };
 const pull = { frame: 'headline', corner: 1 as const, x: 12, y: -6 };
 const span = { anchor: 'intro', start: 4, end: 12 };
 const open: { socket: WebSocket; closed: Promise<number> }[] = [];
@@ -195,7 +196,7 @@ describe('the presence worker', () => {
     await sender.next();
     await watcher.next();
 
-    sender.socket.send(`${encodeClient({ type: 'move', path })}${' '.repeat(300)}`);
+    sender.socket.send(`${encodeClient({ type: 'move', path })}${' '.repeat(400)}`);
 
     expect(await watcher.silent()).toBe(true);
   });
@@ -206,7 +207,7 @@ describe('the presence worker', () => {
     await flooder.next();
     await watcher.next();
 
-    flooder.socket.send('["m","<script>",[0,0.5,0.5,0,0]]');
+    flooder.socket.send('["m","<script>","",[0,0.5,0.5,0,0]]');
     for (let index = 0; index < 200; index += 1) flooder.socket.send(encodeClient({ type: 'press' }));
     flooder.socket.send(encodeClient({ type: 'leave' }));
 

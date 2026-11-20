@@ -50,15 +50,24 @@ describe('anchors', () => {
 const card = (visible: boolean, left: number, top = 0) => {
   const element = document.createElement('article');
   element.dataset.presence = 'project:ankhora';
+  element.innerHTML = '<div><img alt=""><a>View code</a></div>';
   vi.spyOn(element, 'getClientRects').mockReturnValue((visible ? [{}] : []) as unknown as DOMRectList);
   vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ left, top, width: 100, height: 50 } as DOMRect);
+  const button = element.querySelector('a')!;
+  vi.spyOn(button, 'getClientRects').mockReturnValue((visible ? [{}] : []) as unknown as DOMRectList);
+  vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({ left: left + 10, top: top + 30, width: 80, height: 20 } as DOMRect);
   document.body.append(element);
+  return element;
 };
 
 describe('locate and place', () => {
+  let under: Element | null;
+
   beforeEach(() => {
+    under = null;
     vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1000);
     vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(1000);
+    document.elementFromPoint = () => under;
   });
 
   afterEach(() => {
@@ -66,12 +75,33 @@ describe('locate and place', () => {
     vi.restoreAllMocks();
   });
 
-  it('anchor every sample to the element closest to the latest, skipping hidden copies', () => {
+  it('aim at the deepest element under the pointer, as a path from its anchor', () => {
+    card(false, 0);
+    under = card(true, 500).querySelector('a');
+
+    expect(locate([{ x: 530, y: 40 }])).toEqual({
+      target: { anchor: 'project:ankhora', part: '0.1' },
+      placements: [{ x: 0.25, y: 0.5, dx: 0, dy: 0 }],
+    });
+  });
+
+  it('stay on the element last left while crossing empty space', () => {
+    card(true, 500);
+    const far = card(true, 0);
+    far.dataset.presence = 'project:far';
+
+    expect(locate([{ x: 550, y: 200 }], { anchor: 'project:ankhora', part: '0.1' })).toEqual({
+      target: { anchor: 'project:ankhora', part: '' },
+      placements: [{ x: 0.5, y: 1, dx: 0, dy: 150 }],
+    });
+  });
+
+  it('start from the element closest to the pointer when none was left', () => {
     card(false, 0);
     card(true, 500);
 
     expect(locate([{ x: 400, y: 25 }, { x: 550, y: 80 }])).toEqual({
-      anchor: 'project:ankhora',
+      target: { anchor: 'project:ankhora', part: '' },
       placements: [
         { x: 0, y: 0.5, dx: -100, dy: 0 },
         { x: 0.5, y: 1, dx: 0, dy: 30 },
@@ -79,15 +109,51 @@ describe('locate and place', () => {
     });
   });
 
+  it('aim at the character under the pointer, on whatever line it wraps to', () => {
+    const intro = document.createElement('p');
+    intro.dataset.presence = 'intro';
+    intro.textContent = 'Hello';
+    vi.spyOn(intro, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+    document.body.append(intro);
+    under = intro;
+    const text = intro.firstChild!;
+    document.caretPositionFromPoint = () => ({ offsetNode: text, offset: 2 }) as unknown as CaretPosition;
+    Range.prototype.getClientRects = function (this: Range) {
+      const left = 100 + this.startOffset * 10;
+      return [{ left, top: 0, right: left + 10, bottom: 20, width: 10, height: 20 }] as unknown as DOMRectList;
+    };
+
+    const located = locate([{ x: 116, y: 10 }]);
+
+    expect(located?.target).toEqual({ anchor: 'intro', part: '#1' });
+    expect(located?.placements).toEqual([{ x: 0.6, y: 0.5, dx: 0, dy: 0 }]);
+    expect(createPlacer()({ anchor: 'intro', part: '#4' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({ x: 145, y: 10 });
+    Reflect.deleteProperty(document, 'caretPositionFromPoint');
+    Reflect.deleteProperty(Range.prototype, 'getClientRects');
+  });
+
   it('places a cursor on the copy of an element that is shown, not a hidden one', () => {
     card(false, 0);
     card(true, 500);
 
-    expect(createPlacer()('project:ankhora', { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({ x: 550, y: 25 });
+    expect(createPlacer()({ anchor: 'project:ankhora', part: '' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({
+      x: 550,
+      y: 25,
+    });
+    expect(createPlacer()({ anchor: 'project:ankhora', part: '0.1' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({
+      x: 550,
+      y: 40,
+    });
   });
 
-  it('places nothing on an element this page does not have', () => {
-    expect(createPlacer()('project:elsewhere', { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toBeUndefined();
+  it('falls back to the anchor for a part this page lacks, and places nothing without the anchor', () => {
+    card(true, 500);
+
+    expect(createPlacer()({ anchor: 'project:ankhora', part: '4.2' }, { x: 0, y: 0, dx: 0, dy: 0 })).toEqual({
+      x: 500,
+      y: 0,
+    });
+    expect(createPlacer()({ anchor: 'project:elsewhere', part: '' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toBeUndefined();
   });
 });
 

@@ -18,7 +18,6 @@ import type { Corner } from '@/lib/presence/protocol';
 import { cn } from '@/lib/utils';
 
 const STRETCH = 40;
-const LET_GO_AFTER = 1500;
 const RETURN = { type: 'spring', stiffness: 380, damping: 20 } as const;
 const RETURN_STILL = { duration: 0.2, ease: EASE_OUT } as const;
 const FOLLOW = { type: 'spring', stiffness: 900, damping: 60 } as const;
@@ -131,26 +130,21 @@ export function SelectionFrame({ name, children, className }: SelectionFrameProp
     return () => measured.disconnect();
   }, [width, height]);
 
-  useEffect(() => {
-    let letGo = 0;
-    const settle = (transition: typeof RETURN | typeof RETURN_STILL) => {
-      for (const side of SIDES) animate(edges[side], 0, transition);
-    };
-    const stop = frames.onReceived(name, (event) => {
-      if (grabbed.current) return;
-      window.clearTimeout(letGo);
-      if (event.type === 'drop') return settle(still ? RETURN_STILL : RETURN);
-      const corner = CORNERS[event.pull.corner];
-      if (!corner) return;
-      animate(edges[corner.x], event.pull.x, still ? RETURN_STILL : FOLLOW);
-      animate(edges[corner.y], event.pull.y, still ? RETURN_STILL : FOLLOW);
-      letGo = window.setTimeout(() => settle(still ? RETURN_STILL : RETURN), LET_GO_AFTER);
-    });
-    return () => {
-      stop();
-      window.clearTimeout(letGo);
-    };
-  }, [edges, name, still]);
+  useEffect(
+    () =>
+      frames.onReceived(name, (event) => {
+        if (grabbed.current) return;
+        if (event.type === 'drop') {
+          for (const side of SIDES) animate(edges[side], 0, still ? RETURN_STILL : RETURN);
+          return;
+        }
+        const corner = CORNERS[event.pull.corner];
+        if (!corner) return;
+        animate(edges[corner.x], event.pull.x, still ? RETURN_STILL : FOLLOW);
+        animate(edges[corner.y], event.pull.y, still ? RETURN_STILL : FOLLOW);
+      }),
+    [edges, name, still]
+  );
 
   const hatch = useMotionTemplate`inset(calc(${STRETCH}px + ${top}px) calc(${STRETCH}px - ${right}px) calc(${STRETCH}px - ${bottom}px) calc(${STRETCH}px + ${left}px))`;
   const outline = useTransform(
@@ -165,7 +159,7 @@ export function SelectionFrame({ name, children, className }: SelectionFrameProp
   });
 
   return (
-    <div ref={frame} className={cn('relative px-6 py-4 sm:px-9 sm:py-5', className)}>
+    <div ref={frame} data-ripple className={cn('relative px-6 py-4 sm:px-9 sm:py-5', className)}>
       <motion.div aria-hidden style={{ clipPath: hatch }} className="hatch absolute -inset-10 opacity-60" />
       <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible">
         <motion.path d={outline} fill="none" strokeWidth={1} className="stroke-primary/70" />

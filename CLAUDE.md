@@ -176,7 +176,7 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   in-memory tag only to cap it at four sockets. The room holds 24 and lets the idlest
   go with close code 4000 to make room, which the client honours by staying down until
   its own pointer moves; a hidden tab closes its socket the same way. Messages over
-  256 characters, unreadable, or beyond a burst of 120 at 75 a second are dropped
+  320 characters, unreadable, or beyond a burst of 120 at 75 a second are dropped
   unread. "leave" means the pointer left the page (or is scrolling) and keeps the
   visitor's highlight; "gone" means the socket closed and clears both, and lets go of
   any frame that visitor held. "Toggle cursors", offered only to a fine pointer,
@@ -184,16 +184,21 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **The room still completes the close handshake itself.** The compatibility date makes
   the runtime reply to a Close frame, yet under local wrangler sockets stayed CLOSING
   until `webSocketClose` called `close()`; the call is harmless where it is ignored.
-- **A cursor is sent as a place near an element, not a pixel.** Anchors are leaves,
-  never nested: `role`, `headline`, `intro`, `actions`, `clients`, each
-  `project:<slug>`, `metadata`, `links`. `locate` picks the anchor nearest the
-  pointer (the smallest when several hold it) and sends, per sample, the fraction of
-  the box at the closest point on its edge plus the pixels beyond it. Inside, a cursor
-  scales with its element; outside, it keeps its distance, so a cursor 40 px under a
-  card is 40 px under that card in one, two or three columns. A container anchor
-  would map gaps between cards by fraction and land them inside a card elsewhere. When
-  a cursor changes anchor and its place jumps more than 120 px on this layout, it cuts
-  there and fades in rather than gliding across the page.
+- **A cursor is sent as a place on what it points at, not a pixel.** Anchors are
+  leaves, never nested: `role`, `headline`, `intro`, `actions`, `clients`, each
+  `project:<slug>`, `metadata`, `links`. A target is an anchor and a part, in three
+  levels: over text, the character under the pointer (`#index`, found with
+  `caretPositionFromPoint`, else `caretRangeFromPoint` for older Safari, and kept only
+  when that character's box holds the pointer), so a cursor sits on the same letter
+  however the lines wrap; over an element, the deepest one, as a path of child indices
+  from its anchor (the masonry copies share one tree); in empty space, the anchor last
+  left, held until the pointer enters another, the nearest anchor only when there was
+  none. Each sample is the fraction of the target's box at the closest point on its
+  edge plus the pixels beyond it, so a cursor keeps its distance from what it left.
+  Holding the last anchor is what keeps gaps smooth: picking the nearest anchor at
+  every sample switched anchors mid-gap, and each switch was a jump on another layout.
+  A cursor still moves across the page when its owner enters an element that sits
+  elsewhere on this layout: that is where they are.
 - **Moves travel in batches.** The pointer is sampled on every `pointermove` and sent
   every 33 ms as up to four samples, each with its age, all on the anchor of the
   latest; a press or a release flushes the batch first, so it lands where it
@@ -202,9 +207,8 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   its jitter (40 to 160 ms): enough to always hold the next sample, no more. It learns
   only from batches that continue a motion (a gap under 250 ms and an oldest sample at
   least 10 ms old): the batch that ends a pause would otherwise read as network jitter
-  and push the delay to its ceiling. A cut is a break in the trail at its own time,
-  played like the rest, so a press just before it still lands where it was made. Presses,
-  ripples and frame pulls replay on the same delay so they meet the cursor. While its
+  and push the delay to its ceiling. Presses,
+  clicks and frame pulls replay on the same delay so they meet the cursor. While its
   page scrolls the own cursor is not sent but leaves, and comes back where it settled
   160 ms later: sending through a scroll drew others a straight line across the page.
 - **A selection is shared as characters of an anchor.** `spanOf` counts the
@@ -228,16 +232,24 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   four ghosts along the last 56 ms of the drawn path that fade in with speed (motion
   blur as a shutter would record it), and a scale on a light spring (`spring`, fixed
   1 ms steps, so any frame rate moves alike) held down between a press and its release
-  (released anyway after 4 s). A cursor sinks to a trace as soon as it stops and comes
-  back as it moves or presses. The loop stops once everything is at rest and wakes on a
+  (released anyway after 4 s). A cursor sinks to a trace after 2 s still and comes back
+  as it moves or presses; a timer wakes the stopped loop for that fade. The loop stops once everything is at rest and wakes on a
   message, a scroll, a resize, or a press due to time out. Ten cursors at most are
   shown: the rest wait for a place to free rather than taking one, which would churn
   React at the message rate, and their presses are dropped. Each frame reads every box
   first, then writes, and ripples last; a cursor this page cannot place is skipped
-  without keeping the loop awake. Reduced motion keeps the path and drops the tilt, blur,
+  without keeping the loop awake.
+- **Cursors step aside for a modal.** `lib/presence/overlays.ts` watches the palette
+  (Radix locks the page with `data-scroll-locked` on `body`) and cal.com's
+  `cal-modal-box` (its `state`, `closed` once dismissed). While one is open the others'
+  cursors and highlights fade out, and the own cursor leaves and is not sent: the page
+  under the modal is not what its owner is looking at. Reduced motion keeps the path and drops the tilt, blur,
   ghosts, spring and ripple.
-- **A press ripples the element under it (an experiment).** `ripple.ts` puts an SVG
-  filter on the anchor under the pressed point for 700 ms: a ring displacement map
+- **A click ripples the surface under it (an experiment).** A click is a press released
+  within 350 ms and 8 px, leaving no selection, so selecting text or dragging never
+  ripples; the own clicks ripple too. The surface is the closest `data-ripple` (a
+  selection frame, border and hatching included), else the anchor. `ripple.ts` puts an
+  SVG filter on it for 700 ms: a ring displacement map
   drawn once on a canvas, laid over a neutral grey flood (an `feImage` leaves the rest
   of its region transparent black, which would displace everything), grown from the
   point while its strength fades, and applied three times at different strengths, one
@@ -252,7 +264,8 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   rest (`none` at rest, so focus rings are never cut). The frame shares its pulls
   through `lib/presence/frames.ts`, the room sends them with the batch and replays
   others' pulls, which the frame follows on a stiff spring unless held here, letting go
-  on a drop, a "gone", or 1.5 s of silence. `body` clips horizontal overflow (`clip`,
+  on a drop or a "gone" only: a pull held still sends nothing, so a timeout let go of
+  frames still held. `body` clips horizontal overflow (`clip`,
   not `hidden`, so it creates no scroll container), as a corner pulled at the edge of a
   phone would otherwise widen the page.
 - **`/resume` proxies the PDF** so `download` holds across origins; the edge caches it

@@ -2,19 +2,24 @@ import { locate, spanOf } from '@/lib/presence/anchors';
 import type { Connection } from '@/lib/presence/connection';
 import { frames } from '@/lib/presence/frames';
 import type { Timed, Vector } from '@/lib/presence/motion';
-import { MOST_SAMPLES, type Pull, type Span } from '@/lib/presence/protocol';
+import { MOST_SAMPLES, type Pull, type Span, type Target } from '@/lib/presence/protocol';
 
 const SEND_EVERY = 33;
 const OLDEST = 1000;
 const SCROLL_SETTLES_AFTER = 160;
 const SELECTION_SETTLES_AFTER = 120;
+const LONGEST_CLICK = 350;
+const CLICK_SLOP = 8;
 
 const sameSpan = (a?: Span, b?: Span) => a?.anchor === b?.anchor && a?.start === b?.start && a?.end === b?.end;
 
-export function shareOwnCursor(connection: Connection) {
+export function shareOwnCursor(connection: Connection, onClick: (point: Vector) => void) {
   const listening = new AbortController();
   const options = { passive: true, signal: listening.signal };
   let client: Vector | undefined;
+  let aimed: Target | undefined;
+  let pressed: Timed<Vector> | undefined;
+  let covered = false;
   let taken: Timed<Vector>[] = [];
   let pulled: Pull | undefined;
   let sentAt = -Infinity;
@@ -33,13 +38,14 @@ export function shareOwnCursor(connection: Connection) {
     window.clearTimeout(pending);
     pending = 0;
     const now = performance.now();
-    const located = scrolling ? undefined : locate(taken.map(({ value }) => value));
+    const located = scrolling || covered ? undefined : locate(taken.map(({ value }) => value), aimed);
     if (located) {
+      aimed = located.target;
       const samples = located.placements.map((placement, index) => ({
         age: Math.min(OLDEST, Math.max(0, Math.round(now - (taken[index]?.at ?? now)))),
         ...placement,
       }));
-      connection.send({ type: 'move', path: { anchor: located.anchor, samples } });
+      connection.send({ type: 'move', path: { ...located.target, samples } });
     }
     if (pulled) connection.send({ type: 'pull', pull: pulled });
     taken = [];
@@ -56,6 +62,8 @@ export function shareOwnCursor(connection: Connection) {
 
   const leave = () => {
     client = undefined;
+    aimed = undefined;
+    pressed = undefined;
     taken = [];
     window.clearTimeout(pending);
     pending = 0;
@@ -93,27 +101,41 @@ export function shareOwnCursor(connection: Connection) {
     (event) => {
       if (event.pointerType !== 'mouse') return;
       client = { x: event.clientX, y: event.clientY };
-      if (scrolling) return;
+      if (scrolling || covered) return;
       take(event.timeStamp);
       connection.wake();
       schedule();
     },
     options
   );
-  for (const [type, signal] of [
-    ['pointerdown', 'press'],
-    ['pointerup', 'release'],
-  ] as const) {
-    window.addEventListener(
-      type,
-      (event) => {
-        if (event.pointerType !== 'mouse') return;
-        flush();
-        connection.send({ type: signal });
-      },
-      options
-    );
-  }
+  window.addEventListener(
+    'pointerdown',
+    (event) => {
+      if (event.pointerType !== 'mouse' || covered) return;
+      pressed = event.button === 0 ? { at: event.timeStamp, value: { x: event.clientX, y: event.clientY } } : undefined;
+      flush();
+      connection.send({ type: 'press' });
+    },
+    options
+  );
+  window.addEventListener(
+    'pointerup',
+    (event) => {
+      if (event.pointerType !== 'mouse' || covered) return;
+      flush();
+      connection.send({ type: 'release' });
+      const click = pressed;
+      pressed = undefined;
+      if (
+        click &&
+        event.timeStamp - click.at < LONGEST_CLICK &&
+        Math.hypot(event.clientX - click.value.x, event.clientY - click.value.y) < CLICK_SLOP &&
+        document.getSelection()?.isCollapsed !== false
+      )
+        onClick({ x: click.value.x + window.scrollX, y: click.value.y + window.scrollY });
+    },
+    options
+  );
   window.addEventListener(
     'scroll',
     () => {
@@ -152,11 +174,18 @@ export function shareOwnCursor(connection: Connection) {
     options
   );
 
-  return () => {
-    listening.abort();
-    stopSharingFrames();
-    window.clearTimeout(pending);
-    window.clearTimeout(scrolling);
-    window.clearTimeout(selecting);
+  return {
+    cover(next: boolean) {
+      if (next === covered) return;
+      covered = next;
+      if (covered && client) leave();
+    },
+    stop() {
+      listening.abort();
+      stopSharingFrames();
+      window.clearTimeout(pending);
+      window.clearTimeout(scrolling);
+      window.clearTimeout(selecting);
+    },
   };
 }

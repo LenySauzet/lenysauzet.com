@@ -4,7 +4,7 @@ import type { Path } from '@/lib/presence/protocol';
 
 import { createRemoteCursors, GHOSTS } from './remote-cursors';
 
-const at = (x: number, dx = 0): Path => ({ anchor: 'page', samples: [{ age: 0, x, y: 0, dx, dy: 0 }] });
+const at = (x: number, dx = 0): Path => ({ anchor: 'page', part: '', samples: [{ age: 0, x, y: 0, dx, dy: 0 }] });
 
 const ink = () => {
   const element = document.createElement('div');
@@ -18,7 +18,7 @@ const opacityOf = (element: HTMLElement) => Number(mainOf(element).style.opacity
 
 describe('the remote cursors', () => {
   let published: string[][];
-  let pressed: string[];
+  let clicked: number[];
   let cursors: ReturnType<typeof createRemoteCursors>;
 
   beforeEach(() => {
@@ -28,10 +28,10 @@ describe('the remote cursors', () => {
     vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1000);
     vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(1000);
     published = [];
-    pressed = [];
+    clicked = [];
     cursors = createRemoteCursors({
       onChange: (ids) => published.push(ids),
-      onPress: (id) => pressed.push(id),
+      onClick: (_, point) => clicked.push(point.x),
       isStill: () => false,
     });
   });
@@ -87,14 +87,13 @@ describe('the remote cursors', () => {
     }
     expect(lowest).toBeLessThan(0.8);
     expect(scaleOf(element)).toBeCloseTo(0.8, 2);
-    expect(pressed).toEqual(['v0']);
 
     cursors.release('v0');
     vi.advanceTimersByTime(800);
     expect(scaleOf(element)).toBeCloseTo(1, 2);
   });
 
-  it('fades to a trace as soon as it stops, and comes back when it moves', () => {
+  it('fades to a trace after two seconds still, and comes back when it moves', () => {
     const element = ink();
     cursors.attach('v0', element);
     for (let time = 0; time < 300; time += 16) {
@@ -103,7 +102,10 @@ describe('the remote cursors', () => {
     }
     expect(opacityOf(element)).toBeGreaterThan(0.9);
 
-    vi.advanceTimersByTime(900);
+    vi.advanceTimersByTime(1500);
+    expect(opacityOf(element)).toBe(1);
+
+    vi.advanceTimersByTime(2000);
     expect(opacityOf(element)).toBeLessThan(0.25);
     expect(shown()).toEqual(['v0']);
 
@@ -114,68 +116,44 @@ describe('the remote cursors', () => {
     expect(opacityOf(element)).toBeGreaterThan(0.9);
   });
 
-  it('cuts to a new place far away instead of gliding across the page', () => {
-    const far = document.createElement('article');
-    far.dataset.presence = 'far';
-    vi.spyOn(far, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
-    vi.spyOn(far, 'getBoundingClientRect').mockReturnValue({ left: 900, top: 0, width: 50, height: 50 } as DOMRect);
-    document.body.append(far);
+  it('sleeps rather than spin on a cursor this page cannot place, and drops its clicks', () => {
     const element = ink();
-    cursors.move('v0', at(0));
-    cursors.attach('v0', element);
-    vi.advanceTimersByTime(300);
-
-    cursors.move('v0', { anchor: 'far', samples: [{ age: 0, x: 0, y: 0, dx: 0, dy: 0 }] });
-    const xs: number[] = [];
-    let arrival = 1;
-    for (let time = 0; time < 300; time += 16) {
-      vi.advanceTimersByTime(16);
-      const x = Number(/translate3d\(([\d.]+)px/.exec(mainOf(element).style.transform)?.[1]);
-      if (x === 900 && xs.at(-1) !== 900) arrival = opacityOf(element);
-      xs.push(x);
-    }
-
-    expect(xs.every((x) => x === 0 || x === 900)).toBe(true);
-    expect(xs.at(-1)).toBe(900);
-    expect(arrival).toBeLessThan(0.5);
-    far.remove();
-  });
-
-  it('sleeps rather than spin on a cursor this page cannot place, and drops its presses', () => {
-    const element = ink();
-    cursors.move('v0', { anchor: 'project:elsewhere', samples: [{ age: 0, x: 0, y: 0, dx: 0, dy: 0 }] });
+    cursors.move('v0', { anchor: 'project:elsewhere', part: '', samples: [{ age: 0, x: 0, y: 0, dx: 0, dy: 0 }] });
     cursors.attach('v0', element);
     cursors.press('v0');
+    cursors.release('v0');
 
     vi.advanceTimersByTime(500);
 
     expect(vi.getTimerCount()).toBe(0);
-    expect(pressed).toEqual([]);
+    expect(clicked).toEqual([]);
   });
 
-  it('ripples a press where it happened, even when a cut follows it', () => {
-    const far = document.createElement('article');
-    far.dataset.presence = 'far';
-    vi.spyOn(far, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
-    vi.spyOn(far, 'getBoundingClientRect').mockReturnValue({ left: 900, top: 0, width: 50, height: 50 } as DOMRect);
-    document.body.append(far);
-    const ripples: number[] = [];
-    cursors.stop();
-    cursors = createRemoteCursors({
-      onChange: (ids) => published.push(ids),
-      onPress: (_, point) => ripples.push(point.x),
-      isStill: () => false,
-    });
+  it('ripples a quick click where it was made, and not a press that drags', () => {
     cursors.move('v0', at(0.1));
     cursors.attach('v0', ink());
     vi.advanceTimersByTime(300);
 
     cursors.press('v0');
-    cursors.move('v0', { anchor: 'far', samples: [{ age: 0, x: 0, y: 0, dx: 0, dy: 0 }] });
+    vi.advanceTimersByTime(100);
+    cursors.release('v0');
     vi.advanceTimersByTime(300);
+    expect(clicked).toEqual([100]);
 
-    expect(ripples).toEqual([100]);
-    far.remove();
+    cursors.press('v0');
+    for (let time = 0; time < 200; time += 16) {
+      cursors.move('v0', at(0.1 + time / 1000));
+      vi.advanceTimersByTime(16);
+    }
+    cursors.release('v0');
+    vi.advanceTimersByTime(300);
+    expect(clicked).toEqual([100]);
+
+    cursors.press('v0');
+    vi.advanceTimersByTime(600);
+    cursors.release('v0');
+    vi.advanceTimersByTime(300);
+    expect(clicked).toEqual([100]);
   });
 
   it('draws a trail behind a fast cursor only', () => {

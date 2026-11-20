@@ -6,8 +6,12 @@ export interface Sample {
   dy: number;
 }
 
-export interface Path {
+export interface Target {
   anchor: string;
+  part: string;
+}
+
+export interface Path extends Target {
   samples: Sample[];
 }
 
@@ -60,13 +64,14 @@ export type ServerMessage =
 
 export const HEARTBEAT = 'ping';
 export const HEARTBEAT_REPLY = 'pong';
-export const MAX_CLIENT_MESSAGE = 256;
+export const MAX_CLIENT_MESSAGE = 320;
 export const MOST_SAMPLES = 4;
 export const LONGEST_PULL = 64;
 export const EVICTED = 4000;
 
 const NAME = /^[a-z0-9][a-z0-9:-]{0,63}$/;
 const ID = /^[a-z0-9]{1,16}$/;
+const PART = /^(?:\d{1,3}(?:\.\d{1,3}){0,15}|#\d{1,5})?$/;
 const PRECISION = 1e4;
 const LONGEST_TEXT = 20_000;
 const FARTHEST = 4000;
@@ -83,6 +88,7 @@ const isCount = (value: unknown, limit: number): value is number => isWhole(valu
 const isFraction = (value: unknown): value is number => isNumber(value) && value >= 0 && value <= 1;
 const isName = (value: unknown): value is string => typeof value === 'string' && NAME.test(value);
 const isId = (value: unknown): value is string => typeof value === 'string' && ID.test(value);
+const isPart = (value: unknown): value is string => typeof value === 'string' && PART.test(value);
 const isCorner = (value: unknown): value is Corner => isCount(value, 3);
 const isStretch = (value: unknown): value is number => isNumber(value) && Math.abs(value) <= LONGEST_PULL;
 
@@ -99,8 +105,8 @@ const sampleFrom = (value: unknown): Sample | undefined => {
     : undefined;
 };
 
-const pathFrom = ([anchor, ...fields]: unknown[]): Path | undefined => {
-  if (!isName(anchor) || fields.length === 0 || fields.length > MOST_SAMPLES) return undefined;
+const pathFrom = ([anchor, part, ...fields]: unknown[]): Path | undefined => {
+  if (!isName(anchor) || !isPart(part) || fields.length === 0 || fields.length > MOST_SAMPLES) return undefined;
   const samples: Sample[] = [];
   for (const field of fields) {
     const sample = sampleFrom(field);
@@ -108,7 +114,7 @@ const pathFrom = ([anchor, ...fields]: unknown[]): Path | undefined => {
     if (!sample || (previous && sample.age > previous.age)) return undefined;
     samples.push(sample);
   }
-  return { anchor, samples };
+  return { anchor, part, samples };
 };
 
 const spanFrom = ([anchor, start, end, ...rest]: unknown[]): Span | undefined =>
@@ -124,7 +130,7 @@ const pullFrom = ([frame, corner, x, y, ...rest]: unknown[]): Pull | undefined =
 const dropFrom = ([frame, ...rest]: unknown[]) => (rest.length === 0 && isName(frame) ? frame : undefined);
 
 const sampleTo = ({ age, x, y, dx, dy }: Sample) => [Math.round(age), round(x), round(y), Math.round(dx), Math.round(dy)];
-const pathTo = ({ anchor, samples }: Path) => [anchor, ...samples.map(sampleTo)];
+const pathTo = ({ anchor, part, samples }: Path) => [anchor, part, ...samples.map(sampleTo)];
 const spanTo = ({ anchor, start, end }: Span) => [anchor, start, end];
 const pullTo = ({ frame, corner, x, y }: Pull) => [frame, corner, round(x, 10), round(y, 10)];
 
