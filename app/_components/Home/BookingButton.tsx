@@ -4,8 +4,17 @@ import type { ComponentProps } from 'react';
 
 import { useBooking } from '@/hooks/use-booking';
 
-export function BookingButton(props: ComponentProps<'button'>) {
+export function BookingButton({ onClick, ...props }: ComponentProps<'button'>) {
   const book = useBooking();
 
-  return <button type="button" onClick={book} {...props} />;
+  return (
+    <button
+      type="button"
+      {...props}
+      onClick={(event) => {
+        onClick?.(event);
+        book();
+      }}
+    />
+  );
 }

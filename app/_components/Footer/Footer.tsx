@@ -59,6 +59,11 @@ export function Footer({ className }: { className?: string }) {
                 <Dimensions />
               </Reading>
               <Reading label="Last updated">{built}</Reading>
+              <Reading label="Source">
+                <a href={siteConfig.repository} target="_blank" rel="noopener noreferrer" className={cn(LINK, 'font-mono')}>
+                  GitHub
+                </a>
+              </Reading>
             </dl>
           </SelectionFrame>
         </section>

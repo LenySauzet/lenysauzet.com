@@ -8,6 +8,7 @@ rather than imports. `AGENTS.md` points here.
 
 ```bash
 bun dev
+portless             # The same, at https://lenysauzet.localhost
 bun run build
 bun lint
 bun run type-check
@@ -127,7 +128,9 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **The theme changes under the blog's sweep** (`withThemeTransition`), and
   `ThemeColor` copies the body's background into `theme-color` a frame after each
   change, so the browser's chrome follows the site's theme, not the system's.
-- **Client logos are shadcn `Avatar`s.** The trigger is an unscaled wrapper and only
+- **Client logos are shadcn `Avatar`s.** `BookingButton` runs the handler a Radix
+  `asChild` trigger merges into it before its own, or the tooltip's would replace it and
+  "Your company next?" would open nothing. The trigger is an unscaled wrapper and only
   the avatar inside it grows: Radix measures the trigger with its transform. The
   tooltips take `disableHoverableContent`, or a pointer leaving through one held it
   open over the next avatar. Until a logo is on the CDN the initial shows.
@@ -139,11 +142,12 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   `--background`, so only the outer half shows), the serif title, the copy, faded
   bands. `global-error` replaces the root layout, so it brings the fonts and applies
   the stored theme itself. The 404 declares no canonical URL.
-- **The footer is a metadata block**: commit, browser, the local time, the window and
-  the build date, then links. The live readings use `useSyncExternalStore` with a
-  pending server snapshot; the clock ticks on the second. Its bands rise to their own
-  column: `RisingBand` reads where the masonry's first or last lane ends and stays
-  hidden until it has, so on a page without the work they never show.
+- **The footer is a metadata block**: commit, browser, the local time, the window, the
+  build date and the source repository, then links. The live readings use
+  `useSyncExternalStore` with a pending server snapshot; the clock ticks on the second.
+  Its bands rise to their own column: `RisingBand` reads where the masonry's first or
+  last lane ends and stays hidden until it has, so on a page without the work they
+  never show.
 - **The home page carries JSON-LD**: a `Person` at `https://lenysauzet.com/#person`,
   every spelling of the name, `sameAs` each profile and the blog, inside a
   `ProfilePage`. The blog should point its author at that `@id`.
