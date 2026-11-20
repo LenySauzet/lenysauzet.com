@@ -7,10 +7,10 @@ import { pillSurface } from '@/components/ui/pill';
 import { openBooking } from '@/lib/services/booking';
 import { cn } from '@/lib/utils';
 
-const WIDTH =
-  'grid grid-cols-[0fr] transition-[grid-template-columns] delay-150 duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] group-hover:grid-cols-[1fr] group-hover:delay-0 group-focus-visible:grid-cols-[1fr] group-focus-visible:delay-0 pointer-coarse:grid-cols-[1fr] motion-reduce:transition-none';
-const ARRIVAL =
-  'flex items-center gap-1.5 pl-1.5 opacity-0 blur-[6px] transition-[opacity,filter] duration-200 group-hover:opacity-100 group-hover:filter-none group-hover:delay-300 group-hover:duration-400 group-focus-visible:opacity-100 group-focus-visible:filter-none group-focus-visible:delay-300 pointer-coarse:opacity-100 pointer-coarse:filter-none motion-reduce:transition-none';
+const EASE = 'duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none';
+const OPEN = 'group-hover:grid-cols-[1fr] group-focus-visible:grid-cols-[1fr] pointer-coarse:grid-cols-[1fr]';
+const GROWN =
+  'group-hover:scale-100 group-hover:opacity-100 group-hover:filter-none group-focus-visible:scale-100 group-focus-visible:opacity-100 group-focus-visible:filter-none pointer-coarse:scale-100 pointer-coarse:opacity-100 pointer-coarse:filter-none';
 
 export function BookCall({ className }: { className?: string }) {
   const { resolvedTheme } = useTheme();
@@ -24,9 +24,15 @@ export function BookCall({ className }: { className?: string }) {
       <span className="grid size-8 shrink-0 place-items-center rounded-full bg-background ring-1 ring-border">
         <Logo className="size-4" />
       </span>
-      <span className={WIDTH}>
+      <span className={cn('grid grid-cols-[0fr] transition-[grid-template-columns]', EASE, OPEN)}>
         <span aria-hidden className="min-w-0">
-          <span className={ARRIVAL}>
+          <span
+            className={cn(
+              'flex origin-left scale-0 items-center gap-1.5 pl-1.5 opacity-0 blur-[4px] transition-[scale,opacity,filter]',
+              EASE,
+              GROWN
+            )}
+          >
             <span className="text-subtle-foreground">+</span>
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-[0.6875rem] ring-1 ring-border">
               You

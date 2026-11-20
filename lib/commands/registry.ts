@@ -18,11 +18,10 @@ import {
 import { announce } from '@/app/_components/Island';
 import siteConfig from '@/config/site';
 import { openBooking } from '@/lib/services/booking';
+import { announceResume, RESUME_ROUTE } from '@/lib/services/resume';
 import { withThemeTransition } from '@/lib/theme/theme-transition';
 
 import type { Command } from './types';
-
-const RESUME_ROUTE = '/resume';
 
 const { social, email } = siteConfig;
 
@@ -91,7 +90,7 @@ export const commands: Command[] = [
       anchor.href = RESUME_ROUTE;
       anchor.download = '';
       anchor.click();
-      announce('Downloading my resume', Download01Icon);
+      announceResume();
     },
   },
   {

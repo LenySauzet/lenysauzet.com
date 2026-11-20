@@ -150,6 +150,10 @@ function CommandInput({
       <div className="flex h-[55px] items-center gap-3 border-b-[1.5px] border-foreground/10 px-[18px]">
         <CommandPrimitive.Input
           data-slot="command-input"
+          name="search"
+          enterKeyHint="go"
+          data-1p-ignore
+          data-lpignore="true"
           className={cn(
             'w-full bg-transparent text-base outline-hidden placeholder:text-subtle-foreground sm:text-sm disabled:cursor-not-allowed disabled:opacity-50',
             className

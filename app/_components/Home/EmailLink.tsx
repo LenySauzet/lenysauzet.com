@@ -13,7 +13,7 @@ export function EmailLink({ className }: { className?: string }) {
     <a
       href={`mailto:${siteConfig.email}`}
       {...trigger}
-      className={cn(pillSurface, 'gap-2 px-5 text-sm font-medium text-muted-foreground hover:text-foreground', className)}
+      className={cn(pillSurface, 'gap-2 px-5 text-sm font-medium text-foreground', className)}
     >
       <Mail01Icon ref={icon} size={16} />
       Email

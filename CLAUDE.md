@@ -67,9 +67,10 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   do not echo the island; `glass-rim` for the top-lit border, `--shadow-pill` per theme,
   no background change on hover. Three sit on a `1fr auto 1fr` grid, Email centred, so
   "Book a call" grows leftwards and the other two never move. Its "+ You" is not
-  clipped: the width opens first and the pair blurs in after it, and on leaving they
-  fade before the width closes, which is what the split delays are for. A clip showed
-  the blur's hard edge and cut the circle.
+  clipped and not delayed: it scales from 0 at its left edge on the same curve and
+  duration as the space opening, so it fills the gap as it grows. A clip showed the
+  blur's hard edge and cut the circle; a delay read as a pause. The three labels share
+  `--foreground`, which `shine-text` paints under its band.
 - **Animated icons are Hugeicons Animated** (community, MIT), installed with
   `bunx --bun shadcn@latest add @hugeicons-animated/<name>` into `components/ui/`,
   comments stripped, with `lib/use-icon-animation.ts`. An icon plays when its whole
@@ -103,6 +104,11 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   `inert`. `FadingList` fades the list's ends. A picked command runs on
   `onExitComplete`, so cal.com never opens over a closing dialog. Shortcuts hide on
   coarse pointers and read Ctrl+ off Apple systems.
+- **The palette's input is named `search`**: password managers (iCloud Passwords
+  among them) offer themselves on a text field despite `autocomplete="off"`, and cmdk
+  forces `type="text"`. Unverified against the extension itself.
+- **A resume download is announced** in the island, from the pill or the palette,
+  through `announceResume` in `lib/services/resume.ts`.
 - **`/resume` proxies the PDF** so `download` holds across origins, cached at the edge
   by `s-maxage`.
 - **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to

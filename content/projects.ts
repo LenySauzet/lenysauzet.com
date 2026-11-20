@@ -22,6 +22,12 @@ export const projects: Project[] = [
     action: { kind: 'app', href: 'https://gitglow.lenysauzet.com' },
   },
   {
+    title: 'The Blog',
+    year: '2025',
+    image: 'https://blog.lenysauzet.com/opengraph-image',
+    action: { kind: 'app', href: 'https://blog.lenysauzet.com' },
+  },
+  {
     title: 'Travel Order Resolver',
     year: '2026',
     image: 'projects/travel-order-resolver/cover.jpg',
@@ -46,7 +52,7 @@ export const projects: Project[] = [
     action: { kind: 'app', href: 'https://my-quest-eight.vercel.app' },
   },
   { title: 'LMS Platform', year: '2026', image: 'projects/lms-platform/cover.jpg', action: source('lms-platform') },
-  { title: 'Animated Robot Eyes', year: '2026', image: 'projects/robot-eyes/cover.jpg' },
+  { title: 'Animated Robot Eyes', year: '2026', image: 'projects/robot-eyes/cover.jpg', action: source('OTO-BOT') },
   { title: 'TriGrid', year: '2026', image: 'projects/trigrid/cover.jpg', action: source('TriGrid') },
   {
     title: 'DB Administration Software',
