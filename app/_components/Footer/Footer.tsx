@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { HatchBand } from '@/components/shared/HatchBand';
+import { SelectionFrame } from '@/components/shared/SelectionFrame';
 import siteConfig from '@/config/site';
 import { buildInfo } from '@/lib/build-info';
 import { RESUME_ROUTE } from '@/lib/services/resume';
@@ -70,27 +71,29 @@ export function Footer({ className }: { className?: string }) {
           <h2 id="metadata-heading" className={LABEL}>
             Metadata
           </h2>
-          <dl className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
-            <Reading label="Commit">
-              {buildInfo.commitUrl ? (
-                <a href={buildInfo.commitUrl} className="transition-colors duration-200 hover:text-foreground">
-                  {buildInfo.commit}
-                </a>
-              ) : (
-                'local'
-              )}
-            </Reading>
-            <Reading label="Browser">
-              <Browser />
-            </Reading>
-            <Reading label="Time in Montpellier">
-              <Clock />
-            </Reading>
-            <Reading label="Dimensions">
-              <Dimensions />
-            </Reading>
-            <Reading label="Last updated">{buildInfo.updated}</Reading>
-          </dl>
+          <SelectionFrame className="-mx-3 px-3 py-4 sm:-mx-6 sm:px-6 sm:py-5">
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
+              <Reading label="Commit">
+                {buildInfo.commitUrl ? (
+                  <a href={buildInfo.commitUrl} className="transition-colors duration-200 hover:text-foreground">
+                    {buildInfo.commit}
+                  </a>
+                ) : (
+                  'local'
+                )}
+              </Reading>
+              <Reading label="Browser">
+                <Browser />
+              </Reading>
+              <Reading label="Time in Montpellier">
+                <Clock />
+              </Reading>
+              <Reading label="Dimensions">
+                <Dimensions />
+              </Reading>
+              <Reading label="Last updated">{buildInfo.updated}</Reading>
+            </dl>
+          </SelectionFrame>
         </section>
 
         <nav aria-label="Links" className="grid grid-cols-2 gap-x-8 gap-y-4 border-t-2 border-dotted pt-8 sm:grid-cols-3">
