@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { HatchBand } from '@/components/shared/HatchBand';
+import { Logo } from '@/components/shared/Logo';
 import { SelectionFrame } from '@/components/shared/SelectionFrame';
 import siteConfig from '@/config/site';
 import { buildInfo } from '@/lib/build-info';
@@ -101,6 +102,16 @@ export function Footer({ className }: { className?: string }) {
           <Links links={PAGES} />
           <Links links={ELSEWHERE} external />
         </nav>
+
+        <div className="flex items-center gap-4 pt-4">
+          <Logo className="size-9 shrink-0 text-foreground" />
+          <div className="flex flex-col text-sm">
+            <p className="text-foreground">
+              © {new Date().getFullYear()} {siteConfig.author.name}
+            </p>
+            <p className="text-subtle-foreground italic">Designed &amp; Built in {siteConfig.author.location}</p>
+          </div>
+        </div>
       </div>
 
       <HatchBand className={cn('lg:col-start-5', RISING)} />
