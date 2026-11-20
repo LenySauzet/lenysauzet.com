@@ -15,7 +15,7 @@ import {
   CommandShortcut,
 } from '@/components/ui/command';
 import { usePaletteStore } from '@/hooks/use-palette-store';
-import { keyLabel } from '@/lib/commands/keys';
+import { keyLabel, modifierLabel } from '@/lib/commands/keys';
 import { commands } from '@/lib/commands/registry';
 import { GROUPS, type Command } from '@/lib/commands/types';
 
@@ -25,6 +25,7 @@ export default function CommandPalette() {
   const { resolvedTheme, setTheme } = useTheme();
   const picked = useRef<Command | null>(null);
   const openedFrom = useRef<HTMLElement | null>(null);
+  const modifier = modifierLabel(navigator.userAgent);
 
   const pick = (command: Command) => {
     picked.current = command;
@@ -54,29 +55,34 @@ export default function CommandPalette() {
       <CommandRoot>
         <CommandInput placeholder="Type a command..." />
         <CommandList>
-        <CommandEmpty>Nothing matches that.</CommandEmpty>
-        {GROUPS.map((group) => (
-          <CommandGroup key={group} heading={group}>
-            {commands
-              .filter((command) => command.group === group)
-              .map((command) => (
-                <CommandItem
-                  key={command.id}
-                  value={[command.label, ...(command.keywords ?? [])].join(' ')}
-                  onSelect={() => pick(command)}
-                >
-                  <HugeiconsIcon icon={command.icon} strokeWidth={2} />
-                  {command.label}
-                  {command.hint && (
-                    <span className="ml-auto truncate text-xs text-muted-foreground group-data-selected/command-item:text-foreground">
-                      {command.hint}
-                    </span>
-                  )}
-                  {command.shortcut && <CommandShortcut>⌘{keyLabel(command.shortcut)}</CommandShortcut>}
-                </CommandItem>
-              ))}
-          </CommandGroup>
-        ))}
+          <CommandEmpty>Nothing matches that.</CommandEmpty>
+          {GROUPS.map((group) => (
+            <CommandGroup key={group} heading={group}>
+              {commands
+                .filter((command) => command.group === group)
+                .map((command) => (
+                  <CommandItem
+                    key={command.id}
+                    value={[command.label, ...(command.keywords ?? [])].join(' ')}
+                    onSelect={() => pick(command)}
+                  >
+                    <HugeiconsIcon icon={command.icon} strokeWidth={2} />
+                    {command.label}
+                    {command.hint && (
+                      <span className="ml-auto truncate text-xs text-muted-foreground any-pointer-fine:group-data-selected/command-item:text-foreground">
+                        {command.hint}
+                      </span>
+                    )}
+                    {command.shortcut && (
+                      <CommandShortcut className="pointer-coarse:hidden">
+                        {modifier}
+                        {keyLabel(command.shortcut)}
+                      </CommandShortcut>
+                    )}
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+          ))}
         </CommandList>
       </CommandRoot>
     </CommandDialog>

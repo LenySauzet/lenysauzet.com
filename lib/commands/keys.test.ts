@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { commandFor, keyLabel, togglesPalette } from './keys';
+import { commandFor, keyLabel, modifierLabel, togglesPalette } from './keys';
 import { commands } from './registry';
 
 const press = (key: string, modifier: 'meta' | 'ctrl' | null = 'meta') => ({
@@ -22,6 +22,13 @@ describe('commandFor', () => {
     expect(commandFor(commands, press('d'))?.id).toBe('toggle-theme');
     expect(commandFor(commands, press('d', null))).toBeUndefined();
     expect(commandFor(commands, press('q'))).toBeUndefined();
+  });
+});
+
+describe('modifierLabel', () => {
+  it('names the Command key on Apple systems and Ctrl elsewhere', () => {
+    expect(modifierLabel('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')).toBe('⌘');
+    expect(modifierLabel('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')).toBe('Ctrl+');
   });
 });
 

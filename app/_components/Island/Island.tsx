@@ -33,6 +33,8 @@ export function Island({ className }: { className?: string }) {
   const pill = useRef<HTMLDivElement>(null);
   const mention = useRef(0);
   const presented = useIslandStore((state) => state.presented);
+  const paletteOpen = usePaletteStore((state) => state.isOpen);
+  const message = presented.findLast((raised) => raised.message)?.message ?? '';
   const still = useReducedMotion();
   const atTheHead = useSyncExternalStore(
     onBreakpoint,
@@ -47,6 +49,10 @@ export function Island({ className }: { className?: string }) {
     );
     return () => window.clearTimeout(mention.current);
   }, []);
+
+  useEffect(() => {
+    if (paletteOpen) window.clearTimeout(mention.current);
+  }, [paletteOpen]);
 
   const resolved = presented.at(-1) ?? (hovered ? hint : identity);
   const state = useOpening(resolved, resting);
@@ -104,6 +110,9 @@ export function Island({ className }: { className?: string }) {
           </div>
         </motion.div>
       </button>
+      <p role="status" className="sr-only">
+        {message}
+      </p>
     </motion.div>
   );
 }

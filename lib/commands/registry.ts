@@ -21,7 +21,7 @@ import { openBooking } from '@/lib/services/booking';
 
 import type { Command } from './types';
 
-export const RESUME_ROUTE = '/resume';
+const RESUME_ROUTE = '/resume';
 
 const { social, email } = siteConfig;
 

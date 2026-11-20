@@ -55,18 +55,38 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   under `returningFocus`, which keeps the island from reading that as pointing.
 - **The masonry is decided at build time.** Each image is measured from its header, the
   tiles are spread one, two and three columns wide, and CSS shows the layout for the
-  width. `columns` would read and tab column by column; nothing moves on load; hidden
-  copies are `display: none`, out of the accessibility tree, and their lazy images are
-  never fetched. A missing image warns and falls back to 16:9 rather than failing.
+  width, so nothing moves on load. Each tile goes to the shortest column, so tiles appear
+  newest first by their top edge, but the DOM, and so Tab and a screen reader, runs
+  column by column: masonry without it is CSS `grid-lanes`, to adopt once every engine
+  ships it. Hidden copies are `display: none`, out of the accessibility tree, and their
+  lazy images are never fetched. A missing image warns and falls back to 16:9.
 - **Pointing at a way to reach me shows the availability** on the island (`showsAvailability`
   on the button and the "+" bubble), and it leaves with the pointer or the focus.
-- **A refused clipboard still answers**: the island shows the text itself.
+- **The island speaks through a live region.** Its pill is `aria-hidden`, so an
+  announcement also lands in an `sr-only` `role="status"`; a refused clipboard still
+  answers, the island showing the text itself.
+- **The "+ You" button grows leftwards.** The CTA row is two equal columns from `sm`,
+  the button pinned to the centre gap, so its growth never moves "Explore my work"; a
+  touch screen has no hover and shows it grown.
 - **The shine is CSS alone**: a registered `--sweep` animated in `@keyframes`, painted
-  through `shine-text` (background-clipped, over `--shine-ink`) and `shine-border` (a
-  masked ring). Reduced motion stops it and blanks the band.
-- **The stock `CommandItem` tick is gone**: it took `ml-auto` and pushed a row's hint to
-  the middle. `CommandDialog` forwards `onOpenAutoFocus` and `onCloseAutoFocus`, and every
-  `ui/` file imports `cn` from `@/lib/utils` (the CLI wrote `from "cn"`).
+  through `shine-text` (background-clipped over `--foreground`) and `shine-border` (a
+  masked ring). The text's band dims in dark and lightens in light, `--shine-text`,
+  since a white glint on near-white text is invisible; the rim's is `--shine-rim`.
+  Reduced motion parks the band off the box.
+- **`ui/command.tsx` is customised**, so update it with `add command --diff`:
+  - the stock `CommandItem` tick is gone: it took `ml-auto` and pushed a row's hint to
+    the middle;
+  - the sr-only title sits inside `DialogContent`, or it renders in the page as an h2
+    before the h1;
+  - `CommandInput` is a bare input, 16px below `sm`, where iOS zooms on focus, without
+    `InputGroup`;
+  - the selection shows only under `any-pointer-fine`: cmdk always selects a row, which
+    under a finger reads as a row stuck lit. Shortcuts hide on coarse pointers and read
+    Ctrl+ off Apple systems;
+  - `CommandDialog` forwards `onOpenAutoFocus` and `onCloseAutoFocus`;
+  - every `ui/` file imports `cn` from `@/lib/utils` (the CLI wrote `from "cn"`).
+- **`/resume` proxies the PDF** so `download` holds across origins, cached at the edge
+  by `s-maxage`.
 - **Locally, `next/image` may refuse the blog's images** with "resolved to private IP":
   a NAT64 network answers `64:ff9b::` addresses. It works in production. Never set
   `dangerouslyAllowLocalIP`; serve the original in a Playwright route to look at it.

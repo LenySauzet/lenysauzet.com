@@ -22,9 +22,9 @@ export function Hero() {
           that feel alive, real-time 3D, and the engineering that keeps them fast.
         </p>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <BookCall />
-          <Button asChild variant="outline" size="lg" className="h-11 rounded-xl px-4">
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:grid sm:w-full sm:max-w-lg sm:grid-cols-2">
+          <BookCall className="sm:justify-self-end" />
+          <Button asChild variant="outline" size="lg" className="h-11 rounded-xl px-4 sm:justify-self-start">
             <a href="#work">Explore my work</a>
           </Button>
         </div>

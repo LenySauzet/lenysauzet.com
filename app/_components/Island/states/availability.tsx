@@ -1,4 +1,5 @@
 import { useIslandStore } from '@/hooks/use-island-store';
+import { usePaletteStore } from '@/hooks/use-palette-store';
 
 import type { IslandState } from '../types';
 
@@ -15,7 +16,10 @@ export const availability: IslandState = {
   ),
 };
 
-const show = () => useIslandStore.getState().present(availability);
+const show = () => {
+  if (usePaletteStore.getState().returningFocus) return;
+  useIslandStore.getState().present(availability);
+};
 const hide = () => useIslandStore.getState().dismiss(availability.id);
 
 export const showsAvailability = {
