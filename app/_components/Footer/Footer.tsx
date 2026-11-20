@@ -1,0 +1,103 @@
+import type { ReactNode } from 'react';
+
+import { SelectionFrame } from '@/components/shared/SelectionFrame';
+import { focusRing, pageGrid } from '@/components/shared/styles';
+import siteConfig from '@/config/site';
+import { buildInfo } from '@/lib/build-info';
+import { cn } from '@/lib/utils';
+
+import { ResumeAnchor } from '../ResumeAnchor';
+import { Browser, Clock, Dimensions } from './Readings';
+import { RisingBand } from './RisingBand';
+
+const LABEL = 'text-sm font-medium text-muted-foreground';
+const LINK = cn('w-fit rounded-sm text-sm text-subtle-foreground transition-colors duration-200 hover:text-foreground', focusRing);
+
+function Reading({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <dt className={LABEL}>{label}</dt>
+      <dd className="font-mono text-sm text-subtle-foreground">{children}</dd>
+    </div>
+  );
+}
+
+function LinkList({ children }: { children: ReactNode }) {
+  return <ul className="flex flex-col gap-1.5">{children}</ul>;
+}
+
+export function Footer({ className }: { className?: string }) {
+  const { commit, built } = buildInfo;
+
+  return (
+    <footer className={cn(pageGrid, className)}>
+      <RisingBand lane="first" />
+
+      <div className="flex flex-col gap-8 pt-8 pb-32 sm:pb-16 lg:col-start-3">
+        <section aria-labelledby="metadata-heading" className="flex flex-col gap-4">
+          <h2 id="metadata-heading" className={LABEL}>
+            Metadata
+          </h2>
+          <SelectionFrame className="-mx-1.5 px-1.5 sm:-mx-6 sm:px-6">
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
+              <Reading label="Commit">
+                {commit ? (
+                  <a href={commit.url} className={cn(LINK, 'font-mono')}>
+                    {commit.short}
+                  </a>
+                ) : (
+                  'local'
+                )}
+              </Reading>
+              <Reading label="Browser">
+                <Browser />
+              </Reading>
+              <Reading label={`Time in ${siteConfig.author.location}`}>
+                <Clock />
+              </Reading>
+              <Reading label="Dimensions">
+                <Dimensions />
+              </Reading>
+              <Reading label="Last updated">{built}</Reading>
+              <Reading label="Source">
+                <a href={siteConfig.repository} target="_blank" rel="noopener noreferrer" className={cn(LINK, 'font-mono')}>
+                  GitHub
+                </a>
+              </Reading>
+            </dl>
+          </SelectionFrame>
+        </section>
+
+        <nav aria-label="Links" className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
+          <p className={cn(LABEL, 'col-span-2 sm:col-span-1')}>Links</p>
+          <LinkList>
+            <li>
+              <a href={siteConfig.blogUrl} className={LINK}>
+                Blog
+              </a>
+            </li>
+            <li>
+              <ResumeAnchor className={LINK}>Resume</ResumeAnchor>
+            </li>
+            <li>
+              <a href={`mailto:${siteConfig.email}`} className={LINK}>
+                Email
+              </a>
+            </li>
+          </LinkList>
+          <LinkList>
+            {siteConfig.profiles.map(({ name, url }) => (
+              <li key={name}>
+                <a href={url} target="_blank" rel="me noopener noreferrer" className={LINK}>
+                  {name}
+                </a>
+              </li>
+            ))}
+          </LinkList>
+        </nav>
+      </div>
+
+      <RisingBand lane="last" className="lg:col-start-5" />
+    </footer>
+  );
+}
