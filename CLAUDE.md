@@ -69,7 +69,9 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   "Book a call" grows leftwards and the other two never move. Its "+ You" is not
   clipped and not delayed: it scales from 0 at its left edge on the same curve and
   duration as the space opening, so it fills the gap as it grows. A clip showed the
-  blur's hard edge and cut the circle; a delay read as a pause. The three labels share
+  blur's hard edge and cut the circle; a delay read as a pause. The space is an explicit
+  width (`w-13`, the pair's own), not a `0fr` grid track: WebKit sizes a collapsed track
+  from its unclipped content, so the pill rested open with a hole in it. The three labels share
   `--foreground`, which `shine-text` paints under its band.
 - **Animated icons are Hugeicons Animated** (community, MIT), installed with
   `bunx --bun shadcn@latest add @hugeicons-animated/<name>` into `components/ui/`,
