@@ -1,23 +1,33 @@
+import { locate, spanOf } from '@/lib/presence/anchors';
 import type { Connection } from '@/lib/presence/connection';
-import { locate } from '@/lib/presence/anchors';
 import type { Vector } from '@/lib/presence/motion';
+import type { Span } from '@/lib/presence/protocol';
 
 const SEND_EVERY = 40;
+const SCROLL_SETTLES_AFTER = 160;
+const SELECTION_SETTLES_AFTER = 120;
+
+const sameSpan = (a?: Span, b?: Span) => a?.anchor === b?.anchor && a?.start === b?.start && a?.end === b?.end;
 
 export function shareOwnCursor(connection: Connection) {
+  const listening = new AbortController();
+  const options = { passive: true, signal: listening.signal };
   let client: Vector | undefined;
   let sentAt = -Infinity;
   let pending = 0;
+  let scrolling = 0;
+  let selecting = 0;
+  let shared: Span | undefined;
 
   const send = () => {
     pending = 0;
-    if (!client) return;
+    if (!client || scrolling) return;
     connection.send({ type: 'move', point: locate(client) });
     sentAt = performance.now();
   };
 
   const schedule = () => {
-    if (!client || pending) return;
+    if (!client || pending || scrolling) return;
     const wait = SEND_EVERY - (performance.now() - sentAt);
     if (wait <= 0) send();
     else pending = window.setTimeout(send, wait);
@@ -30,36 +40,81 @@ export function shareOwnCursor(connection: Connection) {
     connection.send({ type: 'leave' });
   };
 
-  const onMove = (event: PointerEvent) => {
-    if (event.pointerType !== 'mouse') return;
-    client = { x: event.clientX, y: event.clientY };
-    connection.wake();
-    schedule();
+  const shareSelection = () => {
+    selecting = 0;
+    const selection = document.getSelection();
+    const span = selection && !selection.isCollapsed && selection.rangeCount ? spanOf(selection.getRangeAt(0)) : undefined;
+    if (sameSpan(span, shared)) return;
+    shared = span;
+    connection.send(span ? { type: 'highlight', span } : { type: 'unhighlight' });
   };
 
-  const onPress = (event: PointerEvent) => {
-    if (event.pointerType === 'mouse') connection.send({ type: 'press' });
-  };
+  connection.onOpen(() => {
+    shared = undefined;
+    shareSelection();
+    send();
+  });
 
-  const onVisibility = () => {
-    if (document.visibilityState !== 'hidden') return;
-    leave();
-    connection.sleep();
-  };
-
-  const root = document.documentElement;
-  window.addEventListener('pointermove', onMove, { passive: true });
-  window.addEventListener('pointerdown', onPress, { passive: true });
-  window.addEventListener('scroll', schedule, { passive: true });
-  root.addEventListener('mouseleave', leave);
-  document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener(
+    'pointermove',
+    (event) => {
+      if (event.pointerType !== 'mouse') return;
+      client = { x: event.clientX, y: event.clientY };
+      connection.wake();
+      schedule();
+    },
+    options
+  );
+  window.addEventListener(
+    'pointerdown',
+    (event) => event.pointerType === 'mouse' && connection.send({ type: 'press' }),
+    options
+  );
+  window.addEventListener(
+    'pointerup',
+    (event) => event.pointerType === 'mouse' && connection.send({ type: 'release' }),
+    options
+  );
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!client) return;
+      if (!scrolling) {
+        window.clearTimeout(pending);
+        pending = 0;
+        connection.send({ type: 'leave' });
+      }
+      window.clearTimeout(scrolling);
+      scrolling = window.setTimeout(() => {
+        scrolling = 0;
+        send();
+      }, SCROLL_SETTLES_AFTER);
+    },
+    options
+  );
+  document.addEventListener(
+    'selectionchange',
+    () => {
+      window.clearTimeout(selecting);
+      selecting = window.setTimeout(shareSelection, SELECTION_SETTLES_AFTER);
+    },
+    options
+  );
+  document.documentElement.addEventListener('mouseleave', leave, options);
+  document.addEventListener(
+    'visibilitychange',
+    () => {
+      if (document.visibilityState !== 'hidden') return;
+      leave();
+      connection.sleep();
+    },
+    options
+  );
 
   return () => {
+    listening.abort();
     window.clearTimeout(pending);
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerdown', onPress);
-    window.removeEventListener('scroll', schedule);
-    root.removeEventListener('mouseleave', leave);
-    document.removeEventListener('visibilitychange', onVisibility);
+    window.clearTimeout(scrolling);
+    window.clearTimeout(selecting);
   };
 }

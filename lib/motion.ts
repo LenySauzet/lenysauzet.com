@@ -6,3 +6,6 @@ export const sharp = { opacity: 1, filter: 'blur(0px)', transitionEnd: { filter:
 
 export const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 export const EASE_SNAP = [0.23, 1, 0.32, 1] as const;
+
+export const rubberBand = (distance: number, limit: number, stiffness = 0.55) =>
+  Math.sign(distance) * limit * (1 - 1 / ((Math.abs(distance) / limit) * stiffness + 1));

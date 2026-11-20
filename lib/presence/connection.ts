@@ -14,6 +14,7 @@ export function connect(url: string, onMessage: (message: ServerMessage) => void
   let retry = 0;
   let heartbeat = 0;
   let asleep = false;
+  const openers = new Set<() => void>();
 
   const stopTimers = () => {
     window.clearTimeout(retry);
@@ -26,6 +27,7 @@ export function connect(url: string, onMessage: (message: ServerMessage) => void
     current.addEventListener('open', () => {
       attempt = 0;
       heartbeat = window.setInterval(() => current.send(HEARTBEAT), HEARTBEAT_EVERY);
+      for (const opened of openers) opened();
     });
     current.addEventListener('message', (event) => {
       if (typeof event.data !== 'string') return;
@@ -65,6 +67,9 @@ export function connect(url: string, onMessage: (message: ServerMessage) => void
       asleep = false;
       attempt = 0;
       open();
+    },
+    onOpen(opened: () => void) {
+      openers.add(opened);
     },
     sleep,
     close: sleep,

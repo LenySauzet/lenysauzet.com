@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { anchorFor, createPlacer, fromFraction, toFraction } from './anchors';
+import { anchorFor, createPlacer, fromFraction, rangeOf, spanOf, toFraction } from './anchors';
 
 const box = { left: 100, top: 400, width: 200, height: 100 };
 
@@ -48,5 +48,49 @@ describe('createPlacer', () => {
 
   it('places nothing on an element this page does not have', () => {
     expect(createPlacer()({ anchor: 'project:elsewhere', x: 0.5, y: 0.5 })).toBeUndefined();
+  });
+});
+
+describe('spans', () => {
+  afterEach(() => document.body.replaceChildren());
+
+  const intro = (visible = true) => {
+    const element = document.createElement('p');
+    element.dataset.presence = 'intro';
+    element.innerHTML = 'I am <em>Lény</em>, an engineer.';
+    vi.spyOn(element, 'getClientRects').mockReturnValue((visible ? [{}] : []) as unknown as DOMRectList);
+    document.body.append(element);
+    return element;
+  };
+
+  it('turn a selection into characters of its anchor, across inline elements', () => {
+    const element = intro();
+    const range = document.createRange();
+    range.setStart(element.firstChild!, 2);
+    range.setEnd(element.querySelector('em')!.firstChild!, 4);
+
+    expect(spanOf(range)).toEqual({ anchor: 'intro', start: 2, end: 9 });
+  });
+
+  it('turn those characters back into the same text on another copy of the page', () => {
+    intro(false);
+    const shown = intro();
+
+    const range = rangeOf({ anchor: 'intro', start: 2, end: 9 });
+
+    expect(range?.toString()).toBe('am Lény');
+    expect(shown.contains(range!.startContainer)).toBe(true);
+  });
+
+  it('share nothing outside an anchor, and place nothing past its text', () => {
+    const loose = document.createElement('div');
+    loose.textContent = 'free text';
+    document.body.append(loose);
+    const range = document.createRange();
+    range.selectNodeContents(loose);
+
+    expect(spanOf(range)).toBeUndefined();
+    intro();
+    expect(rangeOf({ anchor: 'intro', start: 2, end: 500 })).toBeUndefined();
   });
 });

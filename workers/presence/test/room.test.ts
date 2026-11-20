@@ -5,6 +5,7 @@ import { decodeServer, encodeClient, EVICTED, type ServerMessage } from '../../.
 
 const ORIGIN = 'https://lenysauzet.com';
 const point = { anchor: 'project:ankhora', x: 0.25, y: 0.5 };
+const span = { anchor: 'intro', start: 4, end: 12 };
 const open: { socket: WebSocket; closed: Promise<number> }[] = [];
 
 async function connect(address?: string) {
@@ -88,7 +89,7 @@ describe('the presence worker', () => {
 
     const newcomer = await connect();
 
-    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [{ id: idOf(moved), point }] });
+    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [{ id: idOf(moved), point }], highlights: [] });
   });
 
   it('lets the others know when a cursor leaves the page or the visitor goes', async () => {
@@ -103,7 +104,7 @@ describe('the presence worker', () => {
     expect(await watcher.next()).toEqual({ type: 'leave', id });
 
     leaver.socket.close(1000, 'bye');
-    expect(await watcher.next()).toEqual({ type: 'leave', id });
+    expect(await watcher.next()).toEqual({ type: 'gone', id });
   });
 
   it('forgets where a cursor was once it has left the page', async () => {
@@ -115,7 +116,28 @@ describe('the presence worker', () => {
 
     const newcomer = await connect();
 
-    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [] });
+    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [], highlights: [] });
+  });
+
+  it('relays a highlight, keeps it for newcomers until it is cleared, and a release', async () => {
+    const reader = await connect();
+    const watcher = await connect();
+    await reader.next();
+    await watcher.next();
+
+    reader.socket.send(encodeClient({ type: 'highlight', span }));
+    const highlighted = await watcher.next();
+    expect(highlighted).toMatchObject({ type: 'highlight', span });
+
+    reader.socket.send(encodeClient({ type: 'leave' }));
+    await watcher.next();
+    const newcomer = await connect();
+    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [], highlights: [{ id: idOf(highlighted), span }] });
+
+    reader.socket.send(encodeClient({ type: 'unhighlight' }));
+    reader.socket.send(encodeClient({ type: 'release' }));
+    expect(await watcher.next()).toEqual({ type: 'unhighlight', id: idOf(highlighted) });
+    expect(await watcher.next()).toEqual({ type: 'release', id: idOf(highlighted) });
   });
 
   it('refuses a fifth connection from one address', async () => {

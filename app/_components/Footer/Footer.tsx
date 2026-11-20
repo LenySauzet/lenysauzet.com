@@ -38,7 +38,7 @@ export function Footer({ className }: { className?: string }) {
           <h2 id="metadata-heading" className={LABEL}>
             Metadata
           </h2>
-          <SelectionFrame className="-mx-1.5 px-1.5 sm:-mx-6 sm:px-6">
+          <SelectionFrame className="lg:-mx-6 lg:px-6">
             <dl className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
               <Reading label="Commit">
                 {commit ? (

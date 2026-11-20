@@ -8,8 +8,10 @@ import {
   HEARTBEAT_REPLY,
   MAX_CLIENT_MESSAGE,
   type Cursor,
+  type Highlight,
   type Point,
   type ServerMessage,
+  type Span,
 } from '../../../lib/presence/protocol';
 import { Budget } from './budget';
 
@@ -23,6 +25,7 @@ interface Visitor {
   id: string;
   activeAt: number;
   point?: Point;
+  span?: Span;
 }
 
 const newId = () => crypto.randomUUID().replaceAll('-', '').slice(0, 10);
@@ -51,7 +54,7 @@ export class Room extends DurableObject<Env> {
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
     this.ctx.acceptWebSocket(server, tags);
     server.serializeAttachment({ id: newId(), activeAt: Date.now() } satisfies Visitor);
-    server.send(encodeServer({ type: 'snapshot', cursors: this.cursors(server) }));
+    server.send(encodeServer({ type: 'snapshot', ...this.snapshot(server) }));
 
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -63,17 +66,26 @@ export class Room extends DurableObject<Env> {
     if (!message) return;
 
     const visitor = visitorOf(socket);
-    const activeAt = Date.now();
+    const { id } = visitor;
+    const remember = (changes: Partial<Visitor>) =>
+      socket.serializeAttachment({ ...visitor, ...changes, activeAt: Date.now() } satisfies Visitor);
+
     switch (message.type) {
       case 'move':
-        socket.serializeAttachment({ id: visitor.id, activeAt, point: message.point } satisfies Visitor);
-        return this.broadcast(socket, { type: 'move', id: visitor.id, point: message.point });
-      case 'press':
-        socket.serializeAttachment({ ...visitor, activeAt } satisfies Visitor);
-        return this.broadcast(socket, { type: 'press', id: visitor.id });
+        remember({ point: message.point });
+        return this.broadcast(socket, { type: 'move', id, point: message.point });
       case 'leave':
-        socket.serializeAttachment({ id: visitor.id, activeAt } satisfies Visitor);
-        return this.broadcast(socket, { type: 'leave', id: visitor.id });
+        remember({ point: undefined });
+        return this.broadcast(socket, { type: 'leave', id });
+      case 'highlight':
+        remember({ span: message.span });
+        return this.broadcast(socket, { type: 'highlight', id, span: message.span });
+      case 'unhighlight':
+        remember({ span: undefined });
+        return this.broadcast(socket, { type: 'unhighlight', id });
+      default:
+        remember({});
+        return this.broadcast(socket, { type: message.type, id });
     }
   }
 
@@ -97,7 +109,7 @@ export class Room extends DurableObject<Env> {
   }
 
   private depart(socket: WebSocket) {
-    this.broadcast(socket, { type: 'leave', id: visitorOf(socket).id });
+    this.broadcast(socket, { type: 'gone', id: visitorOf(socket).id });
   }
 
   private affords(socket: WebSocket) {
@@ -110,12 +122,16 @@ export class Room extends DurableObject<Env> {
     return budget.spend(now);
   }
 
-  private cursors(except: WebSocket): Cursor[] {
-    return this.ctx
+  private snapshot(except: WebSocket): { cursors: Cursor[]; highlights: Highlight[] } {
+    const visitors = this.ctx
       .getWebSockets()
       .filter((socket) => socket !== except)
-      .map(visitorOf)
-      .flatMap(({ id, point }) => (point ? [{ id, point }] : []));
+      .map(visitorOf);
+
+    return {
+      cursors: visitors.flatMap(({ id, point }) => (point ? [{ id, point }] : [])),
+      highlights: visitors.flatMap(({ id, span }) => (span ? [{ id, span }] : [])),
+    };
   }
 
   private broadcast(from: WebSocket, message: ServerMessage) {

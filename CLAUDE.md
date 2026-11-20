@@ -177,7 +177,8 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   go with close code 4000 to make room, which the client honours by staying down until
   its own pointer moves; a hidden tab closes its socket the same way. Messages over
   128 characters, unreadable, or beyond a burst of 40 at 30 a second are dropped
-  unread. "Toggle cursors", offered only to a fine pointer, closes the socket and is
+  unread. "leave" means the pointer left the page (or is scrolling) and keeps the
+  visitor's highlight; "gone" means the socket closed and clears both. "Toggle cursors", offered only to a fine pointer, closes the socket and is
   remembered.
 - **The room still completes the close handshake itself.** The compatibility date makes
   the runtime reply to a Close frame, yet under local wrangler sockets stayed CLOSING
@@ -187,18 +188,38 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   `actions`, `clients`, each `project:<slug>`, `work`, `footer`, else the page) and
   the fraction of it pointed at; each screen places that on its own copy of the
   element, so a cursor stays on the same card in a two or a three column layout. The
-  own cursor is sent at most every 40 ms, again on scroll, and leaves with the window
-  or the tab.
+  own cursor is sent at most every 40 ms, and leaves with the window or the tab. While
+  its page scrolls it is not sent at all but leaves, and comes back where it settled
+  160 ms later: sending through a scroll drew others a straight line across the page.
+- **A selection is shared as characters of an anchor.** `spanOf` counts the
+  characters before each end of the range within the nearest anchor (a selection
+  outside one is not shared), `rangeOf` walks the text nodes of the shown copy back to
+  a range, and `remote-highlights` paints it with the CSS Custom Highlight API in the
+  author's cursor hue, one `::highlight()` rule per visitor in an adopted stylesheet,
+  redrawn on resize. A snapshot replaces what a reconnecting client held, and the own
+  selection is sent again on every open.
+- **The cursors live in the top layer**, a `popover="manual"` shown on mount, which
+  sits above every z-index (the island, the palette, cal.com's modal at its maximum)
+  and is fixed to the viewport, so the loop subtracts the scroll.
 - **The others' cursors move in one frame loop, outside React.** React only adds and
   removes them (with an entrance in opacity, scale and blur); each frame draws the
   path 100 ms behind through Catmull-Rom curves between the received points, damps it
   exponentially towards that, frame-rate independent, and writes the transform: a tilt
-  and a directional SVG blur from the damped velocity, and a dip on a press. A cursor
-  stays invisible until first placed, fades after 6 s idle, and ten at most are shown:
+  and a directional SVG blur from the damped velocity, and a scale held down between a
+  press and its release (released anyway after 4 s, should the release be lost). The
+  loop stops once everything is at rest and wakes on a message, a scroll, a resize, or
+  the moment a cursor is due to rest. A cursor stays invisible until first placed,
+  sinks to a trace after 3 s still, and ten at most are shown:
   the rest wait for a place to free rather than taking one, which would churn React
   at the message rate. Each frame reads every box first, then writes, and rewrites the
   blur only when its rounded value changes.
   Reduced motion keeps the path and drops the tilt, blur, dip and scale.
+- **The selection frames can be pulled.** Each corner handle drags its corner on a
+  rubber band (`rubberBand`, the iOS curve, 40 px at most) and springs back lightly on
+  release, or eases back under reduced motion; the outline is an SVG path and the
+  hatching a `clip-path` polygon over the same four corners. `body` clips horizontal
+  overflow (`clip`, not `hidden`, so it creates no scroll container), as a corner
+  pulled at the edge of a phone would otherwise widen the page.
 - **`/resume` proxies the PDF** so `download` holds across origins; the edge caches it
   a day and a failure is never cached.
 - **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to
