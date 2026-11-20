@@ -4,8 +4,9 @@ import { motion, useReducedMotion } from 'motion/react';
 import type { CSSProperties } from 'react';
 
 import { EASE_OUT } from '@/lib/motion';
+import { cn } from '@/lib/utils';
 
-const ARROW = 'M3 2.5L18.5 9L11.4 11.2L9.1 18.4Z';
+const ARROW = 'M4.5 4L21.5 10.6L13.6 13.3L10.9 21.2Z';
 const HUE_SEED = 31;
 
 const hueOf = (id: string) => [...id].reduce((hash, character) => (hash * HUE_SEED + character.charCodeAt(0)) % 360, 0);
@@ -18,15 +19,16 @@ const SHOWN = { opacity: 1 };
 interface CursorProps {
   id: string;
   attach: (id: string, element: HTMLDivElement | null) => void;
+  className?: string;
 }
 
-export function Cursor({ id, attach }: CursorProps) {
+export function Cursor({ id, attach, className }: CursorProps) {
   const still = useReducedMotion();
 
   return (
     <div
       ref={(element) => attach(id, element)}
-      className="invisible absolute top-0 left-0 origin-top-left will-change-transform"
+      className={cn('invisible absolute top-0 left-0 origin-top-left will-change-transform', className)}
       style={{ '--cursor-hue': hueOf(id) } as CSSProperties}
     >
       <motion.div
@@ -36,16 +38,16 @@ export function Cursor({ id, attach }: CursorProps) {
         transition={{ duration: 0.35, ease: EASE_OUT }}
         className="origin-top-left"
       >
-        <svg width="22" height="22" viewBox="0 0 22 22" overflow="visible" className="drop-shadow-sm">
+        <svg width="26" height="26" viewBox="0 0 26 26" overflow="visible" className="drop-shadow-md">
           <filter id={`${id}-motion`} x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="0 0" />
           </filter>
           <path
             d={ARROW}
             filter={`url(#${id}-motion)`}
-            strokeWidth="1.5"
+            strokeWidth="3.5"
             strokeLinejoin="round"
-            className="fill-cursor stroke-background"
+            className="fill-cursor stroke-cursor"
           />
         </svg>
       </motion.div>

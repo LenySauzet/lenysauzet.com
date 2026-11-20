@@ -3,25 +3,34 @@ import { DurableObject } from 'cloudflare:workers';
 import {
   decodeClient,
   encodeServer,
+  EVICTED,
   HEARTBEAT,
   HEARTBEAT_REPLY,
+  MAX_CLIENT_MESSAGE,
   type Cursor,
   type Point,
   type ServerMessage,
 } from '../../../lib/presence/protocol';
 import { Budget } from './budget';
 
-const CAPACITY = 64;
-const RESERVED_CODES = new Set([1004, 1005, 1006, 1015]);
+const CAPACITY = 24;
+const PER_ADDRESS = 4;
 const BURST = 40;
 const PER_SECOND = 30;
+const RESERVED_CODES = new Set([1004, 1005, 1006, 1015]);
 
 interface Visitor {
   id: string;
+  activeAt: number;
   point?: Point;
 }
 
 const newId = () => crypto.randomUUID().replaceAll('-', '').slice(0, 10);
+
+async function addressTag(address: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(address));
+  return [...new Uint8Array(digest).slice(0, 8)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
 
 export class Room extends DurableObject<Env> {
   private readonly budgets = new WeakMap<WebSocket, Budget>();
@@ -31,33 +40,40 @@ export class Room extends DurableObject<Env> {
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(HEARTBEAT, HEARTBEAT_REPLY));
   }
 
-  async fetch() {
-    if (this.ctx.getWebSockets().length >= CAPACITY) return new Response('The room is full', { status: 503 });
+  async fetch(request: Request) {
+    const address = request.headers.get('CF-Connecting-IP');
+    const tags = address ? [await addressTag(address)] : [];
+    if (tags.some((tag) => this.ctx.getWebSockets(tag).length >= PER_ADDRESS))
+      return new Response('Too many connections', { status: 429 });
+
+    if (this.ctx.getWebSockets().length >= CAPACITY) this.evictTheIdlest();
 
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
-    this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ id: newId() } satisfies Visitor);
+    this.ctx.acceptWebSocket(server, tags);
+    server.serializeAttachment({ id: newId(), activeAt: Date.now() } satisfies Visitor);
     server.send(encodeServer({ type: 'snapshot', cursors: this.cursors(server) }));
 
     return new Response(null, { status: 101, webSocket: client });
   }
 
   webSocketMessage(socket: WebSocket, data: string | ArrayBuffer) {
-    if (typeof data !== 'string' || !this.affords(socket)) return;
+    if (!this.affords(socket) || typeof data !== 'string' || data.length > MAX_CLIENT_MESSAGE) return;
 
     const message = decodeClient(data);
     if (!message) return;
 
-    const { id } = visitorOf(socket);
+    const visitor = visitorOf(socket);
+    const activeAt = Date.now();
     switch (message.type) {
       case 'move':
-        socket.serializeAttachment({ id, point: message.point } satisfies Visitor);
-        return this.broadcast(socket, { type: 'move', id, point: message.point });
+        socket.serializeAttachment({ id: visitor.id, activeAt, point: message.point } satisfies Visitor);
+        return this.broadcast(socket, { type: 'move', id: visitor.id, point: message.point });
       case 'press':
-        return this.broadcast(socket, { type: 'press', id });
+        socket.serializeAttachment({ ...visitor, activeAt } satisfies Visitor);
+        return this.broadcast(socket, { type: 'press', id: visitor.id });
       case 'leave':
-        socket.serializeAttachment({ id } satisfies Visitor);
-        return this.broadcast(socket, { type: 'leave', id });
+        socket.serializeAttachment({ id: visitor.id, activeAt } satisfies Visitor);
+        return this.broadcast(socket, { type: 'leave', id: visitor.id });
     }
   }
 
@@ -69,6 +85,15 @@ export class Room extends DurableObject<Env> {
 
   webSocketError(socket: WebSocket) {
     this.depart(socket);
+  }
+
+  private evictTheIdlest() {
+    const [idlest] = this.ctx
+      .getWebSockets()
+      .sort((a, b) => visitorOf(a).activeAt - visitorOf(b).activeAt);
+    if (!idlest) return;
+    this.depart(idlest);
+    idlest.close(EVICTED, 'idle');
   }
 
   private depart(socket: WebSocket) {

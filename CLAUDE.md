@@ -16,9 +16,10 @@ bun run test          # Vitest; `bun test` is Bun's own runner and will not work
 ```
 
 The presence worker is its own package, with its own lockfile, run from
-`workers/presence`: `bun run dev` (wrangler, on port 8787, which `next dev` connects
-to), `bun run type-check`, `bun run test` (Vitest inside the Workers runtime), and
-`bun run deploy`, which only the owner runs or approves.
+`workers/presence`: `bun run dev` (wrangler on port 8787, its local origins in
+`.dev.vars`), `bun run type-check`, `bun run test` (Vitest inside the Workers runtime,
+on production bindings), and `bun run deploy`, which only the owner runs or approves.
+At the root, `bun run dev:presence` is `next dev` pointed at that local worker.
 
 ## Verification gate
 
@@ -164,15 +165,23 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **The home page carries JSON-LD**: a `Person` at `https://lenysauzet.com/#person`,
   every spelling of the name, `sameAs` each profile and the blog, inside a
   `ProfilePage`. The blog should point its author at that `@id`.
-- **Live cursors are anonymous and desktop only.** A visitor with a fine pointer opens
-  one WebSocket to the presence worker (`siteConfig.presenceUrl`: local wrangler under
-  `next dev`, `wss://presence.lenysauzet.com` in production, `NEXT_PUBLIC_PRESENCE_URL`
-  over both), whose single Durable Object room relays positions to everyone else. The
-  room keeps each visitor's last point in its socket attachment, so a newcomer gets a
-  snapshot and the room can hibernate; nothing else is stored, no IP, no name. It
-  refuses other origins, caps the room, and drops unreadable messages and any beyond a
-  burst of 40 at 30 a second. "Toggle cursors" in the palette closes the socket and is
+- **Live cursors are anonymous, desktop only, and on the home page only.** A visitor
+  with a fine pointer loads the room's code on demand and opens one WebSocket to the
+  presence worker (`siteConfig.presenceUrl`: `wss://presence.lenysauzet.com` on
+  Vercel's production only, `NEXT_PUBLIC_PRESENCE_URL` anywhere, nothing otherwise, so
+  previews and local builds never knock on a door that refuses them). Its single
+  Durable Object room relays positions to everyone else and keeps each visitor's last
+  point and last activity in the socket attachment, so a newcomer gets a snapshot and
+  the room can hibernate; no IP or name is kept, the address being hashed into an
+  in-memory tag only to cap it at four sockets. The room holds 24 and lets the idlest
+  go with close code 4000 to make room, which the client honours by staying down until
+  its own pointer moves; a hidden tab closes its socket the same way. Messages over
+  128 characters, unreadable, or beyond a burst of 40 at 30 a second are dropped
+  unread. "Toggle cursors", offered only to a fine pointer, closes the socket and is
   remembered.
+- **The room still completes the close handshake itself.** The compatibility date makes
+  the runtime reply to a Close frame, yet under local wrangler sockets stayed CLOSING
+  until `webSocketClose` called `close()`; the call is harmless where it is ignored.
 - **A cursor is sent as a place on an element, not a pixel.** `locate` finds the
   nearest `data-presence` anchor under the pointer (`hero`, `headline`, `intro`,
   `actions`, `clients`, each `project:<slug>`, `work`, `footer`, else the page) and
@@ -185,7 +194,10 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   path 100 ms behind through Catmull-Rom curves between the received points, damps it
   exponentially towards that, frame-rate independent, and writes the transform: a tilt
   and a directional SVG blur from the damped velocity, and a dip on a press. A cursor
-  stays invisible until first placed, fades after 6 s idle, and ten at most are shown.
+  stays invisible until first placed, fades after 6 s idle, and ten at most are shown:
+  the rest wait for a place to free rather than taking one, which would churn React
+  at the message rate. Each frame reads every box first, then writes, and rewrites the
+  blur only when its rounded value changes.
   Reduced motion keeps the path and drops the tilt, blur, dip and scale.
 - **`/resume` proxies the PDF** so `download` holds across origins; the edge caches it
   a day and a failure is never cached.

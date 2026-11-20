@@ -18,6 +18,8 @@ export type ServerMessage =
   | { type: 'leave'; id: string };
 
 export const HEARTBEAT = 'ping';
+export const MAX_CLIENT_MESSAGE = 128;
+export const EVICTED = 4000;
 export const HEARTBEAT_REPLY = 'pong';
 
 const ANCHOR = /^[a-z0-9][a-z0-9:-]{0,63}$/;

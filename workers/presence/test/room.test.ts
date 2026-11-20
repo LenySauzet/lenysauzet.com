@@ -1,15 +1,15 @@
 import { exports } from 'cloudflare:workers';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { decodeServer, encodeClient, type ServerMessage } from '../../../lib/presence/protocol';
+import { decodeServer, encodeClient, EVICTED, type ServerMessage } from '../../../lib/presence/protocol';
 
 const ORIGIN = 'https://lenysauzet.com';
 const point = { anchor: 'project:ankhora', x: 0.25, y: 0.5 };
-const open: WebSocket[] = [];
+const open: { socket: WebSocket; closed: Promise<number> }[] = [];
 
-async function connect(origin = ORIGIN) {
+async function connect(address?: string) {
   const response = await exports.default.fetch('https://presence.test/', {
-    headers: { Upgrade: 'websocket', Origin: origin },
+    headers: { Upgrade: 'websocket', Origin: ORIGIN, ...(address && { 'CF-Connecting-IP': address }) },
   });
   const socket = response.webSocket;
   if (!socket) throw new Error(`No WebSocket: ${response.status}`);
@@ -24,7 +24,6 @@ async function connect(origin = ORIGIN) {
     else inbox.push(message);
   });
   socket.accept();
-  open.push(socket);
 
   const next = () =>
     new Promise<ServerMessage>((resolve) => {
@@ -35,13 +34,19 @@ async function connect(origin = ORIGIN) {
 
   const silent = async () => (await Promise.race([next(), idle()])) === undefined;
 
-  return { socket, next, silent };
+  const closed = new Promise<number>((resolve) => socket.addEventListener('close', (event: CloseEvent) => resolve(event.code)));
+  open.push({ socket, closed });
+
+  return { socket, next, silent, closed };
 }
 
 const idOf = (message: ServerMessage) => ('id' in message ? message.id : undefined);
 
-afterEach(() => {
-  for (const socket of open.splice(0)) socket.close(1000, 'done');
+afterEach(async () => {
+  const closing = open.splice(0);
+  for (const { socket } of closing) socket.close(1000, 'done');
+  await Promise.all(closing.map(({ closed }) => closed));
+  await idle();
 });
 
 describe('the presence worker', () => {
@@ -99,6 +104,56 @@ describe('the presence worker', () => {
 
     leaver.socket.close(1000, 'bye');
     expect(await watcher.next()).toEqual({ type: 'leave', id });
+  });
+
+  it('forgets where a cursor was once it has left the page', async () => {
+    const leaver = await connect();
+    await leaver.next();
+    leaver.socket.send(encodeClient({ type: 'move', point }));
+    leaver.socket.send(encodeClient({ type: 'leave' }));
+    await idle();
+
+    const newcomer = await connect();
+
+    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [] });
+  });
+
+  it('refuses a fifth connection from one address', async () => {
+    for (let index = 0; index < 4; index += 1) await connect('203.0.113.7');
+
+    const response = await exports.default.fetch('https://presence.test/', {
+      headers: { Upgrade: 'websocket', Origin: ORIGIN, 'CF-Connecting-IP': '203.0.113.7' },
+    });
+
+    expect(response.status).toBe(429);
+  });
+
+  it('makes room for a newcomer by letting the idlest visitor go', async () => {
+    const idlest = await connect('198.51.100.0');
+    await idlest.next();
+    const others = [];
+    for (let index = 1; index < 24; index += 1) {
+      const visitor = await connect(`198.51.100.${index}`);
+      await visitor.next();
+      visitor.socket.send(encodeClient({ type: 'move', point }));
+      others.push(visitor);
+    }
+    await idle();
+
+    await connect('198.51.100.200');
+
+    expect(await idlest.closed).toBe(EVICTED);
+  });
+
+  it('ignores an oversized message without reading it', async () => {
+    const sender = await connect();
+    const watcher = await connect();
+    await sender.next();
+    await watcher.next();
+
+    sender.socket.send(`${encodeClient({ type: 'move', point })}${' '.repeat(200)}`);
+
+    expect(await watcher.silent()).toBe(true);
   });
 
   it('drops what it cannot read, and what comes faster than it allows', async () => {

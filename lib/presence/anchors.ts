@@ -1,8 +1,10 @@
 import type { Point } from './protocol';
 import type { Vector } from './motion';
 
-export const ANCHOR_ATTRIBUTE = 'data-presence';
-export const PAGE_ANCHOR = 'page';
+const ANCHOR_ATTRIBUTE = 'data-presence';
+const PAGE_ANCHOR = 'page';
+const LONGEST_ANCHOR = 64;
+const REACH = 0.5;
 
 interface Box {
   left: number;
@@ -12,7 +14,9 @@ interface Box {
 }
 
 export const anchorFor = (kind: string, name?: string) =>
-  name ? `${kind}:${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}` : kind;
+  (name ? `${kind}:${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}` : kind).slice(0, LONGEST_ANCHOR);
+
+const clampReach = (value: number) => Math.min(1 + REACH, Math.max(-REACH, value));
 
 export const toFraction = (box: Box, point: Vector): Vector => ({
   x: box.width ? (point.x - box.left) / box.width : 0,
@@ -40,8 +44,13 @@ export function locate(client: Vector): Point {
   const anchor = document.elementFromPoint(client.x, client.y)?.closest(`[${ANCHOR_ATTRIBUTE}]`);
   const page = { x: client.x + window.scrollX, y: client.y + window.scrollY };
 
-  if (!anchor) return { anchor: PAGE_ANCHOR, ...toFraction(pageBox(), page) };
-  return { anchor: anchor.getAttribute(ANCHOR_ATTRIBUTE)!, ...toFraction(documentBox(anchor), page) };
+  const fraction = toFraction(anchor ? documentBox(anchor) : pageBox(), page);
+
+  return {
+    anchor: anchor?.getAttribute(ANCHOR_ATTRIBUTE) ?? PAGE_ANCHOR,
+    x: clampReach(fraction.x),
+    y: clampReach(fraction.y),
+  };
 }
 
 export function createPlacer() {

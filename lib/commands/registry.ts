@@ -20,6 +20,7 @@ import siteConfig from '@/config/site';
 import { announce } from '@/hooks/use-island-store';
 import { usePresenceStore } from '@/hooks/use-presence-store';
 import { prefersReducedMotion } from '@/lib/motion';
+import { hasFinePointer } from '@/lib/presence/pointer';
 import { openBooking } from '@/lib/services/booking';
 import { announceResume, RESUME_ROUTE } from '@/lib/services/resume';
 import { withThemeTransition } from '@/lib/theme/theme-transition';
@@ -127,6 +128,7 @@ export const commands: Command[] = [
     icon: Cursor01Icon,
     group: 'Tools',
     keywords: ['presence', 'visitors', 'others', 'hide', 'show'],
+    available: hasFinePointer,
     run: () => announce(usePresenceStore.getState().toggle() ? 'Cursors hidden' : 'Cursors shown', Cursor01Icon),
   },
   {

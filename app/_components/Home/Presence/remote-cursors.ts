@@ -7,6 +7,7 @@ const LAG = 70;
 const SETTLE = 90;
 const IDLE = 6000;
 const MOST_SHOWN = 10;
+const LONGEST_FRAME = 64;
 
 interface Remote {
   trail: Trail<Point>;
@@ -15,20 +16,27 @@ interface Remote {
   shown?: Vector;
   velocity: Vector;
   tilt: number;
+  blur: string;
 }
 
-interface Drawn {
+interface Ink {
   element: HTMLDivElement;
   blur: SVGFEGaussianBlurElement | null;
 }
 
 export function createRemoteCursors(onChange: (ids: string[]) => void, isStill: () => boolean) {
   const remotes = new Map<string, Remote>();
-  const drawn = new Map<string, Drawn>();
+  const inks = new Map<string, Ink>();
+  let published: string[] = [];
   let frame = 0;
   let drewAt = 0;
 
-  const publish = () => onChange([...remotes.keys()]);
+  const publish = () => {
+    const shown = [...remotes.keys()].slice(0, MOST_SHOWN);
+    if (shown.length === published.length && shown.every((id, index) => id === published[index])) return;
+    published = shown;
+    onChange(shown);
+  };
 
   const forget = (id: string) => {
     if (remotes.delete(id)) publish();
@@ -37,10 +45,8 @@ export function createRemoteCursors(onChange: (ids: string[]) => void, isStill: 
   const see = (id: string, point: Point, now: number) => {
     let remote = remotes.get(id);
     if (!remote) {
-      remote = { trail: new Trail(), seenAt: now, pressedAt: -Infinity, velocity: { x: 0, y: 0 }, tilt: 0 };
+      remote = { trail: new Trail(), seenAt: now, pressedAt: -Infinity, velocity: { x: 0, y: 0 }, tilt: 0, blur: '' };
       remotes.set(id, remote);
-      const crowded = [...remotes].sort(([, a], [, b]) => b.seenAt - a.seenAt).slice(MOST_SHOWN);
-      for (const [stale] of crowded) remotes.delete(stale);
       publish();
     }
     remote.trail.push({ at: now, value: point });
@@ -49,40 +55,39 @@ export function createRemoteCursors(onChange: (ids: string[]) => void, isStill: 
   };
 
   const draw = (now: number) => {
-    const elapsed = Math.min(64, now - drewAt || 16);
+    const elapsed = Math.min(LONGEST_FRAME, now - drewAt || 16);
     const still = isStill();
     const place = createPlacer();
     drewAt = now;
 
-    for (const [id, remote] of remotes) {
-      if (now - remote.seenAt > IDLE) {
-        forget(id);
-        continue;
-      }
+    for (const [id, remote] of remotes) if (now - remote.seenAt > IDLE) forget(id);
 
-      const target = remote.trail.at(now - DELAY, place);
-      const ink = drawn.get(id);
-      if (!target || !ink) continue;
+    const targets = published.map((id) => {
+      const remote = remotes.get(id)!;
+      return { remote, ink: inks.get(id), target: remote.trail.at(now - DELAY, place) };
+    });
 
-      if (!remote.shown) ink.element.style.visibility = 'visible';
+    for (const { remote, ink, target } of targets) {
+      if (!ink || !target) continue;
+
       const previous = remote.shown ?? target;
-      const shown = {
-        x: damp(previous.x, target.x, LAG, elapsed),
-        y: damp(previous.y, target.y, LAG, elapsed),
-      };
+      const shown = { x: damp(previous.x, target.x, LAG, elapsed), y: damp(previous.y, target.y, LAG, elapsed) };
       remote.velocity = {
         x: damp(remote.velocity.x, (shown.x - previous.x) / elapsed, SETTLE, elapsed),
         y: damp(remote.velocity.y, (shown.y - previous.y) / elapsed, SETTLE, elapsed),
       };
       remote.tilt = still ? 0 : damp(remote.tilt, tiltFor(remote.velocity.x), SETTLE, elapsed);
+      if (!remote.shown) ink.element.style.visibility = 'visible';
       remote.shown = shown;
 
       const scale = still ? 1 : pressScaleAfter(now - remote.pressedAt);
       ink.element.style.transform = `translate3d(${shown.x}px, ${shown.y}px, 0) rotate(${remote.tilt}deg) scale(${scale})`;
-      ink.blur?.setAttribute(
-        'stdDeviation',
-        still ? '0 0' : `${blurFor(remote.velocity.x).toFixed(2)} ${blurFor(remote.velocity.y).toFixed(2)}`
-      );
+
+      const blur = still ? '0 0' : `${blurFor(remote.velocity.x).toFixed(1)} ${blurFor(remote.velocity.y).toFixed(1)}`;
+      if (blur !== remote.blur) {
+        ink.blur?.setAttribute('stdDeviation', blur);
+        remote.blur = blur;
+      }
     }
 
     frame = remotes.size ? window.requestAnimationFrame(draw) : 0;
@@ -111,13 +116,13 @@ export function createRemoteCursors(onChange: (ids: string[]) => void, isStill: 
       }
     },
     attach(id: string, element: HTMLDivElement | null) {
-      if (element) drawn.set(id, { element, blur: element.querySelector('feGaussianBlur') });
-      else drawn.delete(id);
+      if (element) inks.set(id, { element, blur: element.querySelector('feGaussianBlur') });
+      else inks.delete(id);
     },
     stop() {
       window.cancelAnimationFrame(frame);
       remotes.clear();
-      drawn.clear();
+      inks.clear();
     },
   };
 }

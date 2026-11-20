@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { anchorFor, fromFraction, toFraction } from './anchors';
+import { anchorFor, createPlacer, fromFraction, toFraction } from './anchors';
 
 const box = { left: 100, top: 400, width: 200, height: 100 };
 
@@ -25,5 +25,28 @@ describe('anchors', () => {
 
   it('do not divide by a box with no size', () => {
     expect(toFraction({ left: 0, top: 0, width: 0, height: 0 }, { x: 5, y: 5 })).toEqual({ x: 0, y: 0 });
+  });
+});
+
+const card = (visible: boolean, left: number) => {
+  const element = document.createElement('article');
+  element.dataset.presence = 'project:ankhora';
+  vi.spyOn(element, 'getClientRects').mockReturnValue((visible ? [{}] : []) as unknown as DOMRectList);
+  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ left, top: 0, width: 100, height: 50 } as DOMRect);
+  document.body.append(element);
+};
+
+describe('createPlacer', () => {
+  afterEach(() => document.body.replaceChildren());
+
+  it('places a cursor on the copy of an element that is shown, not a hidden one', () => {
+    card(false, 0);
+    card(true, 500);
+
+    expect(createPlacer()({ anchor: 'project:ankhora', x: 0.5, y: 0.5 })).toEqual({ x: 550, y: 25 });
+  });
+
+  it('places nothing on an element this page does not have', () => {
+    expect(createPlacer()({ anchor: 'project:elsewhere', x: 0.5, y: 0.5 })).toBeUndefined();
   });
 });

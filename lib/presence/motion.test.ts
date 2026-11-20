@@ -59,13 +59,13 @@ describe('the motion of a cursor', () => {
   it('tilts with its horizontal speed, within bounds', () => {
     expect(tiltFor(0)).toBe(0);
     expect(tiltFor(0.5)).toBeGreaterThan(0);
-    expect(tiltFor(-50)).toBe(-10);
+    expect(tiltFor(-50)).toBe(-16);
   });
 
   it('blurs lightly with speed, never more than its cap', () => {
     expect(blurFor(0)).toBe(0);
     expect(blurFor(-1)).toBeGreaterThan(0);
-    expect(blurFor(50)).toBe(1.5);
+    expect(blurFor(50)).toBe(3);
   });
 
   it('dips when pressed and settles back', () => {

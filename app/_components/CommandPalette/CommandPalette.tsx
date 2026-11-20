@@ -63,7 +63,7 @@ export function CommandPalette({ className }: { className?: string }) {
           {GROUPS.map((group) => (
             <CommandGroup key={group} heading={group}>
               {commands
-                .filter((command) => command.group === group)
+                .filter((command) => command.group === group && (command.available?.() ?? true))
                 .map((command) => (
                   <CommandItem
                     key={command.id}

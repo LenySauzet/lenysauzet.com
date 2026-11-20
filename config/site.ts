@@ -37,7 +37,7 @@ const siteConfig = {
   calHandle: 'lenysauzet',
   presenceUrl:
     process.env.NEXT_PUBLIC_PRESENCE_URL ??
-    (process.env.NODE_ENV === 'production' ? 'wss://presence.lenysauzet.com' : 'ws://localhost:8787'),
+    (process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' ? 'wss://presence.lenysauzet.com' : undefined),
   author,
   social,
   profiles,

@@ -33,6 +33,7 @@ export function shareOwnCursor(connection: Connection) {
   const onMove = (event: PointerEvent) => {
     if (event.pointerType !== 'mouse') return;
     client = { x: event.clientX, y: event.clientY };
+    connection.wake();
     schedule();
   };
 
@@ -41,7 +42,9 @@ export function shareOwnCursor(connection: Connection) {
   };
 
   const onVisibility = () => {
-    if (document.visibilityState === 'hidden') leave();
+    if (document.visibilityState !== 'hidden') return;
+    leave();
+    connection.sleep();
   };
 
   const root = document.documentElement;

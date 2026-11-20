@@ -3,16 +3,16 @@ export interface Vector {
   y: number;
 }
 
-export interface Sample<T> {
+interface Sample<T> {
   at: number;
   value: T;
 }
 
 const TRAIL_LENGTH = 6;
-const MAX_TILT = 10;
-const TILT_PER_SPEED = 6;
-const MAX_BLUR = 1.5;
-const BLUR_PER_SPEED = 0.9;
+const MAX_TILT = 16;
+const TILT_PER_SPEED = 15;
+const MAX_BLUR = 3;
+const BLUR_PER_SPEED = 2.6;
 const PRESS_DOWN = 80;
 const PRESS_UP = 280;
 const PRESSED_SCALE = 0.85;
@@ -35,10 +35,6 @@ export class Trail<T> {
   push(sample: Sample<T>) {
     this.samples.push(sample);
     if (this.samples.length > TRAIL_LENGTH) this.samples.shift();
-  }
-
-  get last() {
-    return this.samples.at(-1);
   }
 
   at(time: number, resolve: (value: T) => Vector | undefined): Vector | undefined {

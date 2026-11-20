@@ -17,5 +17,6 @@ export interface Command {
   keywords?: string[];
   hint?: string;
   shortcut?: string;
+  available?: () => boolean;
   run: (context: CommandContext) => void | Promise<void>;
 }
