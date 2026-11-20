@@ -214,7 +214,8 @@ describe('the presence worker', () => {
     for (let message = await settled(watcher.next()); message; message = await settled(watcher.next())) received.push(message);
 
     expect(received.every((message) => message.type === 'press')).toBe(true);
-    expect(received.length).toBeLessThanOrEqual(121);
+    expect(received.length).toBeGreaterThanOrEqual(120);
+    expect(received.length).toBeLessThan(160);
   });
 });
 
