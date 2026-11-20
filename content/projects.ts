@@ -23,8 +23,8 @@ export const projects: Project[] = [
   },
   {
     title: 'The Blog',
-    year: '2025',
-    image: 'https://blog.lenysauzet.com/opengraph-image',
+    year: '2026',
+    image: 'projects/blog/cover.jpg',
     action: { kind: 'app', href: 'https://blog.lenysauzet.com' },
   },
   {

@@ -28,7 +28,7 @@ export function BookCall({ className }: { className?: string }) {
         <span aria-hidden className="min-w-0">
           <span
             className={cn(
-              'flex origin-left scale-0 items-center gap-1.5 pl-1.5 opacity-0 blur-[4px] transition-[scale,opacity,filter]',
+              'flex origin-left scale-0 items-center gap-1.5 pl-1.5 opacity-0 blur-[10px] transition-[scale,opacity,filter]',
               EASE,
               GROWN
             )}
