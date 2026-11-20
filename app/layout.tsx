@@ -1,41 +1,35 @@
-import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
-import localFont from 'next/font/local';
+import type { Metadata, Viewport } from 'next';
+import type { ReactNode } from 'react';
+
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { rootMetadata } from '@/config/site';
+
+import { PaletteLauncher } from './_components/CommandPalette/PaletteLauncher';
+import { bodyClassName } from './_components/document';
+import { Island } from './_components/Island';
+import { ThemeProvider } from './_components/theme-provider';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
+export const metadata: Metadata = rootMetadata;
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
-
-const signature = localFont({
-  src: './fonts/Signature-December.otf',
-  display: 'swap',
-  variable: '--font-signature',
-});
-
-export const metadata: Metadata = {
-  title: "The online home of Lény's work",
-  description:
-    "I'm Lény, a innovation engineer based in Montpellier. Welcome to my corner of the Internet, where I showcase my work, craft, unfinished or imperfect projects.",
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b0d12' },
+  ],
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${signature.variable} antialiased`}
-      >
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={bodyClassName}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <TooltipProvider>
+            <Island />
+            <PaletteLauncher />
+            <main>{children}</main>
+          </TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
