@@ -21,6 +21,7 @@ export function Room({ url, className }: { url: string; className?: string }) {
   const [ids, setIds] = useState<string[]>([]);
   const [covered, setCovered] = useState(false);
   const layer = useRef<HTMLDivElement>(null);
+  const waves = useRef<HTMLDivElement>(null);
   const still = useReducedMotion();
   const stillness = useRef(still);
   const attachTo = useRef<Attach>(() => {});
@@ -32,11 +33,13 @@ export function Room({ url, className }: { url: string; className?: string }) {
 
   useEffect(() => {
     const top = layer.current;
-    if (!top) return;
+    const above = waves.current;
+    if (!top || !above) return;
     top.showPopover();
+    above.showPopover();
 
     const isStill = () => Boolean(stillness.current);
-    const ripples = createRipples(top);
+    const ripples = createRipples(above);
     const cursors = createRemoteCursors({
       onChange: setIds,
       onClick: (_, point) => {
@@ -122,25 +125,27 @@ export function Room({ url, className }: { url: string; className?: string }) {
       highlights.stop();
       ripples.stop();
       top.hidePopover();
+      above.hidePopover();
     };
   }, [url]);
 
+  const surface = 'pointer-events-none fixed inset-0 m-0 size-full max-h-none max-w-none overflow-hidden border-0 bg-transparent p-0';
+
   return (
-    <div
-      ref={layer}
-      popover="manual"
-      aria-hidden
-      className={cn(
-        'pointer-events-none fixed inset-0 m-0 size-full max-h-none max-w-none overflow-hidden border-0 bg-transparent p-0 transition-opacity duration-200',
-        covered && 'opacity-0',
-        className
-      )}
-    >
-      <AnimatePresence>
-        {ids.map((id) => (
-          <Cursor key={id} id={id} attach={attach} />
-        ))}
-      </AnimatePresence>
-    </div>
+    <>
+      <div
+        ref={layer}
+        popover="manual"
+        aria-hidden
+        className={cn(surface, 'transition-opacity duration-200', covered && 'opacity-0', className)}
+      >
+        <AnimatePresence>
+          {ids.map((id) => (
+            <Cursor key={id} id={id} attach={attach} />
+          ))}
+        </AnimatePresence>
+      </div>
+      <div ref={waves} popover="manual" aria-hidden className={surface} />
+    </>
   );
 }

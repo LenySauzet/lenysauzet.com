@@ -68,7 +68,6 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
   const leave = () => {
     client = undefined;
     held = undefined;
-    pressed = undefined;
     taken = [];
     window.clearTimeout(pending);
     pending = 0;
@@ -116,8 +115,9 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
   window.addEventListener(
     'pointerdown',
     (event) => {
-      if (event.pointerType !== 'mouse' || covered) return;
+      if (event.pointerType !== 'mouse') return;
       pressed = event.button === 0 ? { at: event.timeStamp, value: { x: event.clientX, y: event.clientY } } : undefined;
+      if (covered) return;
       flush();
       connection.send({ type: 'press' });
     },
@@ -126,9 +126,11 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
   window.addEventListener(
     'pointerup',
     (event) => {
-      if (event.pointerType !== 'mouse' || covered) return;
-      flush();
-      connection.send({ type: 'release' });
+      if (event.pointerType !== 'mouse') return;
+      if (!covered) {
+        flush();
+        connection.send({ type: 'release' });
+      }
       const click = pressed;
       pressed = undefined;
       if (

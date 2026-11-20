@@ -252,8 +252,12 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   ghosts, spring and ripple.
 - **A click ripples the page under it (an experiment).** A click is a press released
   within 350 ms and 8 px, leaving no selection, so selecting text or dragging never
-  ripples; the own clicks ripple too, the island's included. The ripple is an element
-  in the top layer at the click, its `backdrop-filter` an SVG filter, so it bends
+  ripples; the own clicks ripple too, the island's and the palette's included (a modal
+  stops the cursor being shared, not the clicks rippling). The ripples have their own
+  popover, shown after the cursors' and never faded with it: the island opens the
+  palette and "Book a call" opens cal.com, both of which hide the cursors' layer, and
+  their clicks' ripples went with it. Clicks inside cal.com's iframe never reach the
+  page, so they cannot ripple. The ripple is an element in that layer at the click, its `backdrop-filter` an SVG filter, so it bends
   whatever lies beneath, across cards, buttons and the island: a ring displacement map
   drawn once on a canvas, laid over a neutral grey flood (an `feImage` leaves the rest
   of its region transparent black, which would displace everything), grown from the
