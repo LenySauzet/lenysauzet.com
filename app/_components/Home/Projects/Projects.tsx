@@ -36,8 +36,12 @@ export async function Projects({ className }: { className?: string }) {
       </h2>
       {LAYOUTS.map(({ columns, className: shown }) => (
         <div key={columns} className={cn('gap-4', shown)}>
-          {distribute(tiles, columns).map((column, index) => (
-            <div key={index} className="flex min-w-0 flex-1 flex-col gap-4">
+          {distribute(tiles, columns).map((column, index, lanes) => (
+            <div
+              key={index}
+              data-lane={index === 0 ? 'first' : index === lanes.length - 1 ? 'last' : undefined}
+              className="flex min-w-0 flex-1 flex-col gap-4 self-start"
+            >
               {column.map(({ project, probe }) => (
                 <Reveal key={project.title}>
                   <ProjectCard project={project} probe={probe} />

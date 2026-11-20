@@ -117,6 +117,10 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   else git), browser, Montpellier's time, the window, last update, then links. The live
   readings are `useSyncExternalStore` with a `null` server snapshot, so the static HTML
   shows a dash and nothing mismatches on hydration.
+- **The footer's bands rise to their own column**: `RisingBand` measures where the
+  masonry's first or last lane ends (`data-lane`, lanes `self-start` so each is only
+  as tall as its cards) and reaches up to 2rem below it, fading in over 8rem. They
+  wait hidden until measured, so they appear once, already in place.
 - **The home page carries JSON-LD** (`lib/seo/structured-data.ts`): a `Person` at
   `https://lenysauzet.com/#person`, every spelling of the name, `sameAs` to each
   profile and the blog, inside a `ProfilePage`. The blog should point at that `@id`.

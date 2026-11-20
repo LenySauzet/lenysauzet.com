@@ -1,9 +1,12 @@
+import type { CSSProperties } from 'react';
+
 import { cn } from '@/lib/utils';
 
-export function HatchBand({ className }: { className?: string }) {
+export function HatchBand({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
     <div
       aria-hidden
+      style={style}
       className={cn(
         'relative hidden border-x border-border mask-[linear-gradient(to_bottom,black_70%,transparent)] lg:block',
         className

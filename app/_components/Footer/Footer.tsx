@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-import { HatchBand } from '@/components/shared/HatchBand';
 import { SelectionFrame } from '@/components/shared/SelectionFrame';
 import siteConfig from '@/config/site';
 import { buildInfo } from '@/lib/build-info';
@@ -8,10 +7,10 @@ import { RESUME_ROUTE } from '@/lib/services/resume';
 import { cn } from '@/lib/utils';
 
 import { Browser, Clock, Dimensions } from './Readings';
+import { RisingBand } from './RisingBand';
 
 const VALUE = 'font-mono text-sm text-subtle-foreground';
 const LABEL = 'text-sm font-medium text-muted-foreground';
-const RISING = 'mask-[linear-gradient(to_top,black_40%,transparent)]';
 const LINK = 'w-fit text-sm text-subtle-foreground transition-colors duration-200 hover:text-foreground';
 
 const PAGES: FooterLink[] = [
@@ -64,7 +63,7 @@ export function Footer({ className }: { className?: string }) {
         className
       )}
     >
-      <HatchBand className={RISING} />
+      <RisingBand side="first" />
 
       <div className="flex flex-col gap-8 pt-8 pb-32 sm:pb-16 lg:col-start-3">
         <section aria-labelledby="metadata-heading" className="flex flex-col gap-4">
@@ -103,7 +102,7 @@ export function Footer({ className }: { className?: string }) {
         </nav>
       </div>
 
-      <HatchBand className={cn('lg:col-start-5', RISING)} />
+      <RisingBand side="last" className="lg:col-start-5" />
     </footer>
   );
 }
