@@ -109,6 +109,10 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
   forces `type="text"`. Unverified against the extension itself.
 - **A resume download is announced** in the island, from the pill or the palette,
   through `announceResume` in `lib/services/resume.ts`.
+- **The 404 is the blog's `StatusPage`**: the status as a hairline outline of Departure
+  Mono (stroked at twice its width, then covered by the same text in `--background`, so
+  only the outer half shows), the serif title, the copy, faded hatched bands, all on
+  `rise`. Tooltips are the blog's too: `--card` with a border, no arrow.
 - **`/resume` proxies the PDF** so `download` holds across origins, cached at the edge
   by `s-maxage`.
 - **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to
