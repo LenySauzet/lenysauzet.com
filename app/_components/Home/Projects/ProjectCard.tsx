@@ -1,5 +1,6 @@
 import type { Project } from '@/content/projects';
 import { resolveMedia } from '@/lib/media/cdn';
+import { anchorFor } from '@/lib/presence/anchors';
 import type { ImageMeta } from '@/lib/media/probe';
 import { cn } from '@/lib/utils';
 
@@ -14,7 +15,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, image, className }: ProjectCardProps) {
   return (
-    <article className={cn('flex flex-col gap-1.5 rounded-2xl border bg-card p-1.5', className)}>
+    <article data-presence={anchorFor('project', project.title)} className={cn('flex flex-col gap-1.5 rounded-2xl border bg-card p-1.5', className)}>
       <div className="relative overflow-hidden rounded-xl bg-well" style={{ aspectRatio: `${image.width} / ${image.height}` }}>
         <ProjectMedia
           image={resolveMedia(project.image)}

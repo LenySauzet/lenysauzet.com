@@ -10,6 +10,7 @@ import { PaletteLauncher } from './_components/CommandPalette';
 import { bodyClassName } from './_components/document';
 import { Footer } from './_components/Footer';
 import { Island } from './_components/Island';
+import { Presence } from './_components/Presence';
 import { ThemeColor } from './_components/ThemeColor';
 import './globals.css';
 
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <PaletteLauncher />
             <main>{children}</main>
             <Footer />
+            <Presence />
           </TooltipProvider>
         </ThemeProvider>
       </body>

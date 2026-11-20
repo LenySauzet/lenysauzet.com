@@ -35,6 +35,9 @@ const siteConfig = {
   repository: `${social.github}/lenysauzet.com`,
   email: 'contact@lenysauzet.com',
   calHandle: 'lenysauzet',
+  presenceUrl:
+    process.env.NEXT_PUBLIC_PRESENCE_URL ??
+    (process.env.NODE_ENV === 'production' ? 'wss://presence.lenysauzet.com' : 'ws://localhost:8787'),
   author,
   social,
   profiles,

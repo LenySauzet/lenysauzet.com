@@ -15,10 +15,16 @@ bun run type-check
 bun run test          # Vitest; `bun test` is Bun's own runner and will not work
 ```
 
+The presence worker is its own package, with its own lockfile, run from
+`workers/presence`: `bun run dev` (wrangler, on port 8787, which `next dev` connects
+to), `bun run type-check`, `bun run test` (Vitest inside the Workers runtime), and
+`bun run deploy`, which only the owner runs or approves.
+
 ## Verification gate
 
 `bun lint && bun run type-check && bun run test && bun run build`, exactly what
-`.github/workflows/ci.yml` runs, on the Bun `packageManager` names. Then look at both
+`.github/workflows/ci.yml` runs, on the Bun `packageManager` names, plus the worker's
+type-check and tests. Then look at both
 themes, at phone and desktop widths, in Chromium and in WebKit.
 
 ## Writing style
@@ -45,6 +51,10 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   with what every domain uses at its root (`utils`, `motion`, `masonry`, `browser`,
   `build-info`). It never imports from `app/`.
 - **`hooks/`** holds the Zustand stores and the hooks shared across components.
+- **`workers/presence/`** is the Cloudflare Worker behind the live cursors, deployed on
+  its own; the app's type-check and tests leave it out, its own run it. The wire
+  protocol both sides speak is `lib/presence/protocol.ts`, pure and dependency-free so
+  the worker can import it.
 - **`content/`** is what the page shows, typed, by hand; **`config/site.ts`** the
   identity, links and handles everything else derives from.
 - Named exports everywhere but where Next.js asks for a default, and `siteConfig`.
@@ -67,6 +77,9 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 | `lib/build-info.ts` | The commit and build date the footer shows |
 | `hooks/use-island-store.ts` | What the island presents, as data, and `announce` |
 | `hooks/use-palette-store.ts` | Whether the palette is wanted, open, and handing focus back |
+| `lib/presence/` | The cursors' wire protocol, anchors, motion maths and reconnecting socket |
+| `hooks/use-presence-store.ts` | Whether this visitor hides the others' cursors, kept in the browser |
+| `workers/presence/` | The worker: one Durable Object room, its rate budget, its tests |
 | `hooks/use-animated-icon.ts` | The animated icons' controls, and playing one from its control |
 
 ## What the code does not say
@@ -151,6 +164,29 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **The home page carries JSON-LD**: a `Person` at `https://lenysauzet.com/#person`,
   every spelling of the name, `sameAs` each profile and the blog, inside a
   `ProfilePage`. The blog should point its author at that `@id`.
+- **Live cursors are anonymous and desktop only.** A visitor with a fine pointer opens
+  one WebSocket to the presence worker (`siteConfig.presenceUrl`: local wrangler under
+  `next dev`, `wss://presence.lenysauzet.com` in production, `NEXT_PUBLIC_PRESENCE_URL`
+  over both), whose single Durable Object room relays positions to everyone else. The
+  room keeps each visitor's last point in its socket attachment, so a newcomer gets a
+  snapshot and the room can hibernate; nothing else is stored, no IP, no name. It
+  refuses other origins, caps the room, and drops unreadable messages and any beyond a
+  burst of 40 at 30 a second. "Toggle cursors" in the palette closes the socket and is
+  remembered.
+- **A cursor is sent as a place on an element, not a pixel.** `locate` finds the
+  nearest `data-presence` anchor under the pointer (`hero`, `headline`, `intro`,
+  `actions`, `clients`, each `project:<slug>`, `work`, `footer`, else the page) and
+  the fraction of it pointed at; each screen places that on its own copy of the
+  element, so a cursor stays on the same card in a two or a three column layout. The
+  own cursor is sent at most every 40 ms, again on scroll, and leaves with the window
+  or the tab.
+- **The others' cursors move in one frame loop, outside React.** React only adds and
+  removes them (with an entrance in opacity, scale and blur); each frame draws the
+  path 100 ms behind through Catmull-Rom curves between the received points, damps it
+  exponentially towards that, frame-rate independent, and writes the transform: a tilt
+  and a directional SVG blur from the damped velocity, and a dip on a press. A cursor
+  stays invisible until first placed, fades after 6 s idle, and ten at most are shown.
+  Reduced motion keeps the path and drops the tilt, blur, dip and scale.
 - **`/resume` proxies the PDF** so `download` holds across origins; the edge caches it
   a day and a failure is never cached.
 - **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to

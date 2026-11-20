@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useIslandStore } from '@/hooks/use-island-store';
+import { usePresenceStore } from '@/hooks/use-presence-store';
 
 import { commands } from './registry';
 import { GROUPS } from './types';
@@ -60,5 +61,20 @@ describe('Copy email', () => {
     await byId('copy-email').run(context);
 
     expect(announced()).toBe('contact@lenysauzet.com');
+  });
+});
+
+describe('Toggle cursors', () => {
+  it('hides the other visitors, then shows them again, and says so', () => {
+    useIslandStore.setState({ presented: [] });
+    usePresenceStore.setState({ hidden: false });
+
+    byId('toggle-cursors').run(context);
+    expect(usePresenceStore.getState().hidden).toBe(true);
+    expect(announced()).toBe('Cursors hidden');
+
+    byId('toggle-cursors').run(context);
+    expect(usePresenceStore.getState().hidden).toBe(false);
+    expect(announced()).toBe('Cursors shown');
   });
 });

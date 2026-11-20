@@ -30,7 +30,7 @@ export function Footer({ className }: { className?: string }) {
   const { commit, built } = buildInfo;
 
   return (
-    <footer className={cn(pageGrid, className)}>
+    <footer data-presence="footer" className={cn(pageGrid, className)}>
       <RisingBand lane="first" />
 
       <div className="flex flex-col gap-8 pt-8 pb-32 sm:pb-16 lg:col-start-3">

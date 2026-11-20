@@ -5,6 +5,7 @@ import {
   Coffee01Icon,
   Copy01Icon,
   CopyLinkIcon,
+  Cursor01Icon,
   Download01Icon,
   Github01Icon,
   Linkedin01Icon,
@@ -17,6 +18,7 @@ import {
 
 import siteConfig from '@/config/site';
 import { announce } from '@/hooks/use-island-store';
+import { usePresenceStore } from '@/hooks/use-presence-store';
 import { prefersReducedMotion } from '@/lib/motion';
 import { openBooking } from '@/lib/services/booking';
 import { announceResume, RESUME_ROUTE } from '@/lib/services/resume';
@@ -118,6 +120,14 @@ export const commands: Command[] = [
     keywords: ['url', 'share'],
     shortcut: 'l',
     run: () => copy(siteConfig.url, 'Link copied', CopyLinkIcon),
+  },
+  {
+    id: 'toggle-cursors',
+    label: 'Toggle cursors',
+    icon: Cursor01Icon,
+    group: 'Tools',
+    keywords: ['presence', 'visitors', 'others', 'hide', 'show'],
+    run: () => announce(usePresenceStore.getState().toggle() ? 'Cursors hidden' : 'Cursors shown', Cursor01Icon),
   },
   {
     id: 'go-to-top',

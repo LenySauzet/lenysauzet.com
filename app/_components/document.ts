@@ -15,4 +15,4 @@ const departureMono = localFont({
   variable: '--font-mono',
 });
 
-export const bodyClassName = `${geist.variable} ${instrument.variable} ${departureMono.variable} font-display antialiased selection:bg-primary/10 selection:text-primary`;
+export const bodyClassName = `${geist.variable} ${instrument.variable} ${departureMono.variable} relative font-display antialiased selection:bg-primary/10 selection:text-primary`;
