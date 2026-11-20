@@ -3,6 +3,7 @@ import { hueOf } from '@/lib/presence/hue';
 import { linesOf, trimEnds, type Rect } from '@/lib/presence/lines';
 import { damp } from '@/lib/presence/motion';
 import type { Span } from '@/lib/presence/protocol';
+import { continues } from '@/lib/presence/spans';
 
 const SWEEP = 70;
 const FADE = 90;
@@ -164,7 +165,7 @@ export function createRemoteHighlights(isStill: () => boolean) {
       style();
     }
     const { current } = owner;
-    if (current && current.anchor === span.anchor) {
+    if (current && continues({ anchor: current.anchor, start: current.goal.start, end: current.goal.end }, span)) {
       current.goal = { start: span.start, end: span.end, opacity: 1 };
     } else {
       leave(owner);

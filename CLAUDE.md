@@ -223,7 +223,10 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   one rounded rectangle per line in a layer on `body` (document coordinates, under the
   island at `z-40`), its ends trimmed by the uncovered part of their character; the
   text takes the hue through a `::highlight()` rule per visitor on the whole characters
-  covered. A cleared selection folds back to its start as it fades. `DOMRect` fields
+  covered. A cleared selection folds back to its start as it fades. Only a selection
+  that continues the last (same anchor, same start or same end, as a drag keeps one)
+  sweeps from it; any other fades the last out and grows on its own, since sweeping
+  between two unrelated ranges ran the highlight along every line between them. `DOMRect` fields
   are getters on its prototype, so `{ ...rect }` copies nothing: `linesFor` copies them
   by name.
 - **The cursors live in the top layer**, a `popover="manual"` shown on mount, which
