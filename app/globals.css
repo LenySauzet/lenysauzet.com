@@ -222,3 +222,30 @@
     pointer-events: none;
   }
 }
+
+@keyframes theme-sweep {
+  to {
+    mask-size: 350vmax;
+  }
+}
+
+::view-transition-new(root) {
+  mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><defs><filter id="b"><feGaussianBlur stdDeviation="2"/></filter></defs><circle cx="0" cy="0" r="18" fill="white" filter="url(%23b)"/></svg>')
+    top left / 0 no-repeat;
+  mask-origin: content-box;
+  animation: theme-sweep 700ms both;
+  transform-origin: top left;
+}
+
+::view-transition-old(root) {
+  animation: none;
+  z-index: -1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root),
+  ::view-transition-old(root) {
+    animation: none;
+    mask: none;
+  }
+}

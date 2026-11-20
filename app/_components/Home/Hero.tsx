@@ -5,6 +5,7 @@ import { clients } from '@/content/clients';
 
 import { BookCall } from './BookCall';
 import { Clients } from './Clients';
+import { EmailLink } from './EmailLink';
 import { ResumeLink } from './ResumeLink';
 
 export function Hero() {
@@ -26,13 +27,14 @@ export function Hero() {
         </SelectionFrame>
 
         <p className="rise mt-8 max-w-xl text-base leading-7 text-pretty text-muted-foreground [--rise-step:2]">
-          For the past three years I have been building an enterprise conversational AI platform at Tolk.ai, 4.3
-          million conversations served for public agencies, insurers and e-commerce brands. From software
-          architecture to creative development, I take features from zero to one.
+          I&apos;m Lény, an AI and software engineer based in Montpellier. I design and build products end to end,
+          from the models and the architecture underneath to interfaces people enjoy using, and I care as much about
+          how they feel as how fast they run.
         </p>
 
-        <div className="rise mt-10 flex flex-wrap items-center justify-center gap-3 [--rise-step:3] sm:grid sm:w-full sm:max-w-md sm:grid-cols-2">
+        <div className="rise mt-10 flex flex-wrap items-center justify-center gap-3 [--rise-step:3] sm:grid sm:w-full sm:max-w-2xl sm:grid-cols-[1fr_auto_1fr]">
           <BookCall className="sm:justify-self-end" />
+          <EmailLink />
           <ResumeLink className="sm:justify-self-start" />
         </div>
 

@@ -63,10 +63,19 @@ Hugeicons), tokens only, the blog's palette on `--base-hue` fixed to its default
 - **The island speaks through a live region.** Its pill is `aria-hidden`, so an
   announcement also lands in an `sr-only` `role="status"`; a refused clipboard still
   answers, the island showing the text itself.
-- **The CTA pills share `pillSurface`** (`ui/pill.ts`): `glass-rim` for the top-lit
-  border, `--shadow-pill` per theme, no background change on hover. "Book a call" grows
-  leftwards from a two-column row, so the resume pill never moves; "+ You" arrives in
-  blur and opacity, and a touch screen, with no hover, shows it grown.
+- **The CTA pills share `pillSurface`** (`ui/pill.ts`): `rounded-xl`, never full, so they
+  do not echo the island; `glass-rim` for the top-lit border, `--shadow-pill` per theme,
+  no background change on hover. Three sit on a `1fr auto 1fr` grid, Email centred, so
+  "Book a call" grows leftwards and the other two never move. Its "+ You" is not
+  clipped: the width opens first and the pair blurs in after it, and on leaving they
+  fade before the width closes, which is what the split delays are for. A clip showed
+  the blur's hard edge and cut the circle.
+- **Animated icons are Hugeicons Animated** (community, MIT), installed with
+  `bunx --bun shadcn@latest add @hugeicons-animated/<name>` into `components/ui/`,
+  comments stripped, with `lib/use-icon-animation.ts`. An icon plays when its whole
+  control is hovered or focused, through `useAnimatedIcon`, never by moving the icon.
+- **The theme changes under the blog's sweep**: `withThemeTransition` wraps the change in
+  a view transition, and the new theme grows from the top left as a blurred circle.
 - **Entrances are the 404's**: `rise` (blur, opacity, half a rem) staggered by
   `--rise-step` in the hero, `Reveal` on each card as it enters the view. `Reveal`
   animates blur and opacity only: Motion runs those on the compositor, while a

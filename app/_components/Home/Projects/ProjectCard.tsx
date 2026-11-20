@@ -1,44 +1,15 @@
-import { ArrowRight02Icon, ArrowUpRight01Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-
-import siteConfig from '@/config/site';
-import type { Project, ProjectAction } from '@/content/projects';
+import type { Project } from '@/content/projects';
 import { resolveMedia } from '@/lib/media/cdn';
 import type { Probe } from '@/lib/media/probe';
 import { cn } from '@/lib/utils';
 
+import { ProjectLink } from './ProjectLink';
 import { ProjectMedia } from './ProjectMedia';
 
 interface ProjectCardProps {
   project: Project;
   probe: Probe;
   className?: string;
-}
-
-const ACTIONS = {
-  article: { label: 'Read article', icon: ArrowRight02Icon },
-  app: { label: 'View app', icon: ArrowUpRight01Icon },
-  source: { label: 'View code', icon: ArrowUpRight01Icon },
-};
-
-function Action({ action }: { action: ProjectAction }) {
-  const { label, icon } = ACTIONS[action.kind];
-  const external = action.kind !== 'article';
-
-  return (
-    <a
-      href={external ? action.href : `${siteConfig.blogUrl}/posts/${action.slug}`}
-      {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
-      className="group/action flex h-11 items-center justify-center gap-1.5 rounded-xl bg-well text-sm text-muted-foreground outline-none transition-colors duration-200 hover:bg-well-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
-    >
-      {label}
-      <HugeiconsIcon
-        icon={icon}
-        strokeWidth={2}
-        className="size-4 transition-[translate] duration-200 group-hover/action:translate-x-0.5 motion-reduce:transition-none"
-      />
-    </a>
-  );
 }
 
 export function ProjectCard({ project, probe, className }: ProjectCardProps) {
@@ -61,7 +32,7 @@ export function ProjectCard({ project, probe, className }: ProjectCardProps) {
         </div>
       </div>
 
-      {project.action && <Action action={project.action} />}
+      {project.action && <ProjectLink action={project.action} />}
     </article>
   );
 }

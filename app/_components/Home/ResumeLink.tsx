@@ -1,21 +1,21 @@
-import { Download01Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
+'use client';
 
+import { Download01Icon } from '@/components/ui/download-01';
 import { pillSurface } from '@/components/ui/pill';
+import { useAnimatedIcon } from '@/hooks/use-animated-icon';
 import { cn } from '@/lib/utils';
 
 export function ResumeLink({ className }: { className?: string }) {
+  const { icon, trigger } = useAnimatedIcon();
+
   return (
     <a
       href="/resume"
       download
-      className={cn(pillSurface, 'group gap-2 px-5 text-sm font-medium text-muted-foreground hover:text-foreground', className)}
+      {...trigger}
+      className={cn(pillSurface, 'gap-2 px-5 text-sm font-medium text-muted-foreground hover:text-foreground', className)}
     >
-      <HugeiconsIcon
-        icon={Download01Icon}
-        strokeWidth={2}
-        className="size-4 transition-[translate] duration-200 group-hover:translate-y-0.5 motion-reduce:transition-none"
-      />
+      <Download01Icon ref={icon} size={16} />
       Resume
     </a>
   );

@@ -18,6 +18,7 @@ import {
 import { announce } from '@/app/_components/Island';
 import siteConfig from '@/config/site';
 import { openBooking } from '@/lib/services/booking';
+import { withThemeTransition } from '@/lib/theme/theme-transition';
 
 import type { Command } from './types';
 
@@ -100,7 +101,8 @@ export const commands: Command[] = [
     group: 'Tools',
     keywords: ['dark', 'light', 'mode'],
     shortcut: 'd',
-    run: ({ resolvedTheme, setTheme }) => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark'),
+    run: ({ resolvedTheme, setTheme }) =>
+      withThemeTransition(() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')),
   },
   {
     id: 'copy-link',
