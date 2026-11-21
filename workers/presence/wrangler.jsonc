@@ -6,6 +6,7 @@
   "upload_source_maps": true,
   "observability": { "enabled": true },
   "workers_dev": false,
+  "dev": { "port": 8787 },
   "routes": [{ "pattern": "presence.lenysauzet.com", "custom_domain": true }],
   "vars": {
     "ALLOWED_ORIGINS": "https://lenysauzet.com"

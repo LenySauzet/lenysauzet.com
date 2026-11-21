@@ -7,7 +7,7 @@ rather than imports. `AGENTS.md` points here.
 ## Commands
 
 ```bash
-bun dev
+bun dev              # The site and the presence worker together
 portless             # The same, at https://lenysauzet.localhost
 bun run build
 bun lint
@@ -18,7 +18,8 @@ bun run test          # Vitest; `bun test` is Bun's own runner and will not work
 In `workers/presence`, its own package and lockfile: `bun run dev` (wrangler on 8787,
 local origins in `.dev.vars`), `bun run type-check`, `bun run test` (inside the
 Workers runtime, on production bindings), `bun run deploy`, which only the owner runs
-or approves. `bun run dev:presence` at the root is `next dev` on that local worker.
+or approves. The root's `bun dev` runs that worker (`dev:presence`) and the site
+pointed at it (`dev:site`) in parallel.
 
 ## Verification gate
 
