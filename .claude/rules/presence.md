@@ -97,6 +97,25 @@ anonymous, relayed by one Durable Object room.
   strengths for the colour channels and screened together. WebKit accepts the filter and
   draws nothing, so it is skipped there (`GestureEvent`).
 
+## High five
+
+- **Two cursors close together become hands** (`lib/presence/high-five.ts`): pairs
+  within 48px, kept until 64px apart so they do not flicker, and only where neither is
+  over an action (links, buttons, fields, the island, frame handles marked
+  `data-presence-action`) or off the screen. Only hands already close are hit-tested.
+  Any pair counts, so a visitor sees two others meet as well.
+- **The others' hands are drawn by `Cursor`, the own one is the page's cursor**, both
+  from `lib/presence/hand.ts`. A cursor image cannot read a token, so the own hand is
+  black on white in both themes, like the system cursor. It is put away while a button
+  is held, so a drag or a selection keeps its cursor.
+- **A clap is both hands of a pair pressing within 300 ms**, a remote press timed when
+  it was heard, not when it plays. Each page judges from the presses it already
+  receives, so nothing new travels, and two visitors may not agree: one who answers
+  the other's press sees the clap, the first one often does not. The clap sends a ripple
+  across the screen from between the hands (`ripples.across`), one at a time: it ends
+  the click ripples running, and later ones wait for it. Reduced motion keeps the hands,
+  not the clap.
+
 ## Frames
 
 - **`SelectionFrame` corners move two edges** on a 40px rubber band; the hatching lies

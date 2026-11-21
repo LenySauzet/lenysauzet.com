@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { memo, useEffect, useRef, type CSSProperties } from 'react';
 
 import { blurred, EASE_OUT, sharp } from '@/lib/motion';
+import { HAND_RIM_STROKE, HAND_SHAPES, HAND_STROKE, HAND_VIEW, handShapeProps } from '@/lib/presence/hand';
 import { hueOf } from '@/lib/presence/hue';
 import { GHOSTS } from '@/lib/presence/pose';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,8 @@ const HERE = { ...sharp, scale: 1 };
 const FADED = { opacity: 0 };
 const SHOWN = { opacity: 1 };
 const PLACED = 'absolute top-0 left-0 origin-top-left will-change-transform';
+const SWAP = 'transition-[opacity,scale] duration-150 ease-out motion-reduce:transition-none';
+const HAND_SIZE = 22;
 
 interface ArrowProps {
   filter: string;
@@ -29,6 +32,32 @@ function Arrow({ filter, rimmed = false, className }: ArrowProps) {
       <g filter={`url(#${filter})`} strokeLinejoin="round">
         {rimmed && <path d={ARROW} strokeWidth="6" className="fill-white stroke-white" />}
         <path d={ARROW} strokeWidth="3.5" className="fill-cursor stroke-cursor" />
+      </g>
+    </svg>
+  );
+}
+
+interface HandProps {
+  className?: string;
+}
+
+function Hand({ className }: HandProps) {
+  const shapes = (stroke: number, color: string) =>
+    HAND_SHAPES.map((shape, index) => (
+      <rect key={index} {...handShapeProps(shape)} strokeWidth={stroke} className={color} />
+    ));
+
+  return (
+    <svg
+      width={HAND_SIZE}
+      height={HAND_SIZE}
+      viewBox={`0 0 ${HAND_VIEW} ${HAND_VIEW}`}
+      overflow="visible"
+      className={className}
+    >
+      <g strokeLinejoin="round">
+        {shapes(HAND_RIM_STROKE, 'fill-white stroke-white')}
+        {shapes(HAND_STROKE, 'fill-cursor stroke-cursor')}
       </g>
     </svg>
   );
@@ -72,14 +101,14 @@ export const Cursor = memo(function Cursor({ id, attach, className }: CursorProp
               ref={(ghost) => {
                 ghosts.current[index] = ghost;
               }}
-              className={cn(PLACED, 'opacity-0')}
+              className={cn(PLACED, 'opacity-0 data-hand:hidden')}
             >
               <Arrow filter={filter} />
             </div>
           ))}
         </motion.div>
       )}
-      <div ref={main} className={cn(PLACED, 'invisible')}>
+      <div ref={main} className={cn(PLACED, 'group/ink invisible')}>
         <motion.div
           initial={still ? FADED : GONE}
           animate={still ? SHOWN : HERE}
@@ -87,7 +116,21 @@ export const Cursor = memo(function Cursor({ id, attach, className }: CursorProp
           transition={{ duration: 0.35, ease: EASE_OUT }}
           className="origin-top-left"
         >
-          <Arrow filter={filter} rimmed className="drop-shadow-md" />
+          <Arrow
+            filter={filter}
+            rimmed
+            className={cn(
+              SWAP,
+              'origin-top-left drop-shadow-md group-data-hand/ink:scale-50 group-data-hand/ink:opacity-0 motion-reduce:scale-100'
+            )}
+          />
+          <Hand
+            className={cn(
+              SWAP,
+              'absolute top-0 left-0 -translate-1/2 scale-50 opacity-0 drop-shadow-md motion-reduce:scale-100',
+              'group-data-hand/ink:scale-100 group-data-hand/ink:opacity-100'
+            )}
+          />
         </motion.div>
       </div>
     </div>

@@ -1,10 +1,15 @@
+import type { Box } from '@/lib/presence/geometry';
 import type { Vector } from '@/lib/presence/motion';
 
+interface Wave {
+  reach: number;
+  duration: number;
+  strength: number;
+}
+
 const SVG = 'http://www.w3.org/2000/svg';
-const DURATION = 700;
-const REACH = 100;
-const SIZE = REACH * 2;
-const STRENGTH = 30;
+const CLICK: Wave = { reach: 100, duration: 700, strength: 30 };
+const CLAP: Omit<Wave, 'reach'> = { duration: 1100, strength: 44 };
 const CHANNELS = [
   { spread: 1.3, keep: '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0' },
   { spread: 1, keep: '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0' },
@@ -65,28 +70,24 @@ export function createRipples(layer: HTMLElement) {
     if (running.size >= MOST_AT_ONCE && oldest) oldest();
   };
   let count = 0;
+  let crossing: (() => void) | undefined;
 
-  const place = (center: Vector) => {
+  const place = ({ left, top, width, height }: Box) => {
     const element = document.createElement('div');
     element.className = PLACED;
-    Object.assign(element.style, {
-      left: `${center.x - REACH}px`,
-      top: `${center.y - REACH}px`,
-      width: `${SIZE}px`,
-      height: `${SIZE}px`,
-    });
+    Object.assign(element.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
     layer.append(element);
     return element;
   };
 
-  const distort = (center: Vector, map: string) => {
+  const distort = (center: Vector, { reach, duration, strength: strongest }: Wave, box: Box, map: string) => {
     const id = `presence-ripple-${(count += 1)}`;
     const filter = create('filter', {
       id,
       x: 0,
       y: 0,
-      width: SIZE,
-      height: SIZE,
+      width: box.width,
+      height: box.height,
       filterUnits: 'userSpaceOnUse',
       primitiveUnits: 'userSpaceOnUse',
       'color-interpolation-filters': 'sRGB',
@@ -116,8 +117,9 @@ export function createRipples(layer: HTMLElement) {
     );
     defs.append(filter);
 
-    const element = place(center);
+    const element = place(box);
     element.style.backdropFilter = `url(#${id})`;
+    const middle = { x: center.x - box.left, y: center.y - box.top };
     const startedAt = performance.now();
     let rafId = 0;
 
@@ -126,16 +128,17 @@ export function createRipples(layer: HTMLElement) {
       element.remove();
       filter.remove();
       running.delete(end);
+      if (crossing === end) crossing = undefined;
     };
 
     const step = (now: number) => {
-      const t = Math.min(1, (now - startedAt) / DURATION);
-      const radius = Math.max(1, REACH * easeOutCubic(t));
-      image.setAttribute('x', String(REACH - radius));
-      image.setAttribute('y', String(REACH - radius));
+      const t = Math.min(1, (now - startedAt) / duration);
+      const radius = Math.max(1, reach * easeOutCubic(t));
+      image.setAttribute('x', String(middle.x - radius));
+      image.setAttribute('y', String(middle.y - radius));
       image.setAttribute('width', String(radius * 2));
       image.setAttribute('height', String(radius * 2));
-      const strength = STRENGTH * (1 - t) ** 2;
+      const strength = strongest * (1 - t) ** 2;
       for (const { node, spread } of displacements) node.setAttribute('scale', String(strength * spread));
       if (t < 1) rafId = window.requestAnimationFrame(step);
       else end();
@@ -143,14 +146,29 @@ export function createRipples(layer: HTMLElement) {
 
     running.add(end);
     rafId = window.requestAnimationFrame(step);
+    return end;
+  };
+
+  const ripple = (center: Vector, wave: Wave, box: Box) => {
+    const map = distorts() ? waveMap() : undefined;
+    if (!map) return undefined;
+    makeRoom();
+    return distort(center, wave, box, map);
   };
 
   return {
     at(client: Vector) {
-      const map = distorts() ? waveMap() : undefined;
-      if (!map) return;
-      makeRoom();
-      distort(client, map);
+      if (crossing) return;
+      const { reach } = CLICK;
+      ripple(client, CLICK, { left: client.x - reach, top: client.y - reach, width: reach * 2, height: reach * 2 });
+    },
+    across(client: Vector) {
+      if (crossing) return;
+      for (const end of [...running]) end();
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const reach = Math.hypot(Math.max(client.x, width - client.x), Math.max(client.y, height - client.y));
+      crossing = ripple(client, { ...CLAP, reach }, { left: 0, top: 0, width, height });
     },
     stop() {
       for (const end of [...running]) end();

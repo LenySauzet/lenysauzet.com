@@ -57,7 +57,9 @@ interface Remote {
 interface RemoteCursorsOptions {
   onChange: (ids: string[]) => void;
   onClick: (point: Vector) => void;
+  onPress: (id: string, point: Vector, at: number) => void;
   onFrame: (id: string, event: FrameEvent) => void;
+  onDrawn: (points: Map<string, Vector>) => void;
   reducedMotion: () => boolean;
 }
 
@@ -89,10 +91,18 @@ const fade = (element: HTMLElement, opacity: number, drawn: string) => {
   return written;
 };
 
-export function createRemoteCursors({ onChange, onClick, onFrame, reducedMotion }: RemoteCursorsOptions) {
+export function createRemoteCursors({
+  onChange,
+  onClick,
+  onPress,
+  onFrame,
+  onDrawn,
+  reducedMotion,
+}: RemoteCursorsOptions) {
   const listening = new AbortController();
   const remotes = new Map<string, Remote>();
   const inks = new Map<string, Ink>();
+  let hands = new Set<string>();
   let published: string[] = [];
   let rafId = 0;
   let drewAt = 0;
@@ -138,6 +148,7 @@ export function createRemoteCursors({ onChange, onClick, onFrame, reducedMotion 
     };
     const scroll = { x: window.scrollX, y: window.scrollY };
     const clicks: Vector[] = [];
+    const presses: { id: string; point: Vector; at: number }[] = [];
     const departed: string[] = [];
     drewAt = now;
 
@@ -174,6 +185,7 @@ export function createRemoteCursors({ onChange, onClick, onFrame, reducedMotion 
         } else if (signal.kind === 'press') {
           remote.pressed = point && { at: now, value: point };
           remote.pressedAt = point;
+          if (point) presses.push({ id, point, at: next.at });
         } else if (signal.kind === 'release') {
           remote.pressed = undefined;
         } else {
@@ -183,13 +195,14 @@ export function createRemoteCursors({ onChange, onClick, onFrame, reducedMotion 
           remote.clickedAt = now;
         }
       }
-      return target ? [{ remote, ink, time, target, aim }] : [];
+      return target ? [{ id, remote, ink, time, target, aim }] : [];
     });
 
     let busy = false;
     let wakeIn = Infinity;
+    const drawn = new Map<string, Vector>();
 
-    for (const { remote, ink, time, target, aim } of read) {
+    for (const { id, remote, ink, time, target, aim } of read) {
       if (remote.pressed && now - remote.pressed.at > LONGEST_PRESS) remote.pressed = undefined;
       if (!remote.pose) {
         remote.pose = poseAt(target, now);
@@ -204,6 +217,7 @@ export function createRemoteCursors({ onChange, onClick, onFrame, reducedMotion 
         reducedMotion: still,
       });
 
+      drawn.set(id, pose.shown);
       const turn = `rotate(${pose.tilt}deg) scale(${pose.scale.value})`;
       ink.main.style.transform = `translate3d(${pose.shown.x - scroll.x}px, ${pose.shown.y - scroll.y}px, 0) ${turn}`;
       remote.drawn.opacity = fade(ink.main, pose.opacity, remote.drawn.opacity);
@@ -230,7 +244,9 @@ export function createRemoteCursors({ onChange, onClick, onFrame, reducedMotion 
         (remote.trail.latest?.at ?? 0) > time;
     }
 
+    for (const { id, point, at } of presses) onPress(id, point, at);
     for (const point of clicks) onClick(point);
+    onDrawn(drawn);
     if (departed.length) {
       for (const id of departed) forget(id);
       publish();
@@ -252,6 +268,10 @@ export function createRemoteCursors({ onChange, onClick, onFrame, reducedMotion 
       publish();
     }
     return remote;
+  };
+
+  const markHand = (id: string, { main, ghosts }: Ink) => {
+    for (const element of [main, ...ghosts]) element.toggleAttribute('data-hand', hands.has(id));
   };
 
   const remove = (id: string) => {
@@ -300,8 +320,13 @@ export function createRemoteCursors({ onChange, onClick, onFrame, reducedMotion 
     attach(id: string, ink: Ink | null) {
       if (ink) {
         inks.set(id, ink);
+        markHand(id, ink);
         wake();
       } else inks.delete(id);
+    },
+    showHands(ids: Set<string>) {
+      hands = ids;
+      for (const [id, ink] of inks) markHand(id, ink);
     },
     cover(next: boolean) {
       covered = next;

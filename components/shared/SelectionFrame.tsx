@@ -87,6 +87,7 @@ function Handle({ corner, edges, onGrab, onPull, onLetGo }: HandleProps) {
   return (
     <motion.span
       aria-hidden
+      data-presence-action
       onPointerDown={grab}
       onPointerMove={pull}
       onPointerUp={letGo}
