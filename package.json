@@ -6,7 +6,9 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "bun scripts/dev.ts",
+    "dev": "bun run --parallel dev:site dev:presence",
+    "dev:site": "NEXT_PUBLIC_PRESENCE_URL=ws://localhost:8787 next dev",
+    "dev:presence": "bun run --cwd workers/presence dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

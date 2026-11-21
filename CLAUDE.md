@@ -18,7 +18,8 @@ bun run test          # Vitest; `bun test` is Bun's own runner and will not work
 In `workers/presence`, its own package and lockfile: `bun run dev` (wrangler on 8787,
 local origins in `.dev.vars`), `bun run type-check`, `bun run test` (inside the
 Workers runtime, on production bindings), `bun run deploy`, which only the owner runs
-or approves. The root's `bun dev` starts that worker beside `next dev`, pointed at it.
+or approves. The root's `bun dev` runs that worker (`dev:presence`) and the site
+pointed at it (`dev:site`) in parallel.
 
 ## Verification gate
 
