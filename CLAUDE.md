@@ -179,8 +179,9 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   320 characters, unreadable, or beyond a burst of 120 at 75 a second are dropped
   unread. "leave" means the pointer left the page (or is scrolling) and keeps the
   visitor's highlight; "gone" means the socket closed and clears both, and lets go of
-  any frame that visitor held. "Toggle cursors", offered only to a fine pointer,
-  closes the socket and is remembered.
+  any frame that visitor held. "Live cursors", offered only to a fine pointer and
+  showing On or Off on its right (a command's `status`, read as the palette renders),
+  closes the socket when turned off, and is remembered.
 - **The room still completes the close handshake itself.** The compatibility date makes
   the runtime reply to a Close frame, yet under local wrangler sockets stayed CLOSING
   until `webSocketClose` called `close()`; the call is harmless where it is ignored.
@@ -215,8 +216,11 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   clicks and frame pulls replay on the same delay so they meet the cursor. While its
   page scrolls the own cursor is not sent but leaves, and comes back where it settled
   160 ms later: sending through a scroll drew others a straight line across the page.
-- **A selection is shared as characters of an anchor.** `spanOf` counts the
-  characters before each end within the anchor holding its start (or its end), keeping
+- **A selection is shared as characters of an anchor, and its direction.** It is sent
+  at most every 50 ms while it changes (a debounce sent nothing until the drag paused),
+  and backward when its focus precedes its anchor, so a selection made from right to
+  left grows, and folds away, from its right. `spanOf` counts the characters before
+  each end within the anchor holding its start (or its end), keeping
   the part inside; `rangeOf` walks the text nodes of the shown copy back to a range.
   `remote-highlights` animates the shown ends towards the shared ones in characters,
   fractions included, so a selection sweeps along the text: the background is drawn as
@@ -254,8 +258,12 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   under the modal is not what its owner is looking at. Reduced motion keeps the path and drops the tilt, blur,
   ghosts, spring and ripple.
 - **A click ripples the page under it (an experiment).** A click is a press released
-  within 350 ms and 8 px, leaving no selection, so selecting text or dragging never
-  ripples; the own clicks ripple too, the palette's included (a modal stops the cursor
+  within 350 ms and 8 px, leaving no selection, and not the second or third of a double
+  or triple click (`lib/presence/clicks.ts`), so selecting text or dragging never
+  ripples. The owner decides and sends `click`, rippled for the others at the point
+  their cursor was pressed: inferred on the receiving side, a double click rippled
+  twice there and once here, and a cursor still settling on its detail between press
+  and release failed the distance test; the own clicks ripple too, the palette's included (a modal stops the cursor
   being shared, not the clicks rippling). The island is `data-presence-ignore`: it
   moves with its content, so a press on it is neither shared nor rippled. A "leave"
   plays on the same timeline as the presses before it, so the click that opens cal.com
@@ -277,7 +285,9 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **The selection frames are pulled like Figma's.** A corner moves its two edges on a
   rubber band (`rubberBand`, the iOS curve, 40 px at most), so the outline stays a
   rectangle; the hatching is 40 px larger than the frame and clipped to the edges, so
-  its pattern holds still, and the content is clipped to them while they are off
+  its pattern holds still, over the page's background clipped the same way, since a
+  frame pulled outward paints over its neighbours (the "Metadata" heading showed through
+  the hatching), and the content is clipped to them while they are off
   rest (`none` at rest, so focus rings are never cut). The frame shares its pulls
   through `lib/presence/frames.ts`, the room sends them with the batch and replays
   others' pulls, which the frame follows on a stiff spring unless held here, letting go

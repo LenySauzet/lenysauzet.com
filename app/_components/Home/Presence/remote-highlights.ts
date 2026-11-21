@@ -5,7 +5,7 @@ import { damp } from '@/lib/presence/motion';
 import type { Span } from '@/lib/presence/protocol';
 import { continues } from '@/lib/presence/spans';
 
-const SWEEP = 70;
+const SWEEP = 45;
 const FADE = 90;
 const LONGEST_FRAME = 64;
 const AT_REST = 0.01;
@@ -18,6 +18,7 @@ interface Mark {
   end: number;
   opacity: number;
   goal: { start: number; end: number; opacity: number };
+  backward: boolean;
   element: HTMLDivElement;
   lines: HTMLDivElement[];
 }
@@ -152,7 +153,8 @@ export function createRemoteHighlights(isStill: () => boolean) {
   const leave = (owner: Owner) => {
     const mark = owner.current;
     if (!mark) return;
-    mark.goal = { start: mark.goal.start, end: mark.goal.start, opacity: 0 };
+    const origin = mark.backward ? mark.goal.end : mark.goal.start;
+    mark.goal = { start: origin, end: origin, opacity: 0 };
     owner.leaving.push(mark);
     owner.current = undefined;
   };
@@ -167,16 +169,18 @@ export function createRemoteHighlights(isStill: () => boolean) {
     const { current } = owner;
     if (current && continues({ anchor: current.anchor, start: current.goal.start, end: current.goal.end }, span)) {
       current.goal = { start: span.start, end: span.end, opacity: 1 };
+      current.backward = span.backward === true;
     } else {
       leave(owner);
       const element = document.createElement('div');
       layer.append(element);
       owner.current = {
         anchor: span.anchor,
-        start: span.start,
-        end: span.start,
+        start: span.backward ? span.end : span.start,
+        end: span.backward ? span.end : span.start,
         opacity: 1,
         goal: { start: span.start, end: span.end, opacity: 1 },
+        backward: span.backward === true,
         element,
         lines: [],
       };

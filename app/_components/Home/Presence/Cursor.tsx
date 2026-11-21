@@ -18,7 +18,7 @@ const PLACED = 'absolute top-0 left-0 origin-top-left will-change-transform';
 
 function Arrow({ filter, className }: { filter: string; className?: string }) {
   return (
-    <svg width="23" height="23" viewBox="0 0 26 26" overflow="visible" className={className}>
+    <svg width="20" height="20" viewBox="0 0 26 26" overflow="visible" className={className}>
       <path
         d={ARROW}
         filter={`url(#${filter})`}

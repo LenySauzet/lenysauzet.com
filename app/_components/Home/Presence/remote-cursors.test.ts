@@ -122,6 +122,7 @@ describe('the remote cursors', () => {
     cursors.attach('v0', element);
     cursors.press('v0');
     cursors.release('v0');
+    cursors.click('v0');
 
     vi.advanceTimersByTime(500);
 
@@ -129,28 +130,21 @@ describe('the remote cursors', () => {
     expect(clicked).toEqual([]);
   });
 
-  it('ripples a quick click where it was made, and not a press that drags', () => {
+  it('ripples a click where it was pressed, once per click its owner sent', () => {
     cursors.move('v0', at(0.1));
     cursors.attach('v0', ink());
     vi.advanceTimersByTime(300);
 
     cursors.press('v0');
-    vi.advanceTimersByTime(100);
+    vi.advanceTimersByTime(80);
+    cursors.move('v0', at(0.12));
     cursors.release('v0');
+    cursors.click('v0');
     vi.advanceTimersByTime(300);
     expect(clicked).toEqual([100]);
 
     cursors.press('v0');
-    for (let time = 0; time < 200; time += 16) {
-      cursors.move('v0', at(0.1 + time / 1000));
-      vi.advanceTimersByTime(16);
-    }
-    cursors.release('v0');
-    vi.advanceTimersByTime(300);
-    expect(clicked).toEqual([100]);
-
-    cursors.press('v0');
-    vi.advanceTimersByTime(600);
+    vi.advanceTimersByTime(80);
     cursors.release('v0');
     vi.advanceTimersByTime(300);
     expect(clicked).toEqual([100]);
@@ -199,6 +193,7 @@ describe('the remote cursors', () => {
     cursors.press('v0');
     vi.advanceTimersByTime(80);
     cursors.release('v0');
+    cursors.click('v0');
     cursors.leave('v0');
     expect(shown()).toEqual(['v0']);
 

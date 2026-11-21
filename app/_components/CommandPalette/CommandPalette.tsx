@@ -73,6 +73,7 @@ export function CommandPalette({ className }: { className?: string }) {
                     <HugeiconsIcon icon={command.icon} strokeWidth={2} />
                     {command.label}
                     {command.hint && <CommandHint>{command.hint}</CommandHint>}
+                    {command.status && <CommandHint>{command.status()}</CommandHint>}
                     {command.shortcut && (
                       <CommandShortcut className="pointer-coarse:hidden">
                         {modifier}

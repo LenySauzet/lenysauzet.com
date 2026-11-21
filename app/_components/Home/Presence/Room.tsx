@@ -82,6 +82,8 @@ export function Room({ url, className }: { url: string; className?: string }) {
           return cursors.press(message.id);
         case 'release':
           return cursors.release(message.id);
+        case 'click':
+          return cursors.click(message.id);
         case 'leave':
           return cursors.leave(message.id);
         case 'gone': {

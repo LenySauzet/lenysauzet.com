@@ -2,9 +2,9 @@ import type { Vector } from '@/lib/presence/motion';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const DURATION = 700;
-const REACH = 120;
+const REACH = 100;
 const SIZE = REACH * 2;
-const STRENGTH = 34;
+const STRENGTH = 30;
 const CHANNELS = [
   { spread: 1.3, keep: '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0' },
   { spread: 1, keep: '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0' },

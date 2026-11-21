@@ -18,8 +18,6 @@ const SETTLE = 90;
 const PRESSED_SCALE = 0.8;
 const PRESS = { stiffness: 420, damping: 24 };
 const LONGEST_PRESS = 4000;
-const LONGEST_CLICK = 350;
-const CLICK_SLOP = 8;
 const MOVING = 0.03;
 const RESTING_AFTER = 1000;
 const RESTING_OPACITY = 0.22;
@@ -46,7 +44,7 @@ interface Precision {
   placement: Placement;
 }
 
-type Signal = 'press' | 'release' | 'leave';
+type Signal = 'press' | 'release' | 'click' | 'leave';
 
 interface Remote {
   trail: Trail<Placed>;
@@ -57,6 +55,7 @@ interface Remote {
   followed?: Vector;
   pace: number;
   pressed?: Timed<Vector>;
+  pressedAt?: Vector;
   shown?: Vector;
   movedAt: number;
   history: Timed<Vector>[];
@@ -144,15 +143,15 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
       const target = path && { x: path.x + remote.correction.x, y: path.y + remote.correction.y };
       for (let next = remote.signals[0]; next && next.at <= time; next = remote.signals[0]) {
         remote.signals.shift();
-        const { pressed } = remote;
-        if (next.value === 'leave') {
-          departed.push(id);
-        } else if (next.value === 'press') {
-          remote.pressed = target && { at: now, value: remote.shown ?? target };
-        } else if (pressed) {
-          remote.pressed = undefined;
-          const quick = now - pressed.at < LONGEST_CLICK;
-          if (quick && target && distance(target, pressed.value) < CLICK_SLOP) clicks.push({ id, point: pressed.value });
+        const point = remote.shown ?? target;
+        if (next.value === 'leave') departed.push(id);
+        else if (next.value === 'press') {
+          remote.pressed = point && { at: now, value: point };
+          remote.pressedAt = point;
+        } else if (next.value === 'release') remote.pressed = undefined;
+        else {
+          const at = remote.pressedAt ?? point;
+          if (at) clicks.push({ id, point: at });
         }
       }
       return target ? [{ remote, ink, time, target, aim }] : [];
@@ -284,6 +283,7 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
       wake();
     },
     press: (id: string) => signal(id, 'press'),
+    click: (id: string) => signal(id, 'click'),
     release: (id: string) => signal(id, 'release'),
     delayOf(id: string) {
       return remotes.get(id)?.cadence.delay ?? 0;

@@ -124,10 +124,11 @@ export const commands: Command[] = [
   },
   {
     id: 'toggle-cursors',
-    label: 'Toggle cursors',
+    label: 'Live cursors',
     icon: Cursor01Icon,
     group: 'Tools',
-    keywords: ['presence', 'visitors', 'others', 'hide', 'show'],
+    keywords: ['toggle', 'presence', 'visitors', 'others', 'hide', 'show'],
+    status: () => (usePresenceStore.getState().hidden ? 'Off' : 'On'),
     available: hasFinePointer,
     run: () => announce(usePresenceStore.getState().toggle() ? 'Cursors hidden' : 'Cursors shown', Cursor01Icon),
   },

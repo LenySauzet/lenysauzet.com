@@ -1,4 +1,5 @@
 import { locate, spanOf } from '@/lib/presence/anchors';
+import { createClickFilter } from '@/lib/presence/clicks';
 import type { Connection } from '@/lib/presence/connection';
 import { frames } from '@/lib/presence/frames';
 import type { Timed, Vector } from '@/lib/presence/motion';
@@ -7,12 +8,22 @@ import { MOST_SAMPLES, type Pull, type Span } from '@/lib/presence/protocol';
 const SEND_EVERY = 33;
 const OLDEST = 1000;
 const SCROLL_SETTLES_AFTER = 160;
-const SELECTION_SETTLES_AFTER = 120;
+const SELECTION_EVERY = 50;
 const LONGEST_CLICK = 350;
 const CLICK_SLOP = 8;
 const UNSHARED = '[data-presence-ignore]';
 
-const sameSpan = (a?: Span, b?: Span) => a?.anchor === b?.anchor && a?.start === b?.start && a?.end === b?.end;
+const sameSpan = (a?: Span, b?: Span) =>
+  a?.anchor === b?.anchor && a?.start === b?.start && a?.end === b?.end && a?.backward === b?.backward;
+
+const isBackward = (selection: Selection) => {
+  const { anchorNode, anchorOffset, focusNode, focusOffset } = selection;
+  if (!anchorNode || !focusNode) return false;
+  const range = document.createRange();
+  range.setStart(anchorNode, anchorOffset);
+  range.setEnd(focusNode, focusOffset);
+  return range.collapsed && !(anchorNode === focusNode && anchorOffset === focusOffset);
+};
 
 export function shareOwnCursor(connection: Connection, onClick: (point: Vector) => void) {
   const listening = new AbortController();
@@ -29,6 +40,8 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
   let scrolling = 0;
   let selecting = 0;
   let shared: Span | undefined;
+  let selectedAt = -Infinity;
+  const isFresh = createClickFilter();
 
   const take = (at: number) => {
     if (!client) return;
@@ -78,8 +91,10 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
 
   const shareSelection = () => {
     selecting = 0;
+    selectedAt = performance.now();
     const selection = document.getSelection();
-    const span = selection && !selection.isCollapsed && selection.rangeCount ? spanOf(selection.getRangeAt(0)) : undefined;
+    const found = selection && !selection.isCollapsed && selection.rangeCount ? spanOf(selection.getRangeAt(0)) : undefined;
+    const span = found && selection && isBackward(selection) ? { ...found, backward: true as const } : found;
     if (sameSpan(span, shared)) return;
     shared = span;
     connection.send(span ? { type: 'highlight', span } : { type: 'unhighlight' });
@@ -143,9 +158,12 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
         click &&
         event.timeStamp - click.at < LONGEST_CLICK &&
         Math.hypot(event.clientX - click.value.x, event.clientY - click.value.y) < CLICK_SLOP &&
-        document.getSelection()?.isCollapsed !== false
-      )
+        document.getSelection()?.isCollapsed !== false &&
+        isFresh({ at: event.timeStamp, value: click.value })
+      ) {
         onClick(click.value);
+        if (!covered) connection.send({ type: 'click' });
+      }
     },
     options
   );
@@ -171,8 +189,8 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
   document.addEventListener(
     'selectionchange',
     () => {
-      window.clearTimeout(selecting);
-      selecting = window.setTimeout(shareSelection, SELECTION_SETTLES_AFTER);
+      if (selecting) return;
+      selecting = window.setTimeout(shareSelection, Math.max(0, SELECTION_EVERY - (performance.now() - selectedAt)));
     },
     options
   );

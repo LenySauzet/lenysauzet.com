@@ -27,6 +27,7 @@ export interface Span {
   anchor: string;
   start: number;
   end: number;
+  backward?: true;
 }
 
 export type Corner = 0 | 1 | 2 | 3;
@@ -41,6 +42,7 @@ export interface Pull {
 export type ClientMessage =
   | { type: 'move'; path: Path }
   | { type: 'press' }
+  | { type: 'click' }
   | { type: 'release' }
   | { type: 'leave' }
   | { type: 'highlight'; span: Span }
@@ -62,6 +64,7 @@ export type ServerMessage =
   | { type: 'snapshot'; cursors: Cursor[]; highlights: Highlight[] }
   | { type: 'move'; id: string; path: Path }
   | { type: 'press'; id: string }
+  | { type: 'click'; id: string }
   | { type: 'release'; id: string }
   | { type: 'leave'; id: string }
   | { type: 'gone'; id: string }
@@ -85,8 +88,8 @@ const LONGEST_TEXT = 20_000;
 const FARTHEST = 4000;
 const OLDEST = 1000;
 
-const SIGNALS = { p: 'press', r: 'release', l: 'leave', u: 'unhighlight' } as const;
-const TAGS = { press: 'p', release: 'r', leave: 'l', unhighlight: 'u', gone: 'g' } as const;
+const SIGNALS = { p: 'press', c: 'click', r: 'release', l: 'leave', u: 'unhighlight' } as const;
+const TAGS = { press: 'p', click: 'c', release: 'r', leave: 'l', unhighlight: 'u', gone: 'g' } as const;
 
 const round = (value: number, precision = PRECISION) => Math.round(value * precision) / precision;
 const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
@@ -133,10 +136,12 @@ const pathFrom = ([anchor, rawDetail, ...fields]: unknown[]): Path | undefined =
   return detail ? { anchor, detail, samples } : { anchor, samples };
 };
 
-const spanFrom = ([anchor, start, end, ...rest]: unknown[]): Span | undefined =>
-  rest.length === 0 && isName(anchor) && isCount(start, LONGEST_TEXT) && isCount(end, LONGEST_TEXT) && end > start
-    ? { anchor, start, end }
-    : undefined;
+const spanFrom = ([anchor, start, end, ...rest]: unknown[]): Span | undefined => {
+  const [direction, ...extra] = rest;
+  if (extra.length || (direction !== undefined && direction !== 1)) return undefined;
+  if (!isName(anchor) || !isCount(start, LONGEST_TEXT) || !isCount(end, LONGEST_TEXT) || end <= start) return undefined;
+  return direction === 1 ? { anchor, start, end, backward: true } : { anchor, start, end };
+};
 
 const pullFrom = ([frame, corner, x, y, ...rest]: unknown[]): Pull | undefined =>
   rest.length === 0 && isName(frame) && isCorner(corner) && isStretch(x) && isStretch(y)
@@ -151,7 +156,7 @@ const pathTo = ({ anchor, detail, samples }: Path) => [
   detail ? [detail.part, round(detail.x), round(detail.y)] : null,
   ...samples.map(sampleTo),
 ];
-const spanTo = ({ anchor, start, end }: Span) => [anchor, start, end];
+const spanTo = ({ anchor, start, end, backward }: Span) => (backward ? [anchor, start, end, 1] : [anchor, start, end]);
 const pullTo = ({ frame, corner, x, y }: Pull) => [frame, corner, round(x, 10), round(y, 10)];
 
 const parse = (data: string): unknown[] | undefined => {

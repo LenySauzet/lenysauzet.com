@@ -64,17 +64,21 @@ describe('Copy email', () => {
   });
 });
 
-describe('Toggle cursors', () => {
-  it('hides the other visitors, then shows them again, and says so', () => {
+describe('Live cursors', () => {
+  it('hides the other visitors, then shows them again, saying so and showing the state', () => {
     useIslandStore.setState({ presented: [] });
     usePresenceStore.setState({ hidden: false });
+    const command = byId('toggle-cursors');
+    expect(command.status?.()).toBe('On');
 
-    byId('toggle-cursors').run(context);
+    command.run(context);
     expect(usePresenceStore.getState().hidden).toBe(true);
     expect(announced()).toBe('Cursors hidden');
+    expect(command.status?.()).toBe('Off');
 
-    byId('toggle-cursors').run(context);
+    command.run(context);
     expect(usePresenceStore.getState().hidden).toBe(false);
     expect(announced()).toBe('Cursors shown');
+    expect(command.status?.()).toBe('On');
   });
 });

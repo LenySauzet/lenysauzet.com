@@ -160,6 +160,7 @@ export function SelectionFrame({ name, children, className }: SelectionFrameProp
 
   return (
     <div ref={frame} className={cn('relative px-6 py-4 sm:px-9 sm:py-5', className)}>
+      <motion.div aria-hidden style={{ clipPath: hatch }} className="absolute -inset-10 bg-background" />
       <motion.div aria-hidden style={{ clipPath: hatch }} className="hatch absolute -inset-10 opacity-60" />
       <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible">
         <motion.path d={outline} fill="none" strokeWidth={1} className="stroke-primary/70" />
