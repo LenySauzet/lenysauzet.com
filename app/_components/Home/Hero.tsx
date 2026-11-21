@@ -27,9 +27,9 @@ export function Hero({ className }: { className?: string }) {
         </SelectionFrame>
 
         <p data-presence="intro" className="rise mt-8 max-w-xl text-base leading-7 text-pretty text-muted-foreground [--rise-step:2]">
-          I&apos;m Lény, an AI and software engineer. From the models and the architecture to the interface people
-          touch, I bring the cross-disciplinary expertise that carries ambitious products to success. Familiar with
-          both remote and in-office roles.
+          I&apos;m Lény, an AI and software engineer bridging the gap between complex engineering and seamless user
+          experiences. From innovative startups to large-scale enterprise products, I bring the cross-disciplinary
+          expertise that carries ambitious products to success. Familiar with both remote and in-office roles.
         </p>
 
         <Actions className="rise mt-10 [--rise-step:3]" />
