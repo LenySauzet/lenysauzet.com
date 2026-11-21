@@ -2,7 +2,7 @@ import { rangeOf } from '@/lib/presence/anchors';
 import { hueOf } from '@/lib/presence/hue';
 import { linesOf, trimEnds, type Rect } from '@/lib/presence/lines';
 import { damp } from '@/lib/presence/motion';
-import type { Span } from '@/lib/presence/protocol';
+import type { Marks, Span } from '@/lib/presence/protocol';
 import { continues } from '@/lib/presence/spans';
 
 const SWEEP = 45;
@@ -24,7 +24,7 @@ interface Mark {
 }
 
 interface Owner {
-  current?: Mark;
+  current: Map<string, Mark>;
   leaving: Mark[];
   colored: string;
 }
@@ -108,16 +108,19 @@ export function createRemoteHighlights(isStill: () => boolean) {
   };
 
   const color = (id: string, owner: Owner) => {
-    const mark = owner.current;
-    const start = mark ? Math.round(mark.start) : 0;
-    const end = mark ? Math.round(mark.end) : 0;
-    const key = mark && end > start ? `${mark.anchor}:${start}:${end}` : '';
+    const covered = [...owner.current.values()].flatMap((mark) => {
+      const start = Math.round(mark.start);
+      const end = Math.round(mark.end);
+      return end > start ? [{ anchor: mark.anchor, start, end }] : [];
+    });
+    const key = covered.map(({ anchor, start, end }) => `${anchor}:${start}:${end}`).join(' ');
     if (key === owner.colored) return;
     owner.colored = key;
-    const range = mark && key ? rangeOf({ anchor: mark.anchor, start, end }) : undefined;
-    if (range) CSS.highlights.set(nameOf(id), new Highlight(range));
+    const ranges = covered.flatMap((span) => rangeOf(span) ?? []);
+    if (ranges.length) CSS.highlights.set(nameOf(id), new Highlight(...ranges));
     else CSS.highlights.delete(nameOf(id));
   };
+
 
   const settled = (mark: Mark) =>
     Math.abs(mark.start - mark.goal.start) < AT_REST &&
@@ -141,7 +144,7 @@ export function createRemoteHighlights(isStill: () => boolean) {
     let busy = false;
 
     const measured = [...owners].flatMap(([id, owner]) =>
-      (owner.current ? [owner.current, ...owner.leaving] : owner.leaving).map((mark) => {
+      [...owner.current.values(), ...owner.leaving].map((mark) => {
         step(mark, elapsed, still);
         busy ||= !settled(mark);
         return { id, mark, lines: linesFor(mark) };
@@ -156,7 +159,7 @@ export function createRemoteHighlights(isStill: () => boolean) {
         return false;
       });
       color(id, owner);
-      if (!owner.current && !owner.leaving.length) {
+      if (!owner.current.size && !owner.leaving.length) {
         owners.delete(id);
         style();
       }
@@ -165,40 +168,52 @@ export function createRemoteHighlights(isStill: () => boolean) {
     frame = busy ? window.requestAnimationFrame(draw) : 0;
   };
 
-  const leave = (owner: Owner) => {
-    const mark = owner.current;
-    if (!mark) return;
+  const fold = (owner: Owner, mark: Mark) => {
     const origin = mark.backward ? mark.goal.end : mark.goal.start;
     mark.goal = { start: origin, end: origin, opacity: 0 };
     owner.leaving.push(mark);
-    owner.current = undefined;
+    owner.current.delete(mark.anchor);
   };
 
-  const show = (id: string, span: Span) => {
+  const leave = (owner: Owner) => {
+    for (const mark of [...owner.current.values()]) fold(owner, mark);
+  };
+
+  const begin = (span: Span, backward: boolean): Mark => {
+    const element = document.createElement('div');
+    layer.append(element);
+    const origin = backward ? span.end : span.start;
+    return {
+      anchor: span.anchor,
+      start: origin,
+      end: origin,
+      opacity: 1,
+      goal: { start: span.start, end: span.end, opacity: 1 },
+      backward,
+      element,
+      lines: [],
+    };
+  };
+
+  const show = (id: string, { spans, backward }: Marks) => {
+    const reversed = backward === true;
     let owner = owners.get(id);
     if (!owner) {
-      owner = { leaving: [], colored: '' };
+      owner = { current: new Map(), leaving: [], colored: '' };
       owners.set(id, owner);
       style();
     }
-    const { current } = owner;
-    if (current && continues({ anchor: current.anchor, start: current.goal.start, end: current.goal.end }, span)) {
-      current.goal = { start: span.start, end: span.end, opacity: 1 };
-      current.backward = span.backward === true;
-    } else {
-      leave(owner);
-      const element = document.createElement('div');
-      layer.append(element);
-      owner.current = {
-        anchor: span.anchor,
-        start: span.backward ? span.end : span.start,
-        end: span.backward ? span.end : span.start,
-        opacity: 1,
-        goal: { start: span.start, end: span.end, opacity: 1 },
-        backward: span.backward === true,
-        element,
-        lines: [],
-      };
+    const anchors = new Set(spans.map(({ anchor }) => anchor));
+    for (const mark of [...owner.current.values()]) if (!anchors.has(mark.anchor)) fold(owner, mark);
+    for (const span of spans) {
+      const mark = owner.current.get(span.anchor);
+      if (mark && continues({ anchor: mark.anchor, start: mark.goal.start, end: mark.goal.end }, span)) {
+        mark.goal = { start: span.start, end: span.end, opacity: 1 };
+        mark.backward = reversed;
+        continue;
+      }
+      if (mark) fold(owner, mark);
+      owner.current.set(span.anchor, begin(span, reversed));
     }
     wake();
   };

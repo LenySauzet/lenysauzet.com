@@ -17,6 +17,8 @@ export interface Detail {
   part: string;
   x: number;
   y: number;
+  width: number;
+  height: number;
 }
 
 export interface Path {
@@ -30,6 +32,10 @@ export interface Span {
   anchor: string;
   start: number;
   end: number;
+}
+
+export interface Marks {
+  spans: Span[];
   backward?: true;
 }
 
@@ -48,7 +54,7 @@ export type ClientMessage =
   | { type: 'click' }
   | { type: 'release' }
   | { type: 'leave' }
-  | { type: 'highlight'; span: Span }
+  | { type: 'highlight'; marks: Marks }
   | { type: 'unhighlight' }
   | { type: 'pull'; pull: Pull }
   | { type: 'drop'; frame: string };
@@ -60,7 +66,7 @@ export interface Cursor {
 
 export interface Highlight {
   id: string;
-  span: Span;
+  marks: Marks;
 }
 
 export type ServerMessage =
@@ -71,14 +77,15 @@ export type ServerMessage =
   | { type: 'release'; id: string }
   | { type: 'leave'; id: string }
   | { type: 'gone'; id: string }
-  | { type: 'highlight'; id: string; span: Span }
+  | { type: 'highlight'; id: string; marks: Marks }
   | { type: 'unhighlight'; id: string }
   | { type: 'pull'; id: string; pull: Pull }
   | { type: 'drop'; id: string; frame: string };
 
 export const HEARTBEAT = 'ping';
 export const HEARTBEAT_REPLY = 'pong';
-export const MAX_CLIENT_MESSAGE = 320;
+export const MAX_CLIENT_MESSAGE = 512;
+export const MOST_SPANS = 8;
 export const MOST_SAMPLES = 4;
 export const LONGEST_PULL = 64;
 export const EVICTED = 4000;
@@ -122,8 +129,15 @@ const sampleFrom = (value: unknown): Sample | undefined => {
 const detailFrom = (value: unknown): Detail | null | undefined => {
   if (value === null) return null;
   if (!Array.isArray(value)) return undefined;
-  const [part, x, y, ...rest] = value;
-  return rest.length === 0 && isPart(part) && isFraction(x) && isFraction(y) ? { part, x, y } : undefined;
+  const [part, x, y, width, height, ...rest] = value;
+  return rest.length === 0 &&
+    isPart(part) &&
+    isFraction(x) &&
+    isFraction(y) &&
+    isCount(width, FARTHEST) &&
+    isCount(height, FARTHEST)
+    ? { part, x, y, width, height }
+    : undefined;
 };
 
 const isLayout = (value: unknown): value is Layout => value === 1 || value === 2 || value === 3;
@@ -142,11 +156,23 @@ const pathFrom = ([anchor, layout, rawDetail, ...fields]: unknown[]): Path | und
   return detail ? { anchor, layout, detail, samples } : { anchor, layout, samples };
 };
 
-const spanFrom = ([anchor, start, end, ...rest]: unknown[]): Span | undefined => {
-  const [direction, ...extra] = rest;
-  if (extra.length || (direction !== undefined && direction !== 1)) return undefined;
-  if (!isName(anchor) || !isCount(start, LONGEST_TEXT) || !isCount(end, LONGEST_TEXT) || end <= start) return undefined;
-  return direction === 1 ? { anchor, start, end, backward: true } : { anchor, start, end };
+const spanFrom = (value: unknown): Span | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const [anchor, start, end, ...rest] = value;
+  return rest.length === 0 && isName(anchor) && isCount(start, LONGEST_TEXT) && isCount(end, LONGEST_TEXT) && end > start
+    ? { anchor, start, end }
+    : undefined;
+};
+
+const marksFrom = ([direction, ...fields]: unknown[]): Marks | undefined => {
+  if ((direction !== 0 && direction !== 1) || fields.length === 0 || fields.length > MOST_SPANS) return undefined;
+  const spans: Span[] = [];
+  for (const field of fields) {
+    const span = spanFrom(field);
+    if (!span) return undefined;
+    spans.push(span);
+  }
+  return direction === 1 ? { spans, backward: true } : { spans };
 };
 
 const pullFrom = ([frame, corner, x, y, ...rest]: unknown[]): Pull | undefined =>
@@ -160,10 +186,12 @@ const sampleTo = ({ age, x, y, dx, dy }: Sample) => [Math.round(age), round(x), 
 const pathTo = ({ anchor, layout, detail, samples }: Path) => [
   anchor,
   layout,
-  detail ? [detail.part, round(detail.x), round(detail.y)] : null,
+  detail
+    ? [detail.part, round(detail.x), round(detail.y), Math.round(detail.width), Math.round(detail.height)]
+    : null,
   ...samples.map(sampleTo),
 ];
-const spanTo = ({ anchor, start, end, backward }: Span) => (backward ? [anchor, start, end, 1] : [anchor, start, end]);
+const marksTo = ({ spans, backward }: Marks) => [backward ? 1 : 0, ...spans.map(({ anchor, start, end }) => [anchor, start, end])];
 const pullTo = ({ frame, corner, x, y }: Pull) => [frame, corner, round(x, 10), round(y, 10)];
 
 const parse = (data: string): unknown[] | undefined => {
@@ -182,7 +210,7 @@ export function encodeClient(message: ClientMessage) {
     case 'move':
       return JSON.stringify(['m', ...pathTo(message.path)]);
     case 'highlight':
-      return JSON.stringify(['h', ...spanTo(message.span)]);
+      return JSON.stringify(['h', ...marksTo(message.marks)]);
     case 'pull':
       return JSON.stringify(['d', ...pullTo(message.pull)]);
     case 'drop':
@@ -200,8 +228,8 @@ export function decodeClient(data: string): ClientMessage | undefined {
       return path && { type: 'move', path };
     }
     case 'h': {
-      const span = spanFrom(rest);
-      return span && { type: 'highlight', span };
+      const marks = marksFrom(rest);
+      return marks && { type: 'highlight', marks };
     }
     case 'd': {
       const pull = pullFrom(rest);
@@ -222,12 +250,12 @@ export function encodeServer(message: ServerMessage) {
       return JSON.stringify([
         's',
         message.cursors.map(({ id, path }) => [id, ...pathTo(path)]),
-        message.highlights.map(({ id, span }) => [id, ...spanTo(span)]),
+        message.highlights.map(({ id, marks }) => [id, ...marksTo(marks)]),
       ]);
     case 'move':
       return JSON.stringify(['m', message.id, ...pathTo(message.path)]);
     case 'highlight':
-      return JSON.stringify(['h', message.id, ...spanTo(message.span)]);
+      return JSON.stringify(['h', message.id, ...marksTo(message.marks)]);
     case 'pull':
       return JSON.stringify(['d', message.id, ...pullTo(message.pull)]);
     case 'drop':
@@ -255,12 +283,12 @@ export function decodeServer(data: string): ServerMessage | undefined {
   if (tag === 's') {
     const [highlights, ...extra] = rest;
     const cursors = listFrom(id, pathFrom);
-    const spans = listFrom(highlights, spanFrom);
-    if (!cursors || !spans || extra.length) return undefined;
+    const marked = listFrom(highlights, marksFrom);
+    if (!cursors || !marked || extra.length) return undefined;
     return {
       type: 'snapshot',
       cursors: cursors.map(({ id: owner, value }) => ({ id: owner, path: value })),
-      highlights: spans.map(({ id: owner, value }) => ({ id: owner, span: value })),
+      highlights: marked.map(({ id: owner, value }) => ({ id: owner, marks: value })),
     };
   }
   if (!isId(id)) return undefined;
@@ -270,8 +298,8 @@ export function decodeServer(data: string): ServerMessage | undefined {
       return path && { type: 'move', id, path };
     }
     case 'h': {
-      const span = spanFrom(rest);
-      return span && { type: 'highlight', id, span };
+      const marks = marksFrom(rest);
+      return marks && { type: 'highlight', id, marks };
     }
     case 'd': {
       const pull = pullFrom(rest);

@@ -80,6 +80,13 @@ interface RemoteCursorsOptions {
 
 const distance = (a: Vector, b: Vector) => Math.hypot(a.x - b.x, a.y - b.y);
 
+const SIZE_SLACK = 0.4;
+const SMALLEST = 8;
+
+const sameSize = (here: { width: number; height: number }, there: { width: number; height: number }) =>
+  Math.abs(here.width - there.width) <= SIZE_SLACK * Math.max(there.width, SMALLEST) &&
+  Math.abs(here.height - there.height) <= SIZE_SLACK * Math.max(there.height, SMALLEST);
+
 export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursorsOptions) {
   const listening = new AbortController();
   const remotes = new Map<string, Remote>();
@@ -108,12 +115,15 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
   const draw = (now: number) => {
     const elapsed = Math.min(LONGEST_FRAME, now - drewAt || 16);
     const still = isStill();
-    const place = createPlacer();
+    const { place, box } = createPlacer();
     const resolve = ({ anchor, placement }: Placed) => place({ anchor, part: '' }, placement);
     const offsetOf = (precision: Precision | undefined): Vector => {
       if (!precision) return { x: 0, y: 0 };
       const { anchor, detail, placement } = precision;
-      const precise = place({ anchor, part: detail.part }, { x: detail.x, y: detail.y, dx: 0, dy: 0 });
+      const target = { anchor, part: detail.part };
+      const here = box(target);
+      if (!here || !sameSize(here, detail)) return { x: 0, y: 0 };
+      const precise = place(target, { x: detail.x, y: detail.y, dx: 0, dy: 0 });
       const coarse = place({ anchor, part: '' }, placement);
       return precise && coarse ? { x: precise.x - coarse.x, y: precise.y - coarse.y } : { x: 0, y: 0 };
     };

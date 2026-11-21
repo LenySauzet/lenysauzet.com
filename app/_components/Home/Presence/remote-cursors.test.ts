@@ -169,7 +169,7 @@ describe('the remote cursors', () => {
     const sweep = (x: number) => ({
       anchor: 'card',
       layout: 3 as const,
-      detail: { part: '0', x: 0.5, y: 0.5 },
+      detail: { part: '0', x: 0.5, y: 0.5, width: 10, height: 10 },
       samples: [{ age: 16, x: x - 0.016, y: 0.1, dx: 0, dy: 0 }, { age: 0, x, y: 0.1, dx: 0, dy: 0 }],
     });
 
@@ -201,6 +201,34 @@ describe('the remote cursors', () => {
     vi.advanceTimersByTime(300);
     expect(clicked).toEqual([200]);
     expect(shown()).toEqual([]);
+  });
+
+  it('ignores a detail that is not the same size here, as a part folded on this page', () => {
+    const card = document.createElement('article');
+    card.dataset.presence = 'card';
+    card.innerHTML = '<a>You</a>';
+    const folded = card.querySelector('a')!;
+    for (const [element, box] of [
+      [card, { left: 0, top: 0, width: 1000, height: 100 }],
+      [folded, { left: 500, top: 50, width: 0, height: 32 }],
+    ] as const) {
+      vi.spyOn(element, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+      vi.spyOn(element, 'getBoundingClientRect').mockReturnValue(box as DOMRect);
+    }
+    document.body.append(card);
+    const element = ink();
+    cursors.attach('v0', element);
+    cursors.move('v0', {
+      anchor: 'card',
+      layout: 3,
+      detail: { part: '0', x: 0.5, y: 0.5, width: 32, height: 32 },
+      samples: [{ age: 0, x: 0.2, y: 0.1, dx: 0, dy: 0 }],
+    });
+
+    vi.advanceTimersByTime(1000);
+
+    expect(mainOf(element).style.transform).toMatch(/^translate3d\(200px/);
+    card.remove();
   });
 
   it('draws a trail behind a fast cursor only', () => {

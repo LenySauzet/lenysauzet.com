@@ -1,5 +1,5 @@
 import type { Vector } from './motion';
-import type { Detail, Sample, Span, Target } from './protocol';
+import { MOST_SPANS, type Detail, type Sample, type Span, type Target } from './protocol';
 
 const ANCHOR_ATTRIBUTE = 'data-presence';
 const PAGE_ANCHOR = 'page';
@@ -95,9 +95,6 @@ const shownAnchors = (): Anchored[] =>
     const anchor = element.getAttribute(ANCHOR_ATTRIBUTE);
     return anchor ? [{ anchor, box: documentBox(element.getBoundingClientRect()) }] : [];
   });
-
-const anchorOf = (node: Node) =>
-  (node instanceof Element ? node : node.parentElement)?.closest(`[${ANCHOR_ATTRIBUTE}]`) ?? undefined;
 
 const offsetWithin = (anchor: Node, node: Node, offset: number) => {
   const before = document.createRange();
@@ -210,33 +207,45 @@ export function locate(
   const partBox = aimed?.part ? boxOf(aimed) : undefined;
   if (!aimed?.part || !partBox) return { anchor, placements };
   const { x, y } = placeOn(partBox, last);
-  return { anchor, placements, detail: { part: aimed.part, x, y } };
+  const width = Math.round(partBox.width);
+  const height = Math.round(partBox.height);
+  return { anchor, placements, detail: { part: aimed.part, x, y, width, height } };
 }
 
 export function createPlacer() {
   const boxes = new Map<string, Box | undefined>();
   const page = pageBox();
 
-  return (target: Target, placement: Placement): Vector | undefined => {
+  const box = (target: Target) => {
     const key = `${target.anchor} ${target.part}`;
     if (!boxes.has(key)) boxes.set(key, boxOf(target));
-    const box = boxes.get(key);
-    if (!box) return undefined;
-    const point = pointOn(box, placement);
+    return boxes.get(key);
+  };
+
+  const place = (target: Target, placement: Placement): Vector | undefined => {
+    const found = box(target);
+    if (!found) return undefined;
+    const point = pointOn(found, placement);
     return { x: clamp(point.x, 0, page.width), y: clamp(point.y, 0, page.height) };
   };
+
+  return { place, box };
 }
 
-export function spanOf(range: Range): Span | undefined {
-  const anchor = anchorOf(range.startContainer) ?? anchorOf(range.endContainer);
-  const name = anchor?.getAttribute(ANCHOR_ATTRIBUTE);
-  if (!anchor || !name) return undefined;
-
-  const start = anchor.contains(range.startContainer) ? offsetWithin(anchor, range.startContainer, range.startOffset) : 0;
-  const end = anchor.contains(range.endContainer)
-    ? offsetWithin(anchor, range.endContainer, range.endOffset)
-    : (anchor.textContent?.length ?? 0);
-  return end > start ? { anchor: name, start, end } : undefined;
+export function spansOf(range: Range): Span[] {
+  return [...document.querySelectorAll(`[${ANCHOR_ATTRIBUTE}]`)]
+    .filter((anchor) => isShown(anchor) && range.intersectsNode(anchor))
+    .flatMap((anchor) => {
+      const name = anchor.getAttribute(ANCHOR_ATTRIBUTE);
+      const start = anchor.contains(range.startContainer)
+        ? offsetWithin(anchor, range.startContainer, range.startOffset)
+        : 0;
+      const end = anchor.contains(range.endContainer)
+        ? offsetWithin(anchor, range.endContainer, range.endOffset)
+        : (anchor.textContent?.length ?? 0);
+      return name && end > start ? [{ anchor: name, start, end }] : [];
+    })
+    .slice(0, MOST_SPANS);
 }
 
 export function rangeOf({ anchor, start, end }: Span): Range | undefined {

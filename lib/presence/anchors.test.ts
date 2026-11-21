@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { anchorFor, createPlacer, locate, nearest, placeOn, pointOn, rangeOf, spanOf } from './anchors';
+import { anchorFor, createPlacer, locate, nearest, placeOn, pointOn, rangeOf, spansOf } from './anchors';
 
 const box = { left: 100, top: 400, width: 200, height: 100 };
 
@@ -82,7 +82,7 @@ describe('locate and place', () => {
     expect(locate([{ x: 530, y: 40 }])).toEqual({
       anchor: 'project:ankhora',
       placements: [{ x: 0.3, y: 0.8, dx: 0, dy: 0 }],
-      detail: { part: '0.1', x: 0.25, y: 0.5 },
+      detail: { part: '0.1', x: 0.25, y: 0.5, width: 80, height: 20 },
     });
   });
 
@@ -127,8 +127,8 @@ describe('locate and place', () => {
     const located = locate([{ x: 116, y: 10 }]);
 
     expect(located?.anchor).toBe('intro');
-    expect(located?.detail).toEqual({ part: '#1', x: 0.6, y: 0.5 });
-    expect(createPlacer()({ anchor: 'intro', part: '#4' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({ x: 145, y: 10 });
+    expect(located?.detail).toEqual({ part: '#1', x: 0.6, y: 0.5, width: 10, height: 20 });
+    expect(createPlacer().place({ anchor: 'intro', part: '#4' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({ x: 145, y: 10 });
     Reflect.deleteProperty(document, 'caretPositionFromPoint');
     Reflect.deleteProperty(Range.prototype, 'getClientRects');
   });
@@ -137,11 +137,11 @@ describe('locate and place', () => {
     card(false, 0);
     card(true, 500);
 
-    expect(createPlacer()({ anchor: 'project:ankhora', part: '' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({
+    expect(createPlacer().place({ anchor: 'project:ankhora', part: '' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({
       x: 550,
       y: 25,
     });
-    expect(createPlacer()({ anchor: 'project:ankhora', part: '0.1' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({
+    expect(createPlacer().place({ anchor: 'project:ankhora', part: '0.1' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({
       x: 550,
       y: 40,
     });
@@ -150,11 +150,11 @@ describe('locate and place', () => {
   it('falls back to the anchor for a part this page lacks, and places nothing without the anchor', () => {
     card(true, 500);
 
-    expect(createPlacer()({ anchor: 'project:ankhora', part: '4.2' }, { x: 0, y: 0, dx: 0, dy: 0 })).toEqual({
+    expect(createPlacer().place({ anchor: 'project:ankhora', part: '4.2' }, { x: 0, y: 0, dx: 0, dy: 0 })).toEqual({
       x: 500,
       y: 0,
     });
-    expect(createPlacer()({ anchor: 'project:elsewhere', part: '' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toBeUndefined();
+    expect(createPlacer().place({ anchor: 'project:elsewhere', part: '' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toBeUndefined();
   });
 });
 
@@ -176,19 +176,27 @@ describe('spans', () => {
     range.setStart(element.firstChild!, 2);
     range.setEnd(element.querySelector('em')!.firstChild!, 4);
 
-    expect(spanOf(range)).toEqual({ anchor: 'intro', start: 2, end: 9 });
+    expect(spansOf(range)).toEqual([{ anchor: 'intro', start: 2, end: 9 }]);
   });
 
-  it('keep the part of a selection that runs past its anchor', () => {
+  it('cut a selection across anchors into a span per anchor, skipping what lies between', () => {
+    const role = document.createElement('p');
+    role.dataset.presence = 'role';
+    role.textContent = 'Engineer';
+    vi.spyOn(role, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+    document.body.append(role);
+    const between = document.createElement('p');
+    between.textContent = 'free text';
+    document.body.append(between);
     const element = intro();
-    const after = document.createElement('p');
-    after.textContent = 'Elsewhere';
-    document.body.append(after);
     const range = document.createRange();
-    range.setStart(element.firstChild!, 2);
-    range.setEnd(after.firstChild!, 4);
+    range.setStart(role.firstChild!, 3);
+    range.setEnd(element.firstChild!, 4);
 
-    expect(spanOf(range)).toEqual({ anchor: 'intro', start: 2, end: 23 });
+    expect(spansOf(range)).toEqual([
+      { anchor: 'role', start: 3, end: 8 },
+      { anchor: 'intro', start: 0, end: 4 },
+    ]);
   });
 
   it('turn those characters back into the same text on another copy of the page', () => {
@@ -217,7 +225,7 @@ describe('spans', () => {
     const range = document.createRange();
     range.selectNodeContents(loose);
 
-    expect(spanOf(range)).toBeUndefined();
+    expect(spansOf(range)).toEqual([]);
     intro();
     expect(rangeOf({ anchor: 'intro', start: 2, end: 500 })).toBeUndefined();
   });

@@ -9,5 +9,9 @@ export default function Error({ error, retry }: ErrorProps) {
     console.error(error);
   }, [error]);
 
-  return <ErrorBody subject="This page" retry={retry} />;
+  return (
+    <main>
+      <ErrorBody subject="This page" retry={retry} />
+    </main>
+  );
 }

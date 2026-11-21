@@ -11,7 +11,7 @@ import {
   type Highlight,
   type Path,
   type ServerMessage,
-  type Span,
+  type Marks,
 } from '../../../lib/presence/protocol';
 import { Budget } from './budget';
 
@@ -25,7 +25,7 @@ interface Visitor {
   id: string;
   activeAt: number;
   path?: Path;
-  span?: Span;
+  marks?: Marks;
 }
 
 const newId = () => crypto.randomUUID().replaceAll('-', '').slice(0, 10);
@@ -78,10 +78,10 @@ export class Room extends DurableObject<Env> {
         remember({ path: undefined });
         return this.broadcast(socket, { type: 'leave', id });
       case 'highlight':
-        remember({ span: message.span });
-        return this.broadcast(socket, { type: 'highlight', id, span: message.span });
+        remember({ marks: message.marks });
+        return this.broadcast(socket, { type: 'highlight', id, marks: message.marks });
       case 'unhighlight':
-        remember({ span: undefined });
+        remember({ marks: undefined });
         return this.broadcast(socket, { type: 'unhighlight', id });
       case 'pull':
         remember({});
@@ -133,7 +133,7 @@ export class Room extends DurableObject<Env> {
 
     return {
       cursors: visitors.flatMap(({ id, path }) => (path ? [{ id, path }] : [])),
-      highlights: visitors.flatMap(({ id, span }) => (span ? [{ id, span }] : [])),
+      highlights: visitors.flatMap(({ id, marks }) => (marks ? [{ id, marks }] : [])),
     };
   }
 

@@ -1,10 +1,10 @@
-import { locate, spanOf } from '@/lib/presence/anchors';
+import { locate, spansOf } from '@/lib/presence/anchors';
 import { createClickFilter } from '@/lib/presence/clicks';
 import { layoutNow } from '@/lib/presence/layout';
 import type { Connection } from '@/lib/presence/connection';
 import { frames } from '@/lib/presence/frames';
 import type { Timed, Vector } from '@/lib/presence/motion';
-import { MOST_SAMPLES, type Pull, type Span } from '@/lib/presence/protocol';
+import { MOST_SAMPLES, type Marks, type Pull } from '@/lib/presence/protocol';
 
 const SEND_EVERY = 33;
 const OLDEST = 1000;
@@ -13,8 +13,7 @@ const SELECTION_EVERY = 50;
 const CLICK_SLOP = 8;
 const UNSHARED = '[data-presence-ignore]';
 
-const sameSpan = (a?: Span, b?: Span) =>
-  a?.anchor === b?.anchor && a?.start === b?.start && a?.end === b?.end && a?.backward === b?.backward;
+const sameMarks = (a?: Marks, b?: Marks) => JSON.stringify(a) === JSON.stringify(b);
 
 const isBackward = (selection: Selection) => {
   const { anchorNode, anchorOffset, focusNode, focusOffset } = selection;
@@ -39,7 +38,7 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
   let pending = 0;
   let scrolling = 0;
   let selecting = 0;
-  let shared: Span | undefined;
+  let shared: Marks | undefined;
   let selectedAt = -Infinity;
   const isFresh = createClickFilter();
 
@@ -93,11 +92,15 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
     selecting = 0;
     selectedAt = performance.now();
     const selection = document.getSelection();
-    const found = selection && !selection.isCollapsed && selection.rangeCount ? spanOf(selection.getRangeAt(0)) : undefined;
-    const span = found && selection && isBackward(selection) ? { ...found, backward: true as const } : found;
-    if (sameSpan(span, shared)) return;
-    shared = span;
-    connection.send(span ? { type: 'highlight', span } : { type: 'unhighlight' });
+    const spans = selection && !selection.isCollapsed && selection.rangeCount ? spansOf(selection.getRangeAt(0)) : [];
+    const marks: Marks | undefined = !spans.length
+      ? undefined
+      : selection && isBackward(selection)
+        ? { spans, backward: true }
+        : { spans };
+    if (sameMarks(marks, shared)) return;
+    shared = marks;
+    connection.send(marks ? { type: 'highlight', marks } : { type: 'unhighlight' });
   };
 
   connection.onOpen(() => {

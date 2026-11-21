@@ -209,7 +209,11 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   masonry copies share one tree). The receiver adds the gap between the detail and the
   path, weighted by how slowly the path moves (full below 0.45 px/ms is approached as
   the pace falls, damped over 110 ms): a sweep follows the path, and a pointer that
-  slows, hovers, selects or clicks settles on the same letter or button. The pace is
+  slows, hovers, selects or clicks settles on the same letter or button. The detail
+  carries its box's size, and a receiver ignores it where that element is not about the
+  same size (within 40%): "You" inside "Book a call" is full size only on the page
+  where the button is hovered open, folded to nothing elsewhere, and the cursor jumped
+  to where it lay folded. The pace is
   the path's own, never the drawn cursor's, or the correction would slow itself.
   Following the detail at full speed made a cursor jump back each time a line wrapped
   differently; picking the nearest anchor at each sample made it jump in every gap. A
@@ -227,11 +231,13 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   clicks and frame pulls replay on the same delay so they meet the cursor. While its
   page scrolls the own cursor is not sent but leaves, and comes back where it settled
   160 ms later: sending through a scroll drew others a straight line across the page.
-- **A selection is shared as characters of an anchor, and its direction.** It is sent
+- **A selection is shared as characters of each anchor it crosses, and its direction.** It is sent
   at most every 50 ms while it changes (a debounce sent nothing until the drag paused),
   and backward when its focus precedes its anchor, so a selection made from right to
-  left grows, and folds away, from its right. `spanOf` counts the characters before
-  each end within the anchor holding its start (or its end), keeping
+  left grows, and folds away, from its right. `spansOf` cuts it into one span per anchor
+  it meets (eight at most), so a selection from the role through the intro is drawn in
+  all three, each a mark the receiver sweeps on its own; the text between anchors is
+  not shared. Each span counts the characters before each end within the anchor holding its start (or its end), keeping
   the part inside; `rangeOf` walks the text nodes of the shown copy back to a range.
   `remote-highlights` animates the shown ends towards the shared ones in characters,
   fractions included, so a selection sweeps along the text: the background is drawn as
@@ -315,6 +321,16 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   frames still held. `body` clips horizontal overflow (`clip`,
   not `hidden`, so it creates no scroll container), as a corner pulled at the edge of a
   phone would otherwise widen the page.
+- **The page's foot is blurred, progressively.** `PageBlur`, in the root layout, is six
+  fixed bands of `backdrop-filter`, each masked to start a sixth further down
+  (`lib/blur.ts`): their radii are the steps of an exponential curve taken in
+  quadrature, as stacked blurs add, so the total reaches 12px at the edge and the
+  content eases into it. It fades out over the last 96px of scroll, by opacity, which
+  costs nothing to change, so the footer's last links are never under it, and a page
+  with nothing to scroll has none. The island sits above it.
+- **The footer belongs to the home page.** `page.tsx` renders `<main>` and the footer
+  after it; the status pages render their own `<main>` and no footer, whose bands rise
+  from the project columns and had nothing to rise from there.
 - **`/resume` proxies the PDF** so `download` holds across origins; the edge caches it
   a day and a failure is never cached.
 - **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to

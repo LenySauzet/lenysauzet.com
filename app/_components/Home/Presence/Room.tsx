@@ -7,7 +7,7 @@ import { connect } from '@/lib/presence/connection';
 import { frames, type FrameEvent } from '@/lib/presence/frames';
 import { layoutNow, LAYOUT_QUERIES } from '@/lib/presence/layout';
 import { watchOverlays } from '@/lib/presence/overlays';
-import type { Layout, Path, ServerMessage, Span } from '@/lib/presence/protocol';
+import type { Layout, Marks, Path, ServerMessage } from '@/lib/presence/protocol';
 import { cn } from '@/lib/utils';
 
 import { Cursor } from './Cursor';
@@ -69,13 +69,13 @@ export function Room({ url, className }: { url: string; className?: string }) {
     };
 
     const layouts = new Map<string, Layout>();
-    const spans = new Map<string, Span>();
+    const selections = new Map<string, Marks>();
     let own = layoutNow();
     const alike = (id: string) => layouts.get(id) === own;
 
     const showHighlight = (id: string) => {
-      const span = spans.get(id);
-      if (span && alike(id)) highlights.show(id, span);
+      const marks = selections.get(id);
+      if (marks && alike(id)) highlights.show(id, marks);
       else highlights.hide(id);
     };
 
@@ -103,12 +103,12 @@ export function Room({ url, className }: { url: string; className?: string }) {
       switch (message.type) {
         case 'snapshot': {
           layouts.clear();
-          spans.clear();
+          selections.clear();
           cursors.keepOnly(new Set(message.cursors.map(({ id }) => id)));
           highlights.keepOnly(new Set(message.highlights.map(({ id }) => id)));
           for (const { id, path } of message.cursors) place(id, path);
-          for (const { id, span } of message.highlights) {
-            spans.set(id, span);
+          for (const { id, marks } of message.highlights) {
+            selections.set(id, marks);
             showHighlight(id);
           }
           return;
@@ -129,15 +129,15 @@ export function Room({ url, className }: { url: string; className?: string }) {
           if (frame) frames.receive({ type: 'drop', frame });
           pulling.delete(message.id);
           layouts.delete(message.id);
-          spans.delete(message.id);
+          selections.delete(message.id);
           cursors.remove(message.id);
           return highlights.hide(message.id);
         }
         case 'highlight':
-          spans.set(message.id, message.span);
+          selections.set(message.id, message.marks);
           return showHighlight(message.id);
         case 'unhighlight':
-          spans.delete(message.id);
+          selections.delete(message.id);
           return highlights.hide(message.id);
         case 'pull':
           if (!alike(message.id)) return;

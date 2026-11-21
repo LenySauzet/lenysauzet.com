@@ -7,15 +7,15 @@ const ORIGIN = 'https://lenysauzet.com';
 const path = {
   anchor: 'project:ankhora',
   layout: 3 as const,
-  detail: { part: '0', x: 0.5, y: 0.5 },
+  detail: { part: '0', x: 0.5, y: 0.5, width: 100, height: 40 },
   samples: [
     { age: 20, x: 0.2, y: 0.5, dx: 0, dy: 0 },
     { age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 },
   ],
 };
-const last = { anchor: 'project:ankhora', layout: 3 as const, detail: { part: '0', x: 0.5, y: 0.5 }, samples: [{ age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 }] };
+const last = { anchor: 'project:ankhora', layout: 3 as const, detail: { part: '0', x: 0.5, y: 0.5, width: 100, height: 40 }, samples: [{ age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 }] };
 const pull = { frame: 'headline', corner: 1 as const, x: 12, y: -6 };
-const span = { anchor: 'intro', start: 4, end: 12 };
+const marks = { spans: [{ anchor: 'intro', start: 4, end: 12 }] };
 const open: { socket: WebSocket; closed: Promise<number> }[] = [];
 
 async function connect(address?: string) {
@@ -135,14 +135,14 @@ describe('the presence worker', () => {
     await reader.next();
     await watcher.next();
 
-    reader.socket.send(encodeClient({ type: 'highlight', span }));
+    reader.socket.send(encodeClient({ type: 'highlight', marks }));
     const highlighted = await watcher.next();
-    expect(highlighted).toMatchObject({ type: 'highlight', span });
+    expect(highlighted).toMatchObject({ type: 'highlight', marks });
 
     reader.socket.send(encodeClient({ type: 'leave' }));
     await watcher.next();
     const newcomer = await connect();
-    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [], highlights: [{ id: idOf(highlighted), span }] });
+    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [], highlights: [{ id: idOf(highlighted), marks }] });
 
     reader.socket.send(encodeClient({ type: 'unhighlight' }));
     reader.socket.send(encodeClient({ type: 'release' }));

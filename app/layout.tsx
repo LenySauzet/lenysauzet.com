@@ -8,8 +8,8 @@ import { DEFAULT_THEME, THEME_STORAGE_KEY } from '@/lib/theme/stored-theme';
 
 import { PaletteLauncher } from './_components/CommandPalette';
 import { bodyClassName } from './_components/document';
-import { Footer } from './_components/Footer';
 import { Island } from './_components/Island';
+import { PageBlur } from './_components/PageBlur';
 import { ThemeColor } from './_components/ThemeColor';
 import './globals.css';
 
@@ -45,8 +45,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <TooltipProvider>
             <Island />
             <PaletteLauncher />
-            <main>{children}</main>
-            <Footer />
+            {children}
+            <PageBlur />
           </TooltipProvider>
         </ThemeProvider>
       </body>
