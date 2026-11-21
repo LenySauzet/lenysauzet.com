@@ -26,7 +26,7 @@ function Arrow({ filter, rimmed = false, className }: ArrowProps) {
   return (
     <svg width="20" height="20" viewBox="0 0 26 26" overflow="visible" className={className}>
       <g filter={`url(#${filter})`} strokeLinejoin="round">
-        {rimmed && <path d={ARROW} strokeWidth="6" className="fill-white stroke-white" />}
+        {rimmed && <path d={ARROW} strokeWidth="6" className="fill-background stroke-background" />}
         <path d={ARROW} strokeWidth="3.5" className="fill-cursor stroke-cursor" />
       </g>
     </svg>
