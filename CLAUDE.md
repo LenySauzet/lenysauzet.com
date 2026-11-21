@@ -325,9 +325,12 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   fixed bands of `backdrop-filter`, each masked to start a sixth further down
   (`lib/blur.ts`): their radii are the steps of an exponential curve taken in
   quadrature, as stacked blurs add, so the total reaches 12px at the edge and the
-  content eases into it. It fades out over the last 96px of scroll, by opacity, which
-  costs nothing to change, so the footer's last links are never under it, and a page
-  with nothing to scroll has none. The island sits above it.
+  content eases into it. Over the last 96px of scroll it is squeezed down to the edge
+  (`scaleY` from the bottom, a transform, so no layout), keeping its curve, and gone at
+  the last pixel: the footer's last links are never under it, and a page with nothing
+  to scroll has none. At zero it is hidden rather than left at scale 0, and shown again
+  on the way up, so the browser draws its backdrop afresh: a fade to opacity 0 was
+  reported not to come back. The island sits above it.
 - **The footer belongs to the home page.** `page.tsx` renders `<main>` and the footer
   after it; the status pages render their own `<main>` and no footer, whose bands rise
   from the project columns and had nothing to rise from there.
