@@ -173,7 +173,9 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   Durable Object room relays positions to everyone else and keeps each visitor's last
   point and last activity in the socket attachment, so a newcomer gets a snapshot and
   the room can hibernate; no IP or name is kept, the address being hashed into an
-  in-memory tag only to cap it at four sockets. The room holds 24 and lets the idlest
+  in-memory tag only to cap it at four sockets. Only open sockets count, for the cap,
+  the capacity, eviction and snapshots: a socket still closing held a seat, and was
+  evicted in place of the idlest visitor, who then stayed. The room holds 24 and lets the idlest
   go with close code 4000 to make room, which the client honours by staying down until
   its own pointer moves; a hidden tab closes its socket the same way. Messages over
   320 characters, unreadable, or beyond a burst of 120 at 75 a second are dropped
@@ -185,6 +187,15 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **The room still completes the close handshake itself.** The compatibility date makes
   the runtime reply to a Close frame, yet under local wrangler sockets stayed CLOSING
   until `webSocketClose` called `close()`; the call is harmless where it is ignored.
+- **A visitor sees only the visitors on the same layout.** Every path carries its
+  owner's layout (`lib/presence/layout.ts`: the columns the projects take, 1 below
+  48rem, 2 below 64rem, 3 above, the breakpoints of `Projects`), and the room shows a
+  visitor's cursor, highlight and frame pulls only while it matches this one's,
+  regrouping when either side crosses a breakpoint. Between two layouts no mapping is
+  both faithful to the motion and true to what is pointed at, and every compromise read
+  as a cursor recalibrating or crossing the page; within one, cards sit in the same
+  order and the intro wraps alike, so the detail barely moves the cursor. Fewer
+  cursors, all of them believable, was the choice.
 - **A cursor moves on its anchor and lands on its detail.** Anchors are leaves, never
   nested: `role`, `headline`, `intro`, `actions`, `clients`, each `project:<slug>`,
   `metadata`, `links`. Each sample is a place on one anchor: the fraction of its box at

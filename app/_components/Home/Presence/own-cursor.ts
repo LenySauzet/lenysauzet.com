@@ -1,5 +1,6 @@
 import { locate, spanOf } from '@/lib/presence/anchors';
 import { createClickFilter } from '@/lib/presence/clicks';
+import { layoutNow } from '@/lib/presence/layout';
 import type { Connection } from '@/lib/presence/connection';
 import { frames } from '@/lib/presence/frames';
 import type { Timed, Vector } from '@/lib/presence/motion';
@@ -63,8 +64,8 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
       connection.send({
         type: 'move',
         path: located.detail
-          ? { anchor: located.anchor, detail: located.detail, samples }
-          : { anchor: located.anchor, samples },
+          ? { anchor: located.anchor, layout: layoutNow(), detail: located.detail, samples }
+          : { anchor: located.anchor, layout: layoutNow(), samples },
       });
     }
     if (pulled) connection.send({ type: 'pull', pull: pulled });

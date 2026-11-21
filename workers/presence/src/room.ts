@@ -46,10 +46,10 @@ export class Room extends DurableObject<Env> {
   async fetch(request: Request) {
     const address = request.headers.get('CF-Connecting-IP');
     const tags = address ? [await addressTag(address)] : [];
-    if (tags.some((tag) => this.ctx.getWebSockets(tag).length >= PER_ADDRESS))
+    if (tags.some((tag) => this.open(tag).length >= PER_ADDRESS))
       return new Response('Too many connections', { status: 429 });
 
-    if (this.ctx.getWebSockets().length >= CAPACITY) this.evictTheIdlest();
+    if (this.open().length >= CAPACITY) this.evictTheIdlest();
 
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
     this.ctx.acceptWebSocket(server, tags);
@@ -106,9 +106,7 @@ export class Room extends DurableObject<Env> {
   }
 
   private evictTheIdlest() {
-    const [idlest] = this.ctx
-      .getWebSockets()
-      .sort((a, b) => visitorOf(a).activeAt - visitorOf(b).activeAt);
+    const [idlest] = this.open().sort((a, b) => visitorOf(a).activeAt - visitorOf(b).activeAt);
     if (!idlest) return;
     this.depart(idlest);
     idlest.close(EVICTED, 'idle');
@@ -129,8 +127,7 @@ export class Room extends DurableObject<Env> {
   }
 
   private snapshot(except: WebSocket): { cursors: Cursor[]; highlights: Highlight[] } {
-    const visitors = this.ctx
-      .getWebSockets()
+    const visitors = this.open()
       .filter((socket) => socket !== except)
       .map(visitorOf);
 
@@ -138,6 +135,10 @@ export class Room extends DurableObject<Env> {
       cursors: visitors.flatMap(({ id, path }) => (path ? [{ id, path }] : [])),
       highlights: visitors.flatMap(({ id, span }) => (span ? [{ id, span }] : [])),
     };
+  }
+
+  private open(tag?: string) {
+    return this.ctx.getWebSockets(tag).filter((socket) => socket.readyState === WebSocket.OPEN);
   }
 
   private broadcast(from: WebSocket, message: ServerMessage) {

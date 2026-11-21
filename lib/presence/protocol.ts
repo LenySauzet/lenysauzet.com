@@ -1,3 +1,5 @@
+export type Layout = 1 | 2 | 3;
+
 export interface Sample {
   age: number;
   x: number;
@@ -19,6 +21,7 @@ export interface Detail {
 
 export interface Path {
   anchor: string;
+  layout: Layout;
   detail?: Detail;
   samples: Sample[];
 }
@@ -123,9 +126,12 @@ const detailFrom = (value: unknown): Detail | null | undefined => {
   return rest.length === 0 && isPart(part) && isFraction(x) && isFraction(y) ? { part, x, y } : undefined;
 };
 
-const pathFrom = ([anchor, rawDetail, ...fields]: unknown[]): Path | undefined => {
+const isLayout = (value: unknown): value is Layout => value === 1 || value === 2 || value === 3;
+
+const pathFrom = ([anchor, layout, rawDetail, ...fields]: unknown[]): Path | undefined => {
   const detail = detailFrom(rawDetail);
-  if (!isName(anchor) || detail === undefined || fields.length === 0 || fields.length > MOST_SAMPLES) return undefined;
+  if (!isName(anchor) || !isLayout(layout) || detail === undefined) return undefined;
+  if (fields.length === 0 || fields.length > MOST_SAMPLES) return undefined;
   const samples: Sample[] = [];
   for (const field of fields) {
     const sample = sampleFrom(field);
@@ -133,7 +139,7 @@ const pathFrom = ([anchor, rawDetail, ...fields]: unknown[]): Path | undefined =
     if (!sample || (previous && sample.age > previous.age)) return undefined;
     samples.push(sample);
   }
-  return detail ? { anchor, detail, samples } : { anchor, samples };
+  return detail ? { anchor, layout, detail, samples } : { anchor, layout, samples };
 };
 
 const spanFrom = ([anchor, start, end, ...rest]: unknown[]): Span | undefined => {
@@ -151,8 +157,9 @@ const pullFrom = ([frame, corner, x, y, ...rest]: unknown[]): Pull | undefined =
 const dropFrom = ([frame, ...rest]: unknown[]) => (rest.length === 0 && isName(frame) ? frame : undefined);
 
 const sampleTo = ({ age, x, y, dx, dy }: Sample) => [Math.round(age), round(x), round(y), Math.round(dx), Math.round(dy)];
-const pathTo = ({ anchor, detail, samples }: Path) => [
+const pathTo = ({ anchor, layout, detail, samples }: Path) => [
   anchor,
+  layout,
   detail ? [detail.part, round(detail.x), round(detail.y)] : null,
   ...samples.map(sampleTo),
 ];

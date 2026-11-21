@@ -5,8 +5,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { connect } from '@/lib/presence/connection';
 import { frames, type FrameEvent } from '@/lib/presence/frames';
+import { layoutNow, LAYOUT_QUERIES } from '@/lib/presence/layout';
 import { watchOverlays } from '@/lib/presence/overlays';
-import type { ServerMessage } from '@/lib/presence/protocol';
+import type { Layout, Path, ServerMessage, Span } from '@/lib/presence/protocol';
 import { cn } from '@/lib/utils';
 
 import { Cursor } from './Cursor';
@@ -67,17 +68,53 @@ export function Room({ url, className }: { url: string; className?: string }) {
       replays.delete(id);
     };
 
+    const layouts = new Map<string, Layout>();
+    const spans = new Map<string, Span>();
+    let own = layoutNow();
+    const alike = (id: string) => layouts.get(id) === own;
+
+    const showHighlight = (id: string) => {
+      const span = spans.get(id);
+      if (span && alike(id)) highlights.show(id, span);
+      else highlights.hide(id);
+    };
+
+    const place = (id: string, path: Path) => {
+      const was = alike(id);
+      layouts.set(id, path.layout);
+      if (!alike(id)) {
+        cursors.remove(id);
+        highlights.hide(id);
+        return;
+      }
+      cursors.move(id, path);
+      if (!was) showHighlight(id);
+    };
+
+    const regroup = () => {
+      own = layoutNow();
+      for (const id of layouts.keys()) {
+        if (!alike(id)) cursors.remove(id);
+        showHighlight(id);
+      }
+    };
+
     const receive = (message: ServerMessage) => {
       switch (message.type) {
         case 'snapshot': {
+          layouts.clear();
+          spans.clear();
           cursors.keepOnly(new Set(message.cursors.map(({ id }) => id)));
           highlights.keepOnly(new Set(message.highlights.map(({ id }) => id)));
-          for (const { id, path } of message.cursors) cursors.move(id, path);
-          for (const { id, span } of message.highlights) highlights.show(id, span);
+          for (const { id, path } of message.cursors) place(id, path);
+          for (const { id, span } of message.highlights) {
+            spans.set(id, span);
+            showHighlight(id);
+          }
           return;
         }
         case 'move':
-          return cursors.move(message.id, message.path);
+          return place(message.id, message.path);
         case 'press':
           return cursors.press(message.id);
         case 'release':
@@ -91,21 +128,30 @@ export function Room({ url, className }: { url: string; className?: string }) {
           const frame = pulling.get(message.id);
           if (frame) frames.receive({ type: 'drop', frame });
           pulling.delete(message.id);
+          layouts.delete(message.id);
+          spans.delete(message.id);
           cursors.remove(message.id);
           return highlights.hide(message.id);
         }
         case 'highlight':
-          return highlights.show(message.id, message.span);
+          spans.set(message.id, message.span);
+          return showHighlight(message.id);
         case 'unhighlight':
+          spans.delete(message.id);
           return highlights.hide(message.id);
         case 'pull':
+          if (!alike(message.id)) return;
           pulling.set(message.id, message.pull.frame);
           return replay(message.id, { type: 'pull', pull: message.pull });
         case 'drop':
+          if (!pulling.has(message.id)) return;
           pulling.delete(message.id);
           return replay(message.id, { type: 'drop', frame: message.frame });
       }
     };
+
+    const queries = LAYOUT_QUERIES.map((query) => window.matchMedia(query));
+    for (const query of queries) query.addEventListener('change', regroup);
 
     const connection = connect(url, receive);
     const sharing = shareOwnCursor(connection, (point) => {
@@ -119,6 +165,7 @@ export function Room({ url, className }: { url: string; className?: string }) {
     attachTo.current = cursors.attach;
 
     return () => {
+      for (const query of queries) query.removeEventListener('change', regroup);
       for (const id of [...replays.keys()]) forget(id);
       stopWatching();
       sharing.stop();

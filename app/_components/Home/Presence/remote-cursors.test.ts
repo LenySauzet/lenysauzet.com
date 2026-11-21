@@ -4,7 +4,7 @@ import type { Path } from '@/lib/presence/protocol';
 
 import { createRemoteCursors, GHOSTS } from './remote-cursors';
 
-const at = (x: number, dx = 0): Path => ({ anchor: 'page', samples: [{ age: 0, x, y: 0, dx, dy: 0 }] });
+const at = (x: number, dx = 0): Path => ({ anchor: 'page', layout: 3, samples: [{ age: 0, x, y: 0, dx, dy: 0 }] });
 
 const ink = () => {
   const element = document.createElement('div');
@@ -118,7 +118,7 @@ describe('the remote cursors', () => {
 
   it('sleeps rather than spin on a cursor this page cannot place, and drops its clicks', () => {
     const element = ink();
-    cursors.move('v0', { anchor: 'project:elsewhere', samples: [{ age: 0, x: 0, y: 0, dx: 0, dy: 0 }] });
+    cursors.move('v0', { anchor: 'project:elsewhere', layout: 3, samples: [{ age: 0, x: 0, y: 0, dx: 0, dy: 0 }] });
     cursors.attach('v0', element);
     cursors.press('v0');
     cursors.release('v0');
@@ -168,6 +168,7 @@ describe('the remote cursors', () => {
     const xOf = () => Number(/translate3d\(([\d.]+)px/.exec(mainOf(element).style.transform)?.[1]);
     const sweep = (x: number) => ({
       anchor: 'card',
+      layout: 3 as const,
       detail: { part: '0', x: 0.5, y: 0.5 },
       samples: [{ age: 16, x: x - 0.016, y: 0.1, dx: 0, dy: 0 }, { age: 0, x, y: 0.1, dx: 0, dy: 0 }],
     });

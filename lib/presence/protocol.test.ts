@@ -12,6 +12,7 @@ import {
 
 const path = {
   anchor: 'project:ankhora',
+  layout: 3 as const,
   detail: { part: '1.0.2', x: 0.5, y: 0.25 },
   samples: [
     { age: 30, x: 0.25, y: 0.5, dx: 0, dy: 0 },
@@ -40,12 +41,12 @@ describe('the client messages', () => {
   it('round what they carry to keep messages small', () => {
     const sample = { age: 16.4, x: 0.123456789, y: 1 / 3, dx: 4.6, dy: -0.4 };
 
-    expect(encodeClient({ type: 'move', path: { anchor: 'intro', samples: [sample] } })).toBe(
-      '["m","intro",null,[16,0.1235,0.3333,5,0]]'
+    expect(encodeClient({ type: 'move', path: { anchor: 'intro', layout: 2, samples: [sample] } })).toBe(
+      '["m","intro",2,null,[16,0.1235,0.3333,5,0]]'
     );
     expect(
-      encodeClient({ type: 'move', path: { anchor: 'intro', detail: { part: '#12', x: 1 / 3, y: 0.5 }, samples: [sample] } })
-    ).toBe('["m","intro",["#12",0.3333,0.5],[16,0.1235,0.3333,5,0]]');
+      encodeClient({ type: 'move', path: { anchor: 'intro', layout: 2, detail: { part: '#12', x: 1 / 3, y: 0.5 }, samples: [sample] } })
+    ).toBe('["m","intro",2,["#12",0.3333,0.5],[16,0.1235,0.3333,5,0]]');
     expect(encodeClient({ type: 'pull', pull: { ...pull, x: 1 / 3 } })).toBe('["d","headline",2,0.3,-3]');
   });
 
@@ -53,7 +54,7 @@ describe('the client messages', () => {
     const sample = { age: 999, x: 0.1234, y: 0.5678, dx: -3999, dy: -3999 };
     const part = Array(16).fill('999').join('.');
     const detail = { part, x: 0.1234, y: 0.5678 };
-    const longest = { anchor: 'a'.repeat(64), detail, samples: [sample, sample, sample, sample] };
+    const longest = { anchor: 'a'.repeat(64), layout: 3 as const, detail, samples: [sample, sample, sample, sample] };
 
     expect(decodeClient(encodeClient({ type: 'move', path: longest }))).toBeDefined();
     expect(encodeClient({ type: 'move', path: longest }).length).toBeLessThanOrEqual(MAX_CLIENT_MESSAGE);
@@ -62,22 +63,24 @@ describe('the client messages', () => {
   it.each([
     'not json',
     '{"m":1}',
-    '["m","intro",null]',
-    '["m","intro",[0,0.5,0.5,0,0]]',
-    '["m","Intro",null,[0,0.5,0.5,0,0]]',
-    '["m","intro",["a.b",0.5,0.5],[0,0.5,0.5,0,0]]',
-    '["m","intro",["#",0.5,0.5],[0,0.5,0.5,0,0]]',
-    '["m","intro",["",0.5,0.5],[0,0.5,0.5,0,0]]',
-    '["m","intro",["1..2",0.5,0.5],[0,0.5,0.5,0,0]]',
-    '["m","intro",["#3",1.5,0.5],[0,0.5,0.5,0,0]]',
-    '["m","intro",null,[0,0.5,1.5,0,0]]',
-    '["m","intro",null,[0,0.5,0.5,0.5,0]]',
-    '["m","intro",null,[0,0.5,0.5,0,5000]]',
-    '["m","intro",null,[-1,0.5,0.5,0,0]]',
-    '["m","intro",null,[0,0.5,0.5,0,0],[10,0.5,0.5,0,0]]',
-    '["m","intro",null,[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0]]',
-    '["m","intro",null,[0,0.5,0.5,0]]',
-    `["m","${'a'.repeat(65)}",null,[0,0.5,0.5,0,0]]`,
+    '["m","intro",3,null]',
+    '["m","intro",4,null,[0,0.5,0.5,0,0]]',
+    '["m","intro",null,[0,0.5,0.5,0,0]]',
+    '["m","intro",3,[0,0.5,0.5,0,0]]',
+    '["m","Intro",3,null,[0,0.5,0.5,0,0]]',
+    '["m","intro",3,["a.b",0.5,0.5],[0,0.5,0.5,0,0]]',
+    '["m","intro",3,["#",0.5,0.5],[0,0.5,0.5,0,0]]',
+    '["m","intro",3,["",0.5,0.5],[0,0.5,0.5,0,0]]',
+    '["m","intro",3,["1..2",0.5,0.5],[0,0.5,0.5,0,0]]',
+    '["m","intro",3,["#3",1.5,0.5],[0,0.5,0.5,0,0]]',
+    '["m","intro",3,null,[0,0.5,1.5,0,0]]',
+    '["m","intro",3,null,[0,0.5,0.5,0.5,0]]',
+    '["m","intro",3,null,[0,0.5,0.5,0,5000]]',
+    '["m","intro",3,null,[-1,0.5,0.5,0,0]]',
+    '["m","intro",3,null,[0,0.5,0.5,0,0],[10,0.5,0.5,0,0]]',
+    '["m","intro",3,null,[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0]]',
+    '["m","intro",3,null,[0,0.5,0.5,0]]',
+    `["m","${'a'.repeat(65)}",3,null,[0,0.5,0.5,0,0]]`,
     '["h","intro",12,4]',
     '["h","intro",1.5,4]',
     '["h","intro",0,99999]',
@@ -115,10 +118,10 @@ describe('the server messages', () => {
   });
 
   it.each([
-    '["s",[["a1","intro",null]],[]]',
+    '["s",[["a1","intro",3,null]],[]]',
     '["s",[]]',
     '["s",[],[],1]',
-    '["m","A-1","intro",null,[0,0.5,0.5,0,0]]',
+    '["m","A-1","intro",3,null,[0,0.5,0.5,0,0]]',
     '["d","a1","headline",0,0]',
     '["e","a1"]',
     '["l"]',
