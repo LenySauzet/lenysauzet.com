@@ -251,10 +251,9 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   sits above every z-index (the island, the palette, cal.com's modal at its maximum)
   and is fixed to the viewport, so the loop subtracts the scroll.
 - **The others' cursors move in one frame loop, outside React.** React only adds and
-  removes them (with an entrance in opacity, scale and blur, and a thin rim in the
-  page's own `--background`, dark on dark and light on light, a wider stroke under the
-  arrow inside the same blurred group, on the cursor but not its ghosts, whose trail it
-  would smear); each frame reads the
+  removes them (with an entrance in opacity, scale and blur, and a thin white rim in
+  both themes, a wider stroke under the arrow inside the same blurred group, on the
+  cursor but not its ghosts, whose trail it would smear); each frame reads the
   path through Catmull-Rom curves at the cadence delay, damps it lightly (28 ms), and
   writes the transform: a tilt that turns the tip towards where the cursor goes (in
   proportion to the velocity across the arrow's axis, the up-left diagonal its tip
