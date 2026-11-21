@@ -44,7 +44,7 @@ const siteConfig = {
   profiles,
   title: `${author.name} · ${author.role}`,
   description:
-    "I'm Lény, an AI and software engineer based in Montpellier. I transform complex challenges into delightful user experiences and high-performance solutions, from the models and the architecture to the interface people touch.",
+    "I'm Lény, an AI and software engineer in Montpellier, bridging complex engineering and seamless user experiences, from innovative startups to large-scale enterprise products.",
   resume: { file: resumeFile, url: `${cdnUrl}/files/${resumeFile}` },
 };
 
