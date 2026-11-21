@@ -275,29 +275,30 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   under the modal is not what its owner is looking at. Reduced motion keeps the path and drops the tilt, blur,
   ghosts, spring and ripple.
 - **A click ripples the page under it (an experiment).** A click is a press released
-  within 8 px of where it went down, however long it was held, leaving no selection,
-  and not the second or third of a double or triple click (`lib/presence/clicks.ts`), so selecting text or dragging never
-  ripples. The owner decides and sends `click`, rippled for the others at the point
-  their cursor was pressed: inferred on the receiving side, a double click rippled
-  twice there and once here, and a cursor still settling on its detail between press
-  and release failed the distance test; the own clicks ripple too, the palette's included (a modal stops the cursor
-  being shared, not the clicks rippling). The island is `data-presence-ignore`: it
-  moves with its content, so a press on it is neither shared nor rippled. A "leave"
-  plays on the same timeline as the presses before it, so the click that opens cal.com
-  still ripples for the others before that cursor goes. The ripples have their own
-  popover, shown after the cursors' and never faded with it: the island opens the
-  palette and "Book a call" opens cal.com, both of which hide the cursors' layer, and
-  their clicks' ripples went with it. Clicks inside cal.com's iframe never reach the
-  page, so they cannot ripple. The ripple is an element in that layer at the click, its `backdrop-filter` an SVG filter, so it bends
+  within 8 px of where it went down, however long it was held, leaving no selection, and
+  not the second or third of a double or triple click (`lib/presence/clicks.ts`), so
+  selecting text or dragging never ripples. The owner decides and sends `click`, rippled
+  for the others at the point their cursor was pressed: inferred on the receiving side,
+  a double click rippled twice there and once here, and a cursor still settling on its
+  detail between press and release failed the distance test; the own clicks ripple too,
+  the palette's included (a modal stops the cursor being shared, not the clicks
+  rippling). The island is `data-presence-ignore`: it moves with its content, so a press
+  on it is neither shared nor rippled. A "leave" plays on the same timeline as the
+  presses before it, so the click that opens cal.com still ripples for the others before
+  that cursor goes. The ripples have their own popover, shown after the cursors' and
+  never faded with it: the island opens the palette and "Book a call" opens cal.com,
+  both of which hide the cursors' layer, and their clicks' ripples went with it. Clicks
+  inside cal.com's iframe never reach the page, so they cannot ripple. The ripple is an
+  element in that layer at the click, its `backdrop-filter` an SVG filter, so it bends
   whatever lies beneath, across cards, buttons and the island: a ring displacement map
   drawn once on a canvas, laid over a neutral grey flood (an `feImage` leaves the rest
   of its region transparent black, which would displace everything), grown from the
   centre while its strength fades, and applied three times at different strengths, one
-  per colour channel, screened back together for the chromatic aberration. The bending is
-  the whole effect, no ring drawn: so a click that raises a modal's veil shows little,
-  as there is little left to bend. WebKit
-  accepts `backdrop-filter: url()` and draws nothing, so Safari gets no ripple
-  (`GestureEvent` is how it is told apart, as `CSS.supports` says yes). `rise` fills `backwards`, not `both`, so it never pins a
+  per colour channel, screened back together for the chromatic aberration. The bending
+  is the whole effect, no ring drawn: so a click that raises a modal's veil shows
+  little, as there is little left to bend. WebKit accepts `backdrop-filter: url()` and
+  draws nothing, so Safari gets no ripple (`GestureEvent` is how it is told apart, as
+  `CSS.supports` says yes). `rise` fills `backwards`, not `both`, so it never pins a
   filter on the hero.
 - **The selection frames are pulled like Figma's.** A corner moves its two edges on a
   rubber band (`rubberBand`, the iOS curve, 40 px at most), so the outline stays a
