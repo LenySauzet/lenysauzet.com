@@ -100,14 +100,15 @@ anonymous, relayed by one Durable Object room.
 ## High five
 
 - **Two cursors close together become hands** (`lib/presence/high-five.ts`): pairs
-  within 48px, kept until 64px apart so they do not flicker, and only where neither is
+  within 36px, kept until 48px apart so they do not flicker, and only where neither is
   over an action (links, buttons, fields, the island, frame handles marked
   `data-presence-action`) or off the screen. Only hands already close are hit-tested.
   Any pair counts, so a visitor sees two others meet as well.
-- **The others' hands are drawn by `Cursor`, the own one is the page's cursor**, both
-  from `lib/presence/hand.ts`. A cursor image cannot read a token, so the own hand is
-  black on white in both themes, like the system cursor. It is put away while a button
-  is held, so a drag or a selection keeps its cursor.
+- **The others' hands are drawn by `Cursor`**, one path like the arrow, centred on the
+  arrow so one turns into the other in place, through blur and scale. A press squeezes
+  the arrow towards its tip and the hand on its centre. The own hand is
+  the system's `grab` cursor, matching the visitor's own pointer. It is put away while
+  a button is held, so a drag or a selection keeps its cursor.
 - **A clap is both hands of a pair pressing within 300 ms**, a remote press timed when
   it was heard, not when it plays. Each page judges from the presses it already
   receives, so nothing new travels, and two visitors may not agree: one who answers

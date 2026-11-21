@@ -9,7 +9,7 @@ const everywhere = () => true;
 
 describe('nearPairs', () => {
   it('pairs hands close to each other', () => {
-    const pairs = nearPairs([at(SELF, 0), at('a', 40), at('b', 200)], new Set(), everywhere);
+    const pairs = nearPairs([at(SELF, 0), at('a', 30), at('b', 200)], new Set(), everywhere);
 
     expect(pairs).toEqual(new Set([`${SELF} a`]));
     expect(handsIn(pairs)).toEqual(new Set([SELF, 'a']));
@@ -27,11 +27,11 @@ describe('nearPairs', () => {
   });
 
   it('keeps a pair a little further apart than it takes to make one, so the hands do not flicker', () => {
-    const hands = [at('a', 0), at('b', 56)];
+    const hands = [at('a', 0), at('b', 42)];
 
     expect(nearPairs(hands, new Set(), everywhere)).toEqual(new Set());
     expect(nearPairs(hands, new Set(['a b']), everywhere)).toEqual(new Set(['a b']));
-    expect(nearPairs([at('a', 0), at('b', 70)], new Set(['a b']), everywhere)).toEqual(new Set());
+    expect(nearPairs([at('a', 0), at('b', 52)], new Set(['a b']), everywhere)).toEqual(new Set());
   });
 });
 

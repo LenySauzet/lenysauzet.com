@@ -2,8 +2,8 @@ import type { Timed, Vector } from './motion';
 
 export const SELF = '@';
 
-const NEAR = 48;
-const APART = 64;
+const NEAR = 36;
+const APART = 48;
 const TOGETHER = 300;
 
 export interface Placed {

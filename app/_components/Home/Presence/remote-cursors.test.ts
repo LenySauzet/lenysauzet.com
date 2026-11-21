@@ -115,6 +115,25 @@ describe('the remote cursors', () => {
     expect(scaleOf(element)).toBeCloseTo(1, 2);
   });
 
+  it('shows even the briefest press, released before it was drawn', () => {
+    const element = ink();
+    cursors.move('v0', at(0.5));
+    cursors.attach('v0', element);
+    vi.advanceTimersByTime(300);
+
+    cursors.press('v0');
+    cursors.release('v0');
+    let lowest = 1;
+    for (let time = 0; time < 400; time += 16) {
+      vi.advanceTimersByTime(16);
+      lowest = Math.min(lowest, scaleOf(element));
+    }
+    expect(lowest).toBeLessThan(0.88);
+
+    vi.advanceTimersByTime(800);
+    expect(scaleOf(element)).toBeCloseTo(1, 2);
+  });
+
   it('fades to a trace after a second still, and comes back when it moves', () => {
     const element = ink();
     cursors.attach('v0', element);
@@ -363,6 +382,20 @@ describe('the remote cursors', () => {
 
     cursors.showHands(new Set());
     expect(later.main.hasAttribute('data-hand')).toBe(false);
+  });
+
+  it('presses a hand on its centre, and an arrow on its tip', () => {
+    const drawnInk = ink();
+    cursors.move('v0', at(0.3));
+    cursors.attach('v0', drawnInk);
+    vi.advanceTimersByTime(300);
+    expect(drawnInk.main.style.transform).toMatch(/^translate3d\(300px.* translate\(0px, 0px\)$/);
+
+    cursors.showHands(new Set(['v0']));
+    cursors.press('v0');
+    vi.advanceTimersByTime(300);
+    expect(drawnInk.main.style.transform).toMatch(/^translate3d\(310px.* translate\(-10px, -10px\)$/);
+    expect(scaleOf(drawnInk)).toBeLessThan(1);
   });
 
   it('draws a trail behind a fast cursor only', () => {

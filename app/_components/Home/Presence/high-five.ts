@@ -1,4 +1,3 @@
-import { OWN_HAND_CURSOR } from '@/lib/presence/hand';
 import { createClapWatch, handsIn, nearPairs, SELF, type Placed } from '@/lib/presence/high-five';
 import type { Vector } from '@/lib/presence/motion';
 
@@ -37,7 +36,7 @@ export function createHighFive({ onHands, onClap }: HighFiveOptions) {
     const next = handsIn(pairs);
     if (sameIds(next, hands)) return;
     hands = next;
-    document.documentElement.style.cursor = hands.has(SELF) ? OWN_HAND_CURSOR : '';
+    document.documentElement.style.cursor = hands.has(SELF) ? 'grab' : '';
     onHands(new Set([...hands].filter((id) => id !== SELF)));
   };
 

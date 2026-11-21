@@ -43,7 +43,7 @@ describe('the high five', () => {
 
     move(80);
     expect(hands.at(-1)).toEqual(new Set(['a']));
-    expect(html.style.cursor).toContain('data:image/svg+xml');
+    expect(html.style.cursor).toBe('grab');
 
     move(300);
     expect(hands.at(-1)).toEqual(new Set());

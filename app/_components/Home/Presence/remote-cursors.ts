@@ -7,6 +7,7 @@ import type { Detail, Path, Pull } from '@/lib/presence/protocol';
 
 const SETTLE = 90;
 const LONGEST_PRESS = 4000;
+const SHORTEST_PRESS = 120;
 const LONGEST_FRAME = 64;
 const MOST_SHOWN = 10;
 const MOST_PRECISIONS = 16;
@@ -18,6 +19,8 @@ const SIZE_SLACK = 0.4;
 const SMALLEST = 8;
 const CLICKS_APART = 150;
 const STILL: Vector = { x: 0, y: 0 };
+
+export const MARK_SIZE = 20;
 
 export interface Ink {
   main: HTMLElement;
@@ -48,6 +51,7 @@ interface Remote {
   followed?: Vector;
   pace: number;
   pressed?: Timed<Vector>;
+  letGoAt?: number;
   pressedAt?: Vector;
   clickedAt: number;
   pose?: Pose;
@@ -184,10 +188,11 @@ export function createRemoteCursors({
           if ((remote.trail.latest?.at ?? 0) <= next.at) departed.push(id);
         } else if (signal.kind === 'press') {
           remote.pressed = point && { at: now, value: point };
+          remote.letGoAt = undefined;
           remote.pressedAt = point;
           if (point) presses.push({ id, point, at: next.at });
         } else if (signal.kind === 'release') {
-          remote.pressed = undefined;
+          if (remote.pressed) remote.letGoAt = remote.pressed.at + SHORTEST_PRESS;
         } else {
           const at = remote.pressedAt ?? point;
           remote.pressedAt = undefined;
@@ -203,7 +208,10 @@ export function createRemoteCursors({
     const drawn = new Map<string, Vector>();
 
     for (const { id, remote, ink, time, target, aim } of read) {
-      if (remote.pressed && now - remote.pressed.at > LONGEST_PRESS) remote.pressed = undefined;
+      if (remote.pressed && (now - remote.pressed.at > LONGEST_PRESS || now >= (remote.letGoAt ?? Infinity))) {
+        remote.pressed = undefined;
+        remote.letGoAt = undefined;
+      }
       if (!remote.pose) {
         remote.pose = poseAt(target, now);
         ink.main.style.visibility = 'visible';
@@ -219,7 +227,8 @@ export function createRemoteCursors({
 
       drawn.set(id, pose.shown);
       const turn = `rotate(${pose.tilt}deg) scale(${pose.scale.value})`;
-      ink.main.style.transform = `translate3d(${pose.shown.x - scroll.x}px, ${pose.shown.y - scroll.y}px, 0) ${turn}`;
+      const pivot = hands.has(id) ? MARK_SIZE / 2 : 0;
+      ink.main.style.transform = `translate3d(${pose.shown.x - scroll.x + pivot}px, ${pose.shown.y - scroll.y + pivot}px, 0) ${turn} translate(${-pivot}px, ${-pivot}px)`;
       remote.drawn.opacity = fade(ink.main, pose.opacity, remote.drawn.opacity);
       ghostsOf(pose, now, still).forEach(({ point, opacity }, index) => {
         const ghost = ink.ghosts[index];
@@ -235,7 +244,8 @@ export function createRemoteCursors({
       }
 
       if (restsIn !== undefined) wakeIn = Math.min(wakeIn, restsIn);
-      if (remote.pressed) wakeIn = Math.min(wakeIn, remote.pressed.at + LONGEST_PRESS - now);
+      if (remote.pressed)
+        wakeIn = Math.min(wakeIn, Math.min(remote.letGoAt ?? Infinity, remote.pressed.at + LONGEST_PRESS) - now);
       busy ||=
         !settled ||
         remote.pace > REST_PACE ||
