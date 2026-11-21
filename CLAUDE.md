@@ -275,8 +275,8 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   under the modal is not what its owner is looking at. Reduced motion keeps the path and drops the tilt, blur,
   ghosts, spring and ripple.
 - **A click ripples the page under it (an experiment).** A click is a press released
-  within 8 px of where it went down, however long it was held, leaving no selection, and not the second or third of a double
-  or triple click (`lib/presence/clicks.ts`), so selecting text or dragging never
+  within 8 px of where it went down, however long it was held, leaving no selection,
+  and not the second or third of a double or triple click (`lib/presence/clicks.ts`), so selecting text or dragging never
   ripples. The owner decides and sends `click`, rippled for the others at the point
   their cursor was pressed: inferred on the receiving side, a double click rippled
   twice there and once here, and a cursor still settling on its detail between press
