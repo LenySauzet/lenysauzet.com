@@ -39,11 +39,11 @@ instead. Never run `prettier` on a directory, only `--single-quote` on exact pat
 Next.js 16 App Router. Every page is static; `/resume` alone runs on request. Server
 Components by default, `'use client'` only for state, effects or browser APIs.
 
-- **`app/_components/`** is what the pages share (Island, CommandPalette, Footer,
+- **`app/_components/`** is what the pages share (Island, CommandPalette, PageBlur,
   StatusPage, HomeLink, ResumeAnchor, ThemeColor, the error body, `document.ts`, the
   fonts and body classes the root layout and `global-error` both need), and `Home/` the
-  home page. A component with parts is a folder with an `index.ts`; a single file stays
-  flat.
+  home page, its footer included. A component with parts is a folder with an `index.ts`;
+  a single file stays flat.
 - **`components/`** is what is not tied to a page: `ui/` the shadcn primitives,
   `icons/` the animated icons, `shared/` the logo, the hatching, the selection frame and
   `styles.ts`, the class strings several places compose (`focusRing`, `pillSurface`,
@@ -78,7 +78,8 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 | `lib/build-info.ts` | The commit and build date the footer shows |
 | `hooks/use-island-store.ts` | What the island presents, as data, and `announce` |
 | `hooks/use-palette-store.ts` | Whether the palette is wanted, open, and handing focus back |
-| `lib/presence/` | The cursors' wire protocol, anchors, motion maths, highlight lines, the frame channel and reconnecting socket |
+| `lib/presence/` | The cursors' wire protocol, anchors, layout class, motion maths, highlight lines and spans, clicks, overlays, the frame channel and reconnecting socket |
+| `lib/blur.ts` | The progressive blur's layers: radii stacking to an exponential curve |
 | `hooks/use-presence-store.ts` | Whether this visitor hides the others' cursors, kept in the browser |
 | `workers/presence/` | The worker: one Durable Object room, its rate budget, its tests |
 | `hooks/use-animated-icon.ts` | The animated icons' controls, and playing one from its control |
@@ -167,23 +168,23 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   `ProfilePage`. The blog should point its author at that `@id`.
 - **Live cursors are anonymous, desktop only, and on the home page only.** A visitor
   with a fine pointer loads the room's code on demand and opens one WebSocket to the
-  presence worker (`siteConfig.presenceUrl`: `wss://presence.lenysauzet.com` on
-  Vercel's production only, `NEXT_PUBLIC_PRESENCE_URL` anywhere, nothing otherwise, so
-  previews and local builds never knock on a door that refuses them). Its single
-  Durable Object room relays positions to everyone else and keeps each visitor's last
-  point and last activity in the socket attachment, so a newcomer gets a snapshot and
-  the room can hibernate; no IP or name is kept, the address being hashed into an
-  in-memory tag only to cap it at four sockets. Only open sockets count, for the cap,
-  the capacity, eviction and snapshots: a socket still closing held a seat, and was
-  evicted in place of the idlest visitor, who then stayed. The room holds 24 and lets the idlest
-  go with close code 4000 to make room, which the client honours by staying down until
-  its own pointer moves; a hidden tab closes its socket the same way. Messages over
-  320 characters, unreadable, or beyond a burst of 120 at 75 a second are dropped
-  unread. "leave" means the pointer left the page (or is scrolling) and keeps the
-  visitor's highlight; "gone" means the socket closed and clears both, and lets go of
-  any frame that visitor held. "Live cursors", offered only to a fine pointer and
-  showing On or Off on its right (a command's `status`, read as the palette renders),
-  closes the socket when turned off, and is remembered.
+  presence worker (`siteConfig.presenceUrl`: `wss://presence.lenysauzet.com` on Vercel's
+  production only, `NEXT_PUBLIC_PRESENCE_URL` anywhere, nothing otherwise, so previews
+  and local builds never knock on a door that refuses them). Its single Durable Object
+  room relays positions to everyone else and keeps each visitor's last point and last
+  activity in the socket attachment, so a newcomer gets a snapshot and the room can
+  hibernate; no IP or name is kept, the address being hashed into an in-memory tag only
+  to cap it at four sockets. Only open sockets count, for the cap, the capacity,
+  eviction and snapshots: a socket still closing held a seat, and was evicted in place
+  of the idlest visitor, who then stayed. The room holds 24 and lets the idlest go with
+  close code 4000 to make room, which the client honours by staying down until its own
+  pointer moves; a hidden tab closes its socket the same way. Messages over 512
+  characters, unreadable, or beyond a burst of 120 at 75 a second are dropped unread.
+  "leave" means the pointer left the page (or is scrolling) and keeps the visitor's
+  highlight; "gone" means the socket closed and clears both, and lets go of any frame
+  that visitor held. "Live cursors", offered only to a fine pointer and showing On or
+  Off on its right (a command's `status`, read as the palette renders), closes the
+  socket when turned off, and is remembered.
 - **The room still completes the close handshake itself.** The compatibility date makes
   the runtime reply to a Close frame, yet under local wrangler sockets stayed CLOSING
   until `webSocketClose` called `close()`; the call is harmless where it is ignored.
@@ -191,7 +192,9 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   owner's layout (`lib/presence/layout.ts`: the columns the projects take, 1 below
   48rem, 2 below 64rem, 3 above, the breakpoints of `Projects`), and the room shows a
   visitor's cursor, highlight and frame pulls only while it matches this one's,
-  regrouping when either side crosses a breakpoint. Between two layouts no mapping is
+  regrouping when either side crosses a breakpoint. A selection carries its owner's
+  layout too, sent again when it changes, so it is shown even once its owner's cursor
+  has left the page, to a newcomer as well. Between two layouts no mapping is
   both faithful to the motion and true to what is pointed at, and every compromise read
   as a cursor recalibrating or crossing the page; within one, cards sit in the same
   order and the intro wraps alike, so the detail barely moves the cursor. Fewer
@@ -201,14 +204,16 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   `metadata`, `links`. Each sample is a place on one anchor: the fraction of its box at
   the closest point on its edge plus the pixels beyond, the anchor being the one under
   the pointer, else the one last left (held across empty space until another is
-  entered), else the nearest. That path is continuous inside an anchor and through
+  entered, while within 600px of it: a pointer parked in the margin through a long
+  scroll would drift past the 4000px a sample may carry, and the room drops it), else the
+  nearest. That path is continuous inside an anchor and through
   gaps, so the motion stays the owner's. The latest sample also carries a detail when
   the pointer is on something finer: the character under it (`#index`, found with
   `caretPositionFromPoint`, else `caretRangeFromPoint` for older Safari, kept only when
   its box holds the pointer) or the deepest element (a path of child indices; the
   masonry copies share one tree). The receiver adds the gap between the detail and the
-  path, weighted by how slowly the path moves (full below 0.45 px/ms is approached as
-  the pace falls, damped over 110 ms): a sweep follows the path, and a pointer that
+  path, weighted by how slowly the path moves (none at 0.45 px/ms and above, full at
+  rest, linear between, damped over 110 ms): a sweep follows the path, and a pointer that
   slows, hovers, selects or clicks settles on the same letter or button. The detail
   carries its box's size, and a receiver ignores it where that element is not about the
   same size (within 40%): "You" inside "Book a call" is full size only on the page
@@ -231,46 +236,47 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   clicks and frame pulls replay on the same delay so they meet the cursor. While its
   page scrolls the own cursor is not sent but leaves, and comes back where it settled
   160 ms later: sending through a scroll drew others a straight line across the page.
-- **A selection is shared as characters of each anchor it crosses, and its direction.** It is sent
-  at most every 50 ms while it changes (a debounce sent nothing until the drag paused),
-  and backward when its focus precedes its anchor, so a selection made from right to
-  left grows, and folds away, from its right. `spansOf` cuts it into one span per anchor
-  it meets (eight at most), so a selection from the role through the intro is drawn in
-  all three, each a mark the receiver sweeps on its own; the text between anchors is
-  not shared. Each span counts the characters before each end within the anchor holding its start (or its end), keeping
-  the part inside; `rangeOf` walks the text nodes of the shown copy back to a range.
-  `remote-highlights` animates the shown ends towards the shared ones in characters,
-  fractions included, so a selection sweeps along the text: the background is drawn as
-  one rounded rectangle per run of touching text in a layer on `body` (document coordinates, under the
-  island at `z-40`), its ends trimmed by the uncovered part of their character; the
-  text takes the hue through a `::highlight()` rule per visitor on the whole characters
-  covered. The rectangles come from the range's text nodes alone, each measured on its
-  own, and join only where they touch: the range's own rectangles include the box of
-  every element it wholly holds, and joining by line ran one band across a grid's
-  columns, so the Metadata cells lit up as a stripe. A cleared selection folds back to its start as it fades. Only a selection
-  that continues the last (same anchor, same start or same end, as a drag keeps one)
-  sweeps from it; any other fades the last out and grows on its own, since sweeping
-  between two unrelated ranges ran the highlight along every line between them. `DOMRect` fields
-  are getters on its prototype, so `{ ...rect }` copies nothing: `linesFor` copies them
-  by name.
+- **A selection is shared as characters of each anchor it crosses, and its direction.**
+  It is sent at most every 50 ms while it changes (a debounce sent nothing until the
+  drag paused), and backward when its focus precedes its anchor, so a selection made
+  from right to left grows, and folds away, from its right. `spansOf` cuts it into one
+  span per anchor it meets (eight at most), so a selection from the role through the
+  intro is drawn in all three, each a mark the receiver sweeps on its own; the text
+  between anchors is not shared. Each span counts the characters before each end within
+  the anchor holding its start (or its end), keeping the part inside; `rangeOf` walks
+  the text nodes of the shown copy back to a range. `remote-highlights` animates the
+  shown ends towards the shared ones in characters, fractions included, so a selection
+  sweeps along the text: the background is drawn as one rounded rectangle per run of
+  touching text in a layer on `body` (document coordinates, under the island at `z-30`,
+  and under the page blur), its ends trimmed by the uncovered part of their character;
+  the text takes the hue through a `::highlight()` rule per visitor on the whole
+  characters covered. The rectangles come from the range's text nodes alone, each
+  measured on its own, and join only where they touch: the range's own rectangles
+  include the box of every element it wholly holds, and joining by line ran one band
+  across a grid's columns, so the Metadata cells lit up as a stripe. A cleared selection
+  folds back to its start as it fades. Only a selection that continues the last (same
+  anchor, same start or same end, as a drag keeps one) sweeps from it; any other fades
+  the last out and grows on its own, since sweeping between two unrelated ranges ran the
+  highlight along every line between them. `DOMRect` fields are getters on its
+  prototype, so `{ ...rect }` copies nothing: `linesFor` copies them by name.
 - **The cursors live in the top layer**, a `popover="manual"` shown on mount, which
   sits above every z-index (the island, the palette, cal.com's modal at its maximum)
   and is fixed to the viewport, so the loop subtracts the scroll.
 - **The others' cursors move in one frame loop, outside React.** React only adds and
   removes them (with an entrance in opacity, scale and blur, and a thin white rim in
   both themes, a wider stroke under the arrow inside the same blurred group, on the
-  cursor but not its ghosts, whose trail it would smear); each frame reads the
-  path through Catmull-Rom curves at the cadence delay, damps it lightly (28 ms), and
-  writes the transform: a tilt that turns the tip towards where the cursor goes (in
-  proportion to the velocity across the arrow's axis, the up-left diagonal its tip
-  points along, so it neither turns when already heading there nor flips when backing
-  away, up to 34°) and a directional SVG blur from the damped velocity,
-  four ghosts along the last 56 ms of the drawn path that fade in with speed (motion
-  blur as a shutter would record it), and a scale on a light spring (`spring`, fixed
-  1 ms steps, so any frame rate moves alike) held down between a press and its release
-  (released anyway after 4 s). A cursor sinks to a trace after 1 s still and comes back
-  as it moves or presses; a timer wakes the stopped loop for that fade. The loop stops once everything is at rest and wakes on a
-  message, a scroll, a resize, or a press due to time out. Ten cursors at most are
+  cursor but not its ghosts, whose trail it would smear); each frame reads the path
+  through Catmull-Rom curves at the cadence delay, damps it lightly (28 ms), and writes
+  the transform: a tilt that turns the tip towards where the cursor goes (in proportion
+  to the velocity across the arrow's axis, the up-left diagonal its tip points along, so
+  it neither turns when already heading there nor flips when backing away, up to 34°)
+  and a directional SVG blur from the damped velocity, four ghosts along the last 56 ms
+  of the drawn path that fade in with speed (motion blur as a shutter would record it),
+  and a scale on a light spring (`spring`, fixed 1 ms steps, so any frame rate moves
+  alike) held down between a press and its release (released anyway after 4 s). A cursor
+  sinks to a trace after 1 s still and comes back as it moves or presses; a timer wakes
+  the stopped loop for that fade. The loop stops once everything is at rest and wakes on
+  a message, a scroll, a resize, or a press due to time out. Ten cursors at most are
   shown: the rest wait for a place to free rather than taking one, which would churn
   React at the message rate, and their presses are dropped. Each frame reads every box
   first, then writes, and ripples last; a cursor this page cannot place is skipped
@@ -278,10 +284,10 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **Cursors step aside for a modal.** `lib/presence/overlays.ts` watches the palette
   (Radix locks the page with `data-scroll-locked` on `body`) and cal.com's
   `cal-modal-box`, open unless its `state` is `closed` or its inline `visibility` is
-  `hidden`: its close button hides it and leaves the state `loaded`. While one is open the others'
-  cursors and highlights fade out, and the own cursor leaves and is not sent: the page
-  under the modal is not what its owner is looking at. Reduced motion keeps the path and drops the tilt, blur,
-  ghosts, spring and ripple.
+  `hidden`: its close button hides it and leaves the state `loaded`. While one is open
+  the others' cursors and highlights fade out, and the own cursor leaves and is not
+  sent: the page under the modal is not what its owner is looking at. Reduced motion
+  keeps the path and drops the tilt, blur, ghosts, spring and ripple.
 - **A click ripples the page under it (an experiment).** A click is a press released
   within 8 px of where it went down, however long it was held, leaving no selection, and
   not the second or third of a double or triple click (`lib/presence/clicks.ts`), so
@@ -317,8 +323,9 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   rest (`none` at rest, so focus rings are never cut). The frame shares its pulls
   through `lib/presence/frames.ts`, the room sends them with the batch and replays
   others' pulls, which the frame follows on a stiff spring unless held here, letting go
-  on a drop or a "gone" only: a pull held still sends nothing, so a timeout let go of
-  frames still held. `body` clips horizontal overflow (`clip`,
+  on a drop or a "gone", and on everything a room lets go of with the socket (a
+  snapshot after a reconnect, the cursors turned off): a pull held still sends nothing,
+  so a timeout let go of frames still held. `body` clips horizontal overflow (`clip`,
   not `hidden`, so it creates no scroll container), as a corner pulled at the edge of a
   phone would otherwise widen the page.
 - **The page's foot is blurred, progressively.** `PageBlur`, in the root layout, is six
@@ -327,10 +334,12 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   quadrature, as stacked blurs add, so the total reaches 12px at the edge and the
   content eases into it. Over the last 96px of scroll it is squeezed down to the edge
   (`scaleY` from the bottom, a transform, so no layout), keeping its curve, and gone at
-  the last pixel: the footer's last links are never under it, and a page with nothing
-  to scroll has none. At zero it is hidden rather than left at scale 0, and shown again
-  on the way up, so the browser draws its backdrop afresh: a fade to opacity 0 was
-  reported not to come back. The island sits above it.
+  the last pixel: the footer's last links are never under it, and a page with nothing to
+  scroll has none. At zero it is hidden rather than left at scale 0, and shown again on
+  the way up, so the browser draws its backdrop afresh: a fade to opacity 0 was reported
+  not to come back. It starts hidden, until measured, so it is never drawn over the
+  footer's end before the page hydrates, nor at all without script. The island sits
+  above it.
 - **The footer belongs to the home page.** `page.tsx` renders `<main>` and the footer
   after it; the status pages render their own `<main>` and no footer, whose bands rise
   from the project columns and had nothing to rise from there.

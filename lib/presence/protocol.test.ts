@@ -19,7 +19,7 @@ const path = {
     { age: 0, x: 1, y: 0.5, dx: 12, dy: -4 },
   ],
 };
-const marks = { spans: [{ anchor: 'role', start: 2, end: 9 }, { anchor: 'intro', start: 0, end: 12 }] };
+const marks = { layout: 3 as const, spans: [{ anchor: 'role', start: 2, end: 9 }, { anchor: 'intro', start: 0, end: 12 }] };
 const pull = { frame: 'headline', corner: 2 as const, x: 12.5, y: -3 };
 
 describe('the client messages', () => {
@@ -83,14 +83,16 @@ describe('the client messages', () => {
     '["m","intro",3,null,[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0],[0,0.5,0.5,0,0]]',
     '["m","intro",3,null,[0,0.5,0.5,0]]',
     `["m","${'a'.repeat(65)}",3,null,[0,0.5,0.5,0,0]]`,
-    '["h",0]',
+    '["h",3,0]',
     '["h","intro",4,12]',
-    '["h",2,["intro",4,12]]',
-    '["h",0,["intro",12,4]]',
-    '["h",0,["intro",1.5,4]]',
-    '["h",0,["intro",0,99999]]',
-    '["h",0,["intro",4,12,1]]',
-    `["h",0,${Array(9).fill('["intro",4,12]').join(',')}]`,
+    '["h",0,["intro",4,12]]',
+    '["h",4,0,["intro",4,12]]',
+    '["h",3,2,["intro",4,12]]',
+    '["h",3,0,["intro",12,4]]',
+    '["h",3,0,["intro",1.5,4]]',
+    '["h",3,0,["intro",0,99999]]',
+    '["h",3,0,["intro",4,12,1]]',
+    `["h",3,0,${Array(9).fill('["intro",4,12]').join(',')}]`,
     '["d","headline",4,0,0]',
     '["d","headline",0,65,0]',
     '["d","headline",0,0]',

@@ -14,13 +14,13 @@ describe('blurLayers', () => {
   it('grows exponentially, so the content eases into the blur', () => {
     const radii = layers.map(({ radius }) => radius);
 
-    expect(radii.every((radius, index) => index === 0 || radius > radii[index - 1]!)).toBe(true);
+    expect(radii.every((radius, index) => index === 0 || radius > (radii[index - 1] ?? Infinity))).toBe(true);
     expect(radii[0]).toBeLessThan(1);
   });
 
   it('tiles the band with no gap', () => {
     expect(layers[0]?.from).toBe(0);
     expect(layers.at(-1)?.to).toBe(1);
-    expect(layers.every((layer, index) => index === 0 || layer.from === layers[index - 1]!.to)).toBe(true);
+    expect(layers.every((layer, index) => index === 0 || layer.from === layers[index - 1]?.to)).toBe(true);
   });
 });

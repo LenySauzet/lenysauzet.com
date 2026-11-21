@@ -6,7 +6,7 @@ import siteConfig from '@/config/site';
 import { buildInfo } from '@/lib/build-info';
 import { cn } from '@/lib/utils';
 
-import { ResumeAnchor } from '../ResumeAnchor';
+import { ResumeAnchor } from '../../ResumeAnchor';
 import { Browser, Clock, Dimensions } from './Readings';
 import { RisingBand } from './RisingBand';
 

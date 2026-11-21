@@ -22,9 +22,9 @@ export function PageBlur({ className }: { className?: string }) {
     const update = () => {
       frame = 0;
       const left = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
-      const reach = Math.min(1, Math.max(0, left / element.offsetHeight));
+      const reach = left < 1 ? 0 : Math.min(1, left / element.offsetHeight);
       element.style.transform = reach < 1 ? `scaleY(${reach.toFixed(4)})` : '';
-      element.style.visibility = reach > 0 ? '' : 'hidden';
+      element.style.visibility = reach > 0 ? 'visible' : 'hidden';
     };
     const schedule = () => {
       if (!frame) frame = window.requestAnimationFrame(update);
@@ -49,7 +49,7 @@ export function PageBlur({ className }: { className?: string }) {
     <div
       ref={band}
       aria-hidden
-      className={cn('pointer-events-none fixed inset-x-0 bottom-0 z-40 h-24 origin-bottom print:hidden', className)}
+      className={cn('pointer-events-none invisible fixed inset-x-0 bottom-0 z-40 h-24 origin-bottom print:hidden', className)}
     >
       {LAYERS.map(({ key, backdropFilter, maskImage }) => (
         <div

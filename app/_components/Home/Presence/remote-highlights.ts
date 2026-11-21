@@ -9,7 +9,7 @@ const SWEEP = 45;
 const FADE = 90;
 const LONGEST_FRAME = 64;
 const AT_REST = 0.01;
-const LAYER = 'pointer-events-none absolute top-0 left-0 z-40 transition-opacity duration-200';
+const LAYER = 'pointer-events-none absolute top-0 left-0 z-30 transition-opacity duration-200';
 const LINE = 'absolute top-0 left-0 rounded-[3px]';
 
 interface Mark {

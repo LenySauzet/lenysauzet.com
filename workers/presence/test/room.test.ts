@@ -15,7 +15,7 @@ const path = {
 };
 const last = { anchor: 'project:ankhora', layout: 3 as const, detail: { part: '0', x: 0.5, y: 0.5, width: 100, height: 40 }, samples: [{ age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 }] };
 const pull = { frame: 'headline', corner: 1 as const, x: 12, y: -6 };
-const marks = { spans: [{ anchor: 'intro', start: 4, end: 12 }] };
+const marks = { layout: 3 as const, spans: [{ anchor: 'intro', start: 4, end: 12 }] };
 const open: { socket: WebSocket; closed: Promise<number> }[] = [];
 
 async function connect(address?: string) {

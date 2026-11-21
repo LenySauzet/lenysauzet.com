@@ -7,6 +7,7 @@ const LONGEST_ANCHOR = 64;
 const DEEPEST = 16;
 const CHARACTER = '#';
 const SLACK = 2;
+const HOLD_REACH = 600;
 
 export interface Box {
   left: number;
@@ -169,7 +170,7 @@ function characterUnder(root: Element, client: Vector) {
   });
 }
 
-export function aim(client: Vector): Target | undefined {
+function aim(client: Vector): Target | undefined {
   const element = document.elementFromPoint(client.x, client.y);
   const root = element?.closest(`[${ANCHOR_ATTRIBUTE}]`);
   const anchor = root?.getAttribute(ANCHOR_ATTRIBUTE);
@@ -197,9 +198,10 @@ export function locate(
   const last = points.at(-1);
   if (!last) return undefined;
   const aimed = aim({ x: last.x - window.scrollX, y: last.y - window.scrollY });
+  const heldBox = held ? boxOf({ anchor: held, part: '' }) : undefined;
   const anchor =
     aimed?.anchor ??
-    (held && boxOf({ anchor: held, part: '' }) ? held : undefined) ??
+    (held && heldBox && distanceTo(heldBox, last) <= HOLD_REACH ? held : undefined) ??
     nearest(shownAnchors(), last)?.anchor ??
     PAGE_ANCHOR;
   const box = boxOf({ anchor, part: '' }) ?? pageBox();

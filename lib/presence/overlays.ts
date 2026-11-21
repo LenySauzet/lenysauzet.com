@@ -20,15 +20,19 @@ export function watchOverlays(onChange: (covered: boolean) => void) {
   };
 
   const modals = new MutationObserver(check);
-  const page = new MutationObserver(() => {
+  const watchModals = () => {
     for (const modal of document.querySelectorAll(CAL_MODAL)) {
       if (watched.has(modal)) continue;
       watched.add(modal);
       modals.observe(modal, { attributes: true, attributeFilter: [CAL_STATE, 'style'] });
     }
+  };
+  const page = new MutationObserver(() => {
+    watchModals();
     check();
   });
   page.observe(document.body, { attributes: true, attributeFilter: [SCROLL_LOCK], childList: true });
+  watchModals();
 
   if (covered) onChange(covered);
   return () => {

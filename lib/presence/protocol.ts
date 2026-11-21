@@ -35,6 +35,7 @@ export interface Span {
 }
 
 export interface Marks {
+  layout: Layout;
   spans: Span[];
   backward?: true;
 }
@@ -87,7 +88,7 @@ export const HEARTBEAT_REPLY = 'pong';
 export const MAX_CLIENT_MESSAGE = 512;
 export const MOST_SPANS = 8;
 export const MOST_SAMPLES = 4;
-export const LONGEST_PULL = 64;
+const LONGEST_PULL = 64;
 export const EVICTED = 4000;
 
 const NAME = /^[a-z0-9][a-z0-9:-]{0,63}$/;
@@ -164,15 +165,16 @@ const spanFrom = (value: unknown): Span | undefined => {
     : undefined;
 };
 
-const marksFrom = ([direction, ...fields]: unknown[]): Marks | undefined => {
-  if ((direction !== 0 && direction !== 1) || fields.length === 0 || fields.length > MOST_SPANS) return undefined;
+const marksFrom = ([layout, direction, ...fields]: unknown[]): Marks | undefined => {
+  if (!isLayout(layout) || (direction !== 0 && direction !== 1)) return undefined;
+  if (fields.length === 0 || fields.length > MOST_SPANS) return undefined;
   const spans: Span[] = [];
   for (const field of fields) {
     const span = spanFrom(field);
     if (!span) return undefined;
     spans.push(span);
   }
-  return direction === 1 ? { spans, backward: true } : { spans };
+  return direction === 1 ? { layout, spans, backward: true } : { layout, spans };
 };
 
 const pullFrom = ([frame, corner, x, y, ...rest]: unknown[]): Pull | undefined =>
@@ -191,7 +193,11 @@ const pathTo = ({ anchor, layout, detail, samples }: Path) => [
     : null,
   ...samples.map(sampleTo),
 ];
-const marksTo = ({ spans, backward }: Marks) => [backward ? 1 : 0, ...spans.map(({ anchor, start, end }) => [anchor, start, end])];
+const marksTo = ({ layout, spans, backward }: Marks) => [
+  layout,
+  backward ? 1 : 0,
+  ...spans.map(({ anchor, start, end }) => [anchor, start, end]),
+];
 const pullTo = ({ frame, corner, x, y }: Pull) => [frame, corner, round(x, 10), round(y, 10)];
 
 const parse = (data: string): unknown[] | undefined => {

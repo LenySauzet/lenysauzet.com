@@ -1,6 +1,6 @@
 import { locate, spansOf } from '@/lib/presence/anchors';
 import { createClickFilter } from '@/lib/presence/clicks';
-import { layoutNow } from '@/lib/presence/layout';
+import { layoutNow, LAYOUT_QUERIES } from '@/lib/presence/layout';
 import type { Connection } from '@/lib/presence/connection';
 import { frames } from '@/lib/presence/frames';
 import type { Timed, Vector } from '@/lib/presence/motion';
@@ -93,11 +93,12 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
     selectedAt = performance.now();
     const selection = document.getSelection();
     const spans = selection && !selection.isCollapsed && selection.rangeCount ? spansOf(selection.getRangeAt(0)) : [];
+    const layout = layoutNow();
     const marks: Marks | undefined = !spans.length
       ? undefined
       : selection && isBackward(selection)
-        ? { spans, backward: true }
-        : { spans };
+        ? { layout, spans, backward: true }
+        : { layout, spans };
     if (sameMarks(marks, shared)) return;
     shared = marks;
     connection.send(marks ? { type: 'highlight', marks } : { type: 'unhighlight' });
@@ -197,6 +198,7 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
     options
   );
   document.documentElement.addEventListener('mouseleave', leave, options);
+  for (const query of LAYOUT_QUERIES) window.matchMedia(query).addEventListener('change', shareSelection, options);
   document.addEventListener(
     'visibilitychange',
     () => {

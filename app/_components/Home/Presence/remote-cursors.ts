@@ -31,6 +31,7 @@ const MOST_SHOWN = 10;
 const LONGEST_FRAME = 64;
 const AT_REST = 0.05;
 const PRECISE_BELOW = 0.45;
+const MOST_PRECISIONS = 16;
 const CORRECTING = 110;
 
 interface Placed {
@@ -154,13 +155,16 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
       for (let next = remote.signals[0]; next && next.at <= time; next = remote.signals[0]) {
         remote.signals.shift();
         const point = remote.shown ?? target;
-        if (next.value === 'leave') departed.push(id);
+        if (next.value === 'leave') {
+          if ((remote.trail.latest?.at ?? 0) <= next.at) departed.push(id);
+        }
         else if (next.value === 'press') {
           remote.pressed = point && { at: now, value: point };
           remote.pressedAt = point;
         } else if (next.value === 'release') remote.pressed = undefined;
         else {
           const at = remote.pressedAt ?? point;
+          remote.pressedAt = undefined;
           if (at) clicks.push({ id, point: at });
         }
       }
@@ -289,7 +293,7 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
       for (const { age, ...placement } of samples) remote.trail.push({ at: now - age, value: { anchor, placement } });
       const latest = samples.at(-1);
       const precision = detail && latest && { anchor, detail, placement: latest };
-      remote.precisions.push({ at: now - (latest?.age ?? 0), value: precision });
+      remote.precisions = [...remote.precisions.slice(1 - MOST_PRECISIONS), { at: now - (latest?.age ?? 0), value: precision }];
       wake();
     },
     press: (id: string) => signal(id, 'press'),

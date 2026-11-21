@@ -231,6 +231,19 @@ describe('the remote cursors', () => {
     card.remove();
   });
 
+  it('stays when its owner comes back before the leave plays', () => {
+    cursors.move('v0', at(0.2));
+    cursors.attach('v0', ink());
+    vi.advanceTimersByTime(300);
+
+    cursors.leave('v0');
+    vi.advanceTimersByTime(10);
+    cursors.move('v0', at(0.3));
+    vi.advanceTimersByTime(300);
+
+    expect(shown()).toEqual(['v0']);
+  });
+
   it('draws a trail behind a fast cursor only', () => {
     const element = ink();
     cursors.attach('v0', element);

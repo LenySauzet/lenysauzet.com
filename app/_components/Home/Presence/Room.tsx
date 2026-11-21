@@ -63,6 +63,11 @@ export function Room({ url, className }: { url: string; className?: string }) {
       queue.timers.add(timer);
     };
 
+    const letGoAll = () => {
+      for (const frame of pulling.values()) frames.receive({ type: 'drop', frame });
+      pulling.clear();
+    };
+
     const forget = (id: string) => {
       for (const timer of replays.get(id)?.timers ?? []) window.clearTimeout(timer);
       replays.delete(id);
@@ -75,33 +80,29 @@ export function Room({ url, className }: { url: string; className?: string }) {
 
     const showHighlight = (id: string) => {
       const marks = selections.get(id);
-      if (marks && alike(id)) highlights.show(id, marks);
+      if (marks?.layout === own) highlights.show(id, marks);
       else highlights.hide(id);
     };
 
     const place = (id: string, path: Path) => {
-      const was = alike(id);
       layouts.set(id, path.layout);
       if (!alike(id)) {
         cursors.remove(id);
-        highlights.hide(id);
         return;
       }
       cursors.move(id, path);
-      if (!was) showHighlight(id);
     };
 
     const regroup = () => {
       own = layoutNow();
-      for (const id of layouts.keys()) {
-        if (!alike(id)) cursors.remove(id);
-        showHighlight(id);
-      }
+      for (const id of layouts.keys()) if (!alike(id)) cursors.remove(id);
+      for (const id of selections.keys()) showHighlight(id);
     };
 
     const receive = (message: ServerMessage) => {
       switch (message.type) {
         case 'snapshot': {
+          letGoAll();
           layouts.clear();
           selections.clear();
           cursors.keepOnly(new Set(message.cursors.map(({ id }) => id)));
@@ -167,6 +168,7 @@ export function Room({ url, className }: { url: string; className?: string }) {
     return () => {
       for (const query of queries) query.removeEventListener('change', regroup);
       for (const id of [...replays.keys()]) forget(id);
+      letGoAll();
       stopWatching();
       sharing.stop();
       connection.close();

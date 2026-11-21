@@ -97,6 +97,14 @@ describe('locate and place', () => {
     });
   });
 
+  it('let go of the element last left once the pointer is far from it', () => {
+    card(true, 500);
+    const far = card(true, 500, 900);
+    far.dataset.presence = 'project:far';
+
+    expect(locate([{ x: 550, y: 860 }], 'project:ankhora')?.anchor).toBe('project:far');
+  });
+
   it('start from the element closest to the pointer when none was left', () => {
     card(false, 0);
     card(true, 500);
