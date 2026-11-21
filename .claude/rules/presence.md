@@ -72,7 +72,8 @@ anonymous, relayed by one Durable Object room.
 ## Drawing
 
 - **Two `popover="manual"` layers**, in the top layer above the island, palette and
-  cal.com: cursors, then ripples, which are never faded with the cursors. Fixed to the
+  cal.com, stacked in the order they are shown: ripples, then cursors, so a ripple never
+  bends a cursor. The ripples' layer is never faded with the cursors'. Fixed to the
   viewport, cursors trail a composited scroll by a frame: the price of the top layer.
 - **One rAF loop outside React** (`remote-cursors.ts`) reads every box, then writes,
   and sleeps at rest or under a modal. `lib/presence/pose.ts` is the motion: the damped
