@@ -1,7 +1,7 @@
 import { exports } from 'cloudflare:workers';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { decodeServer, encodeClient, EVICTED, type ServerMessage } from '../../../lib/presence/protocol';
+import { decodeServer, encodeClient, EVICTED, MAX_CLIENT_MESSAGE, type ServerMessage } from '../../../lib/presence/protocol';
 
 const ORIGIN = 'https://lenysauzet.com';
 const path = {
@@ -197,7 +197,7 @@ describe('the presence worker', () => {
     await sender.next();
     await watcher.next();
 
-    sender.socket.send(`${encodeClient({ type: 'move', path })}${' '.repeat(400)}`);
+    sender.socket.send(encodeClient({ type: 'move', path }).padEnd(MAX_CLIENT_MESSAGE + 1));
 
     expect(await watcher.silent()).toBe(true);
   });
