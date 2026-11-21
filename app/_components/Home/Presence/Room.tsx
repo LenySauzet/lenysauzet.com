@@ -7,10 +7,12 @@ import { prefersReducedMotion } from '@/lib/motion';
 import { connect } from '@/lib/presence/connection';
 import { frames } from '@/lib/presence/frames';
 import { layoutNow, LAYOUT_QUERIES } from '@/lib/presence/layout';
+import type { Vector } from '@/lib/presence/motion';
 import { watchOverlays } from '@/lib/presence/overlays';
 import { cn } from '@/lib/utils';
 
 import { Cursor } from './Cursor';
+import { createHighFive } from './high-five';
 import { shareOwnCursor } from './own-cursor';
 import { createRemoteCursors, type Ink } from './remote-cursors';
 import { createRemoteHighlights } from './remote-highlights';
@@ -38,13 +40,25 @@ export function Room({ url, className }: { url: string; className?: string }) {
     cursorsAbove.showPopover();
 
     const ripples = createRipples(ripplesAbove);
-    const ripple = (client: { x: number; y: number }) => {
+    const toClient = ({ x, y }: Vector) => ({ x: x - window.scrollX, y: y - window.scrollY });
+    const ripple = (client: Vector) => {
       if (!prefersReducedMotion()) ripples.at(client);
     };
+    const highFive = createHighFive({
+      onHands: (ids) => cursors.showHands(ids),
+      onClap: (point) => {
+        if (!prefersReducedMotion()) ripples.across(toClient(point));
+      },
+    });
     const cursors = createRemoteCursors({
-      onChange: setIds,
-      onClick: (point) => ripple({ x: point.x - window.scrollX, y: point.y - window.scrollY }),
+      onChange: (ids) => {
+        setIds(ids);
+        highFive.keepOnly(new Set(ids));
+      },
+      onClick: (point) => ripple(toClient(point)),
+      onPress: highFive.press,
       onFrame: (id, event) => room.framed(id, event),
+      onDrawn: highFive.drawn,
       reducedMotion: prefersReducedMotion,
     });
     const highlights = createRemoteHighlights(prefersReducedMotion);
@@ -63,6 +77,7 @@ export function Room({ url, className }: { url: string; className?: string }) {
       sharing.cover(next);
       cursors.cover(next);
       highlights.cover(next);
+      highFive.cover(next);
     });
     const queries = LAYOUT_QUERIES.map((query) => window.matchMedia(query));
     for (const query of queries) query.addEventListener('change', room.regroup);
@@ -73,6 +88,7 @@ export function Room({ url, className }: { url: string; className?: string }) {
       sharing.stop();
       connection.close();
       room.dispose();
+      highFive.stop();
       cursors.stop();
       highlights.stop();
       ripples.stop();

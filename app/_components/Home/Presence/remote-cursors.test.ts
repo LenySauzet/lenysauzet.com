@@ -15,13 +15,19 @@ const ink = (): Ink => ({
 });
 
 const mainOf = ({ main }: Ink) => main;
-const scaleOf = (drawn: Ink) => Number(/scale\(([\d.]+)\)/.exec(drawn.main.style.transform)?.[1]);
+const scaleOf = (drawn: Ink) => Number(drawn.main.style.getPropertyValue('--press'));
 const opacityOf = (drawn: Ink) => Number(drawn.main.style.opacity);
 
 describe('the remote cursors', () => {
   let published: string[][];
   let clicked: number[];
+  let heard: string[];
   let framed: FrameEvent[];
+  let pressed: { id: string; at: number }[];
+  let points: Map<string, { x: number; y: number }>;
+  let watched: Ink | undefined;
+  let judgedOver: string[];
+  let still: boolean;
   let cursors: ReturnType<typeof createRemoteCursors>;
 
   beforeEach(() => {
@@ -32,12 +38,29 @@ describe('the remote cursors', () => {
     vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(1000);
     published = [];
     clicked = [];
+    heard = [];
     framed = [];
+    pressed = [];
+    points = new Map();
+    watched = undefined;
+    judgedOver = [];
+    still = false;
     cursors = createRemoteCursors({
       onChange: (ids) => published.push(ids),
-      onClick: (point) => clicked.push(point.x),
+      onClick: (point) => {
+        clicked.push(point.x);
+        heard.push('click');
+      },
+      onPress: (id, _, at) => {
+        pressed.push({ id, at });
+        heard.push('press');
+      },
       onFrame: (_, event) => framed.push(event),
-      reducedMotion: () => false,
+      onDrawn: (drawn) => {
+        points = drawn;
+        if (watched) judgedOver.push(watched.main.style.transform);
+      },
+      reducedMotion: () => still,
     });
   });
 
@@ -95,6 +118,50 @@ describe('the remote cursors', () => {
     expect(scaleOf(element)).toBeCloseTo(0.8, 2);
 
     cursors.release('v0');
+    vi.advanceTimersByTime(800);
+    expect(scaleOf(element)).toBeCloseTo(1, 2);
+  });
+
+  it('lets the high five read the page before this frame writes the cursors', () => {
+    watched = ink();
+    cursors.move('v0', at(0.3));
+    cursors.attach('v0', watched);
+    vi.advanceTimersByTime(16);
+
+    expect(judgedOver[0]).toBe('');
+    expect(watched.main.style.transform).not.toBe('');
+  });
+
+  it('lets a brief press go on time under reduced motion, where nothing else keeps it awake', () => {
+    still = true;
+    const element = ink();
+    cursors.move('v0', at(0.5));
+    cursors.attach('v0', element);
+    vi.advanceTimersByTime(300);
+
+    cursors.press('v0');
+    cursors.release('v0');
+    vi.advanceTimersByTime(100);
+    expect(scaleOf(element)).toBeCloseTo(0.8);
+    vi.advanceTimersByTime(150);
+    expect(scaleOf(element)).toBe(1);
+  });
+
+  it('shows even the briefest press, released before it was drawn', () => {
+    const element = ink();
+    cursors.move('v0', at(0.5));
+    cursors.attach('v0', element);
+    vi.advanceTimersByTime(300);
+
+    cursors.press('v0');
+    cursors.release('v0');
+    let lowest = 1;
+    for (let time = 0; time < 400; time += 16) {
+      vi.advanceTimersByTime(16);
+      lowest = Math.min(lowest, scaleOf(element));
+    }
+    expect(lowest).toBeLessThan(0.88);
+
     vi.advanceTimersByTime(800);
     expect(scaleOf(element)).toBeCloseTo(1, 2);
   });
@@ -291,6 +358,74 @@ describe('the remote cursors', () => {
     cursors.cover(false);
     vi.advanceTimersByTime(300);
     expect(drawn.main.style.transform).toMatch(/^translate3d\(400px/);
+  });
+
+  it('tells where it drew each cursor, and when one pressed', () => {
+    cursors.move('v0', at(0.3));
+    cursors.attach('v0', ink());
+    vi.advanceTimersByTime(300);
+    expect(points.get('v0')?.x).toBeCloseTo(300, 0);
+
+    const heard = performance.now();
+    cursors.press('v0');
+    vi.advanceTimersByTime(200);
+    expect(pressed).toEqual([{ id: 'v0', at: heard }]);
+  });
+
+  it('tells a press before the click it made, so a clap can quiet that click', () => {
+    cursors.move('v0', at(0.3));
+    cursors.attach('v0', ink());
+    cursors.press('v0');
+    cursors.click('v0');
+    vi.advanceTimersByTime(300);
+
+    expect(heard).toEqual(['press', 'click']);
+  });
+
+  it('times a press when it was heard, not when it plays, so presses held back do not meet', () => {
+    cursors.move('v0', at(0.3));
+    cursors.move('v1', at(0.6));
+    cursors.attach('v0', ink());
+    cursors.attach('v1', ink());
+    cursors.cover(true);
+    cursors.press('v0');
+    vi.advanceTimersByTime(2000);
+    cursors.press('v1');
+    cursors.cover(false);
+    vi.advanceTimersByTime(300);
+
+    const [first, second] = pressed;
+    expect(pressed).toHaveLength(2);
+    expect((second?.at ?? 0) - (first?.at ?? 0)).toBeGreaterThanOrEqual(2000);
+  });
+
+  it('turns the cursors it is told into hands, trail included, and back', () => {
+    const drawnInk = ink();
+    cursors.move('v0', at(0.3));
+    cursors.attach('v0', drawnInk);
+
+    cursors.showHands(new Set(['v0']));
+    expect(drawnInk.main.hasAttribute('data-hand')).toBe(true);
+    expect(drawnInk.ghosts.every((ghost) => ghost.hasAttribute('data-hand'))).toBe(true);
+
+    const later = ink();
+    cursors.attach('v0', later);
+    expect(later.main.hasAttribute('data-hand')).toBe(true);
+
+    cursors.showHands(new Set());
+    expect(later.main.hasAttribute('data-hand')).toBe(false);
+  });
+
+  it('leaves the tilt and the squeeze to each shape, so a hand turns on its own centre', () => {
+    const drawnInk = ink();
+    cursors.move('v0', at(0.3));
+    cursors.attach('v0', drawnInk);
+    cursors.press('v0');
+    vi.advanceTimersByTime(300);
+
+    expect(drawnInk.main.style.transform).toBe('translate3d(300px, 0px, 0)');
+    expect(scaleOf(drawnInk)).toBeLessThan(1);
+    expect(drawnInk.main.style.getPropertyValue('--turn')).toMatch(/deg$/);
   });
 
   it('draws a trail behind a fast cursor only', () => {

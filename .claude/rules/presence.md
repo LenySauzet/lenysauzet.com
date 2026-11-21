@@ -75,11 +75,14 @@ anonymous, relayed by one Durable Object room.
   cal.com, stacked in the order they are shown: ripples, then cursors, so a ripple never
   bends a cursor. The ripples' layer is never faded with the cursors'. Fixed to the
   viewport, cursors trail a composited scroll by a frame: the price of the top layer.
-- **One rAF loop outside React** (`remote-cursors.ts`) reads every box, then writes,
-  and sleeps at rest or under a modal. `lib/presence/pose.ts` is the motion: the damped
-  path, a tilt across the arrow's axis (34° at most), directional blur, four ghosts over
-  56 ms, a spring on press, a trace after 1 s still. Ten cursors at most. Reduced motion
-  keeps the path only.
+- **One rAF loop outside React** (`remote-cursors.ts`) reads every box, steps every pose
+  and lets the high five hit-test, then writes; it sleeps at rest or under a modal.
+  `lib/presence/pose.ts` is the motion: the damped path, a tilt across the arrow's axis
+  (34° at most), directional blur, four ghosts over 56 ms, a spring on press, a trace
+  after 1 s still. A press shows for 120 ms at least, so an instant click still
+  squeezes. The cursor's element only moves; tilt and squeeze are `--turn` and
+  `--press`, which each shape applies on its own pivot. Ten cursors at most. Reduced
+  motion keeps the path only.
 - **Selections are marks per anchor**, swept in characters (`selection.ts` plans which
   carry, fold or begin; only one keeping an end sweeps from the last), from the right
   when made backward. Backgrounds are boxes from the range's text nodes, joined only
@@ -96,6 +99,27 @@ anonymous, relayed by one Durable Object room.
   flood (an `feImage` leaves the rest of its region transparent black), applied at three
   strengths for the colour channels and screened together. WebKit accepts the filter and
   draws nothing, so it is skipped there (`GestureEvent`).
+
+## High five
+
+- **Two cursors close together become hands** (`lib/presence/high-five.ts`): pairs
+  within 36px, kept until 48px apart so they do not flicker, and only where neither is
+  over an action (links, buttons, fields, the island, frame handles marked
+  `data-presence-action`) or off the screen. Only hands already close are hit-tested.
+  Any pair counts, so a visitor sees two others meet as well.
+- **The others' hands are drawn by `Cursor`**, one path like the arrow, over the arrow
+  so one turns into the other in place, through blur and scale; the arrow turns on its
+  tip, the hand on its centre. The own hand is the system's `grab` cursor, matching the
+  visitor's own pointer. It is put away while a button is held, so a drag or a
+  selection keeps its cursor.
+- **A clap is both hands of a pair pressing within 300 ms**, a remote press timed when
+  it was heard, not when it plays, and judged against the pairs as they stood at either
+  press; one heard over 500 ms before it plays, queued under a modal or in a hidden tab,
+  claps nothing. Each page judges from the presses it already receives, so nothing new
+  travels, and two visitors may not agree: one who answers the other's press sees the
+  clap, the first one often does not. The clap sends a ripple across the screen from
+  between the hands (`ripples.across`), one at a time: it ends the click ripples running
+  and drops those that come during it. Reduced motion keeps the hands, not the clap.
 
 ## Frames
 
