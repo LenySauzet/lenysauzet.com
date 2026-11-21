@@ -28,7 +28,7 @@ function Tip({ label, children }: { label: string; children: ReactNode }) {
 
 export function Clients({ clients, className }: { clients: Client[]; className?: string }) {
   return (
-    <AvatarGroup className={className}>
+    <AvatarGroup data-presence="clients" className={className}>
       {clients.map((client) => (
         <Tip key={client.name} label={client.name}>
           <a href={client.href} target="_blank" rel="noopener noreferrer" aria-label={client.name} className={TRIGGER}>

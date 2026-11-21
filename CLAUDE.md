@@ -15,36 +15,44 @@ bun run type-check
 bun run test          # Vitest; `bun test` is Bun's own runner and will not work
 ```
 
+In `workers/presence`, its own package and lockfile: `bun run dev` (wrangler on 8787,
+local origins in `.dev.vars`), `bun run type-check`, `bun run test` (inside the
+Workers runtime, on production bindings), `bun run deploy`, which only the owner runs
+or approves. `bun run dev:presence` at the root is `next dev` on that local worker.
+
 ## Verification gate
 
-`bun lint && bun run type-check && bun run test && bun run build`, exactly what
-`.github/workflows/ci.yml` runs, on the Bun `packageManager` names. Then look at both
+`bun lint && bun run type-check && bun run test && bun run build`, plus the worker's
+type-check and tests: exactly what `.github/workflows/ci.yml` runs. Then look at both
 themes, at phone and desktop widths, in Chromium and in WebKit.
 
 ## Writing style
 
 English, single quotes, trailing commas, no em dash. **No comments in the code**:
 names, types and structure carry the meaning, and every trap is written down here
-instead. Never run `prettier` on a directory, only `--single-quote` on exact paths.
+instead. Never run `prettier` on a directory; on exact paths, with `--single-quote
+--print-width 120 --trailing-comma es5`, the repo's format.
 
 ## Layout and conventions
 
 Next.js 16 App Router. Every page is static; `/resume` alone runs on request. Server
 Components by default, `'use client'` only for state, effects or browser APIs.
 
-- **`app/_components/`** is what the pages share (Island, CommandPalette, Footer,
+- **`app/_components/`** is what the pages share (Island, CommandPalette, PageBlur,
   StatusPage, HomeLink, ResumeAnchor, ThemeColor, the error body, `document.ts`, the
   fonts and body classes the root layout and `global-error` both need), and `Home/` the
-  home page. A component with parts is a folder with an `index.ts`; a single file stays
-  flat.
+  home page, its footer included. A component with parts is a folder with an `index.ts`;
+  a single file stays flat.
 - **`components/`** is what is not tied to a page: `ui/` the shadcn primitives,
   `icons/` the animated icons, `shared/` the logo, the hatching, the selection frame and
   `styles.ts`, the class strings several places compose (`focusRing`, `pillSurface`,
   `pageGrid`).
-- **`lib/`** is logic, by domain (`commands/`, `media/`, `seo/`, `services/`, `theme/`),
-  with what every domain uses at its root (`utils`, `motion`, `masonry`, `browser`,
-  `build-info`). It never imports from `app/`.
+- **`lib/`** is logic, by domain (`commands/`, `media/`, `presence/`, `seo/`,
+  `services/`, `theme/`), with what every domain uses at its root (`utils`, `motion`,
+  `masonry`, `browser`, `blur`, `build-info`). It never imports from `app/`.
 - **`hooks/`** holds the Zustand stores and the hooks shared across components.
+- **`workers/presence/`** is the Cloudflare Worker behind the live cursors, deployed on
+  its own; the app's type-check and tests leave it out, its own run it.
 - **`content/`** is what the page shows, typed, by hand; **`config/site.ts`** the
   identity, links and handles everything else derives from.
 - Named exports everywhere but where Next.js asks for a default, and `siteConfig`.
@@ -67,6 +75,10 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 | `lib/build-info.ts` | The commit and build date the footer shows |
 | `hooks/use-island-store.ts` | What the island presents, as data, and `announce` |
 | `hooks/use-palette-store.ts` | Whether the palette is wanted, open, and handing focus back |
+| `lib/presence/` | The live cursors' logic: wire protocol, placement, motion, selections, clicks, availability |
+| `lib/blur.ts` | The progressive blur's layers: radii stacking to an exponential curve |
+| `hooks/use-presence-store.ts` | Whether this visitor hides the others' cursors, kept in the browser |
+| `workers/presence/` | The worker: one Durable Object room, its budget, its address grouping |
 | `hooks/use-animated-icon.ts` | The animated icons' controls, and playing one from its control |
 
 ## What the code does not say
@@ -151,6 +163,15 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **The home page carries JSON-LD**: a `Person` at `https://lenysauzet.com/#person`,
   every spelling of the name, `sameAs` each profile and the blog, inside a
   `ProfilePage`. The blog should point its author at that `@id`.
+- **Live cursors** are in `.claude/rules/presence.md`, which loads with their files.
+- **The page's foot is blurred progressively.** `PageBlur` stacks backdrop blurs whose
+  radii add in quadrature to an exponential curve (`lib/blur.ts`), 12px at the edge,
+  layers under 1px dropped. Over the last 96px of scroll it is squeezed to the edge
+  (`scaleY`, no layout) and hidden at zero, so the footer's last links are clear; it
+  starts hidden until measured and hides under `prefers-reduced-transparency`.
+  `scroll-padding-bottom` keeps a focused element out from under it.
+- **The footer belongs to the home page**; the status pages render their own `<main>`
+  and none, its bands rising from the project columns.
 - **`/resume` proxies the PDF** so `download` holds across origins; the edge caches it
   a day and a failure is never cached.
 - **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to

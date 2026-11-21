@@ -21,6 +21,7 @@
   --color-well-hover: var(--well-hover);
   --color-media-ink: var(--media-ink);
   --color-scrim: var(--scrim);
+  --color-cursor: oklch(var(--cursor-lightness) var(--cursor-chroma) var(--cursor-hue, var(--base-hue)));
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -47,6 +48,9 @@
   --well-hover: oklch(0.93 0.005 var(--base-hue));
   --media-ink: oklch(0.86 0.008 var(--base-hue));
   --scrim: oklch(0.1 0.008 var(--base-hue));
+  --cursor-lightness: 0.62;
+  --cursor-ink-lightness: 0.5;
+  --cursor-chroma: 0.19;
   --shadow-pill:
     inset 0 1px 0 oklch(1 0 0 / 0.7), 0 1px 2px oklch(0 0 0 / 0.06), 0 6px 16px -6px oklch(0 0 0 / 0.12);
 }
@@ -64,6 +68,9 @@
   --shine-rim: oklch(1 0 0);
   --well: oklch(0.195 0.011 var(--base-hue));
   --well-hover: oklch(0.225 0.012 var(--base-hue));
+  --cursor-lightness: 0.74;
+  --cursor-ink-lightness: 0.74;
+  --cursor-chroma: 0.16;
   --shadow-pill:
     inset 0 1px 0 oklch(1 0 0 / 0.05), 0 1px 2px oklch(0 0 0 / 0.4), 0 8px 20px -8px oklch(0 0 0 / 0.6);
 }
@@ -74,6 +81,7 @@
   }
   html {
     scroll-padding-top: 1.5rem;
+    scroll-padding-bottom: 6rem;
     @variant sm {
       scroll-padding-top: 6rem;
     }

@@ -63,7 +63,7 @@ export function CommandPalette({ className }: { className?: string }) {
           {GROUPS.map((group) => (
             <CommandGroup key={group} heading={group}>
               {commands
-                .filter((command) => command.group === group)
+                .filter((command) => command.group === group && (command.available?.() ?? true))
                 .map((command) => (
                   <CommandItem
                     key={command.id}
@@ -73,6 +73,7 @@ export function CommandPalette({ className }: { className?: string }) {
                     <HugeiconsIcon icon={command.icon} strokeWidth={2} />
                     {command.label}
                     {command.hint && <CommandHint>{command.hint}</CommandHint>}
+                    {command.status && <CommandHint>{command.status()}</CommandHint>}
                     {command.shortcut && (
                       <CommandShortcut className="pointer-coarse:hidden">
                         {modifier}

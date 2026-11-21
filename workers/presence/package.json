@@ -1,0 +1,18 @@
+{
+  "name": "presence",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.8.5",
+    "@cloudflare/workers-types": "^5.20261120.1",
+    "typescript": "^5",
+    "vitest": "^5.1.1",
+    "wrangler": "^4.165.0"
+  }
+}

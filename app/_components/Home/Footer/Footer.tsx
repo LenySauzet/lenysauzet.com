@@ -6,18 +6,29 @@ import siteConfig from '@/config/site';
 import { buildInfo } from '@/lib/build-info';
 import { cn } from '@/lib/utils';
 
-import { ResumeAnchor } from '../ResumeAnchor';
+import { ResumeAnchor } from '../../ResumeAnchor';
 import { Browser, Clock, Dimensions } from './Readings';
 import { RisingBand } from './RisingBand';
 
 const LABEL = 'text-sm font-medium text-muted-foreground';
-const LINK = cn('w-fit rounded-sm text-sm text-subtle-foreground transition-colors duration-200 hover:text-foreground', focusRing);
+const LINK = cn(
+  'w-fit rounded-sm text-sm text-subtle-foreground transition-colors duration-200 hover:text-foreground',
+  focusRing
+);
 
-function Reading({ label, children }: { label: string; children: ReactNode }) {
+interface ReadingProps {
+  label: string;
+  live?: boolean;
+  children: ReactNode;
+}
+
+function Reading({ label, live = false, children }: ReadingProps) {
   return (
     <div className="flex flex-col gap-1">
       <dt className={LABEL}>{label}</dt>
-      <dd className="font-mono text-sm text-subtle-foreground">{children}</dd>
+      <dd data-presence-volatile={live || undefined} className="font-mono text-sm text-subtle-foreground">
+        {children}
+      </dd>
     </div>
   );
 }
@@ -34,11 +45,11 @@ export function Footer({ className }: { className?: string }) {
       <RisingBand lane="first" />
 
       <div className="flex flex-col gap-8 pt-8 pb-32 sm:pb-16 lg:col-start-3">
-        <section aria-labelledby="metadata-heading" className="flex flex-col gap-4">
+        <section data-presence="metadata" aria-labelledby="metadata-heading" className="flex flex-col gap-4">
           <h2 id="metadata-heading" className={LABEL}>
             Metadata
           </h2>
-          <SelectionFrame className="-mx-1.5 px-1.5 sm:-mx-6 sm:px-6">
+          <SelectionFrame name="metadata" className="lg:-mx-6 lg:px-6">
             <dl className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
               <Reading label="Commit">
                 {commit ? (
@@ -49,18 +60,23 @@ export function Footer({ className }: { className?: string }) {
                   'local'
                 )}
               </Reading>
-              <Reading label="Browser">
+              <Reading label="Browser" live>
                 <Browser />
               </Reading>
-              <Reading label={`Time in ${siteConfig.author.location}`}>
+              <Reading label={`Time in ${siteConfig.author.location}`} live>
                 <Clock />
               </Reading>
-              <Reading label="Dimensions">
+              <Reading label="Dimensions" live>
                 <Dimensions />
               </Reading>
               <Reading label="Last updated">{built}</Reading>
               <Reading label="Source">
-                <a href={siteConfig.repository} target="_blank" rel="noopener noreferrer" className={cn(LINK, 'font-mono')}>
+                <a
+                  href={siteConfig.repository}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(LINK, 'font-mono')}
+                >
                   GitHub
                 </a>
               </Reading>
@@ -68,7 +84,7 @@ export function Footer({ className }: { className?: string }) {
           </SelectionFrame>
         </section>
 
-        <nav aria-label="Links" className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
+        <nav data-presence="links" aria-label="Links" className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
           <p className={cn(LABEL, 'col-span-2 sm:col-span-1')}>Links</p>
           <LinkList>
             <li>

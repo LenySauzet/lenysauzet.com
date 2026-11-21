@@ -16,6 +16,8 @@ export interface Command {
   group: Group;
   keywords?: string[];
   hint?: string;
+  status?: () => string;
   shortcut?: string;
+  available?: () => boolean;
   run: (context: CommandContext) => void | Promise<void>;
 }

@@ -7,9 +7,11 @@ export const metadata: Metadata = { title: 'Page not found', alternates: { canon
 
 export default function NotFound() {
   return (
-    <StatusPage status="404" title="This page does not exist">
-      <p>It may have moved, or the link was mistyped. Everything else starts from the home page.</p>
-      <HomeLink />
-    </StatusPage>
+    <main>
+      <StatusPage status="404" title="This page does not exist">
+        <p>It may have moved, or the link was mistyped. Everything else starts from the home page.</p>
+        <HomeLink />
+      </StatusPage>
+    </main>
   );
 }

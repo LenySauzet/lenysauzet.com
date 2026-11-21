@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useIslandStore } from '@/hooks/use-island-store';
+import { usePresenceStore } from '@/hooks/use-presence-store';
 
 import { commands } from './registry';
 import { GROUPS } from './types';
@@ -43,7 +44,10 @@ describe('Copy email', () => {
   });
 
   it('says so once the address is on the clipboard', async () => {
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true });
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      configurable: true,
+    });
 
     await byId('copy-email').run(context);
 
@@ -60,5 +64,24 @@ describe('Copy email', () => {
     await byId('copy-email').run(context);
 
     expect(announced()).toBe('contact@lenysauzet.com');
+  });
+});
+
+describe('Live cursors', () => {
+  it('hides the other visitors, then shows them again, saying so and showing the state', () => {
+    useIslandStore.setState({ presented: [] });
+    usePresenceStore.setState({ hidden: false });
+    const command = byId('toggle-cursors');
+    expect(command.status?.()).toBe('On');
+
+    command.run(context);
+    expect(usePresenceStore.getState().hidden).toBe(true);
+    expect(announced()).toBe('Cursors hidden');
+    expect(command.status?.()).toBe('Off');
+
+    command.run(context);
+    expect(usePresenceStore.getState().hidden).toBe(false);
+    expect(announced()).toBe('Cursors shown');
+    expect(command.status?.()).toBe('On');
   });
 });
