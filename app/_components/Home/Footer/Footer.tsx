@@ -11,13 +11,24 @@ import { Browser, Clock, Dimensions } from './Readings';
 import { RisingBand } from './RisingBand';
 
 const LABEL = 'text-sm font-medium text-muted-foreground';
-const LINK = cn('w-fit rounded-sm text-sm text-subtle-foreground transition-colors duration-200 hover:text-foreground', focusRing);
+const LINK = cn(
+  'w-fit rounded-sm text-sm text-subtle-foreground transition-colors duration-200 hover:text-foreground',
+  focusRing
+);
 
-function Reading({ label, children }: { label: string; children: ReactNode }) {
+interface ReadingProps {
+  label: string;
+  live?: boolean;
+  children: ReactNode;
+}
+
+function Reading({ label, live = false, children }: ReadingProps) {
   return (
     <div className="flex flex-col gap-1">
       <dt className={LABEL}>{label}</dt>
-      <dd className="font-mono text-sm text-subtle-foreground">{children}</dd>
+      <dd data-presence-volatile={live || undefined} className="font-mono text-sm text-subtle-foreground">
+        {children}
+      </dd>
     </div>
   );
 }
@@ -49,18 +60,23 @@ export function Footer({ className }: { className?: string }) {
                   'local'
                 )}
               </Reading>
-              <Reading label="Browser">
+              <Reading label="Browser" live>
                 <Browser />
               </Reading>
-              <Reading label={`Time in ${siteConfig.author.location}`}>
+              <Reading label={`Time in ${siteConfig.author.location}`} live>
                 <Clock />
               </Reading>
-              <Reading label="Dimensions">
+              <Reading label="Dimensions" live>
                 <Dimensions />
               </Reading>
               <Reading label="Last updated">{built}</Reading>
               <Reading label="Source">
-                <a href={siteConfig.repository} target="_blank" rel="noopener noreferrer" className={cn(LINK, 'font-mono')}>
+                <a
+                  href={siteConfig.repository}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(LINK, 'font-mono')}
+                >
                   GitHub
                 </a>
               </Reading>

@@ -39,7 +39,7 @@ describe('watchOverlays', () => {
     expect(changed.mock.calls).toEqual([[true], [false]]);
   });
 
-  it("watches a cal.com modal already on the page, as one closed before and opened again", async () => {
+  it('watches a cal.com modal already on the page, as one closed before and opened again', async () => {
     const modal = document.createElement('cal-modal-box');
     modal.setAttribute('state', 'loaded');
     modal.style.visibility = 'hidden';

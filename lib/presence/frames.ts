@@ -1,5 +1,7 @@
 import type { Pull } from './protocol';
 
+export type { Corner } from './protocol';
+
 export type FrameEvent = { type: 'pull'; pull: Pull } | { type: 'drop'; frame: string };
 
 type Listener = (event: FrameEvent) => void;

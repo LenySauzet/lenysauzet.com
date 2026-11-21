@@ -10,40 +10,58 @@ import {
   useTransform,
   type MotionValue,
 } from 'motion/react';
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode, type RefObject } from 'react';
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 
 import { EASE_OUT, rubberBand } from '@/lib/motion';
-import { frames } from '@/lib/presence/frames';
-import type { Corner } from '@/lib/presence/protocol';
+import { frames, type Corner } from '@/lib/presence/frames';
 import { cn } from '@/lib/utils';
 
 const STRETCH = 40;
 const RETURN = { type: 'spring', stiffness: 380, damping: 20 } as const;
-const RETURN_STILL = { duration: 0.2, ease: EASE_OUT } as const;
 const FOLLOW = { type: 'spring', stiffness: 900, damping: 60 } as const;
+const EASED = { duration: 0.2, ease: EASE_OUT } as const;
 
 type Side = 'left' | 'top' | 'right' | 'bottom';
 type Edges = Record<Side, MotionValue<number>>;
 
-const CORNERS: { corner: Corner; x: Side; y: Side; className: string }[] = [
-  { corner: 0, x: 'left', y: 'top', className: 'top-0 left-0 -translate-1/2' },
-  { corner: 1, x: 'right', y: 'top', className: 'top-0 right-0 translate-x-1/2 -translate-y-1/2' },
-  { corner: 2, x: 'right', y: 'bottom', className: 'right-0 bottom-0 translate-1/2' },
-  { corner: 3, x: 'left', y: 'bottom', className: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2' },
+interface CornerHandle {
+  index: Corner;
+  x: Side;
+  y: Side;
+  className: string;
+}
+
+const CORNERS: CornerHandle[] = [
+  { index: 0, x: 'left', y: 'top', className: 'top-0 left-0 -translate-1/2' },
+  { index: 1, x: 'right', y: 'top', className: 'top-0 right-0 translate-x-1/2 -translate-y-1/2' },
+  { index: 2, x: 'right', y: 'bottom', className: 'right-0 bottom-0 translate-1/2' },
+  { index: 3, x: 'left', y: 'bottom', className: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2' },
 ];
 
 const SIDES: Side[] = ['left', 'top', 'right', 'bottom'];
 
-interface HandleProps {
-  frame: string;
-  corner: (typeof CORNERS)[number];
-  edges: Edges;
-  grabbedRef: RefObject<boolean>;
-  className?: string;
+interface Held {
+  corner: CornerHandle;
+  x: number;
+  y: number;
 }
 
-function Handle({ frame, corner, edges, grabbedRef, className }: HandleProps) {
-  const still = useReducedMotion();
+function settle(edges: Edges, held: Held | null, reducedMotion: boolean | null) {
+  for (const side of SIDES) {
+    const goal = held?.corner.x === side ? held.x : held?.corner.y === side ? held.y : 0;
+    animate(edges[side], goal, reducedMotion ? EASED : RETURN);
+  }
+}
+
+interface HandleProps {
+  corner: CornerHandle;
+  edges: Edges;
+  onGrab: () => void;
+  onPull: (corner: CornerHandle, x: number, y: number) => void;
+  onLetGo: () => void;
+}
+
+function Handle({ corner, edges, onGrab, onPull, onLetGo }: HandleProps) {
   const grabbedAt = useRef<{ x: number; y: number } | null>(null);
   const x = edges[corner.x];
   const y = edges[corner.y];
@@ -51,25 +69,19 @@ function Handle({ frame, corner, edges, grabbedRef, className }: HandleProps) {
   const grab = (event: PointerEvent<HTMLSpanElement>) => {
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    for (const side of SIDES) edges[side].stop();
-    grabbedRef.current = true;
     grabbedAt.current = { x: event.clientX - x.get(), y: event.clientY - y.get() };
+    onGrab();
   };
 
   const pull = (event: PointerEvent<HTMLSpanElement>) => {
     const from = grabbedAt.current;
-    if (!from) return;
-    x.set(rubberBand(event.clientX - from.x, STRETCH));
-    y.set(rubberBand(event.clientY - from.y, STRETCH));
-    frames.share({ type: 'pull', pull: { frame, corner: corner.corner, x: x.get(), y: y.get() } });
+    if (from) onPull(corner, rubberBand(event.clientX - from.x, STRETCH), rubberBand(event.clientY - from.y, STRETCH));
   };
 
   const letGo = () => {
     if (!grabbedAt.current) return;
     grabbedAt.current = null;
-    grabbedRef.current = false;
-    for (const side of SIDES) animate(edges[side], 0, still ? RETURN_STILL : RETURN);
-    frames.share({ type: 'drop', frame });
+    onLetGo();
   };
 
   return (
@@ -82,7 +94,7 @@ function Handle({ frame, corner, edges, grabbedRef, className }: HandleProps) {
       style={{ x, y }}
       className={cn(
         'absolute z-10 grid size-6 cursor-grab touch-none place-items-center active:cursor-grabbing',
-        className
+        corner.className
       )}
     >
       <span className="size-2 border border-primary bg-background" />
@@ -97,10 +109,11 @@ interface SelectionFrameProps {
 }
 
 export function SelectionFrame({ name, children, className }: SelectionFrameProps) {
-  const still = useReducedMotion();
+  const reducedMotion = useReducedMotion();
   const frame = useRef<HTMLDivElement>(null);
   const padding = useRef({ left: 0, top: 0, right: 0, bottom: 0 });
   const grabbed = useRef(false);
+  const heldElsewhere = useRef<Held | null>(null);
   const width = useMotionValue(0);
   const height = useMotionValue(0);
   const [edges] = useState<Edges>(() => ({
@@ -133,18 +146,37 @@ export function SelectionFrame({ name, children, className }: SelectionFrameProp
   useEffect(
     () =>
       frames.onReceived(name, (event) => {
-        if (grabbed.current) return;
         if (event.type === 'drop') {
-          for (const side of SIDES) animate(edges[side], 0, still ? RETURN_STILL : RETURN);
+          heldElsewhere.current = null;
+          if (!grabbed.current) settle(edges, null, reducedMotion);
           return;
         }
         const corner = CORNERS[event.pull.corner];
         if (!corner) return;
-        animate(edges[corner.x], event.pull.x, still ? RETURN_STILL : FOLLOW);
-        animate(edges[corner.y], event.pull.y, still ? RETURN_STILL : FOLLOW);
+        heldElsewhere.current = { corner, x: event.pull.x, y: event.pull.y };
+        if (grabbed.current) return;
+        animate(edges[corner.x], event.pull.x, reducedMotion ? EASED : FOLLOW);
+        animate(edges[corner.y], event.pull.y, reducedMotion ? EASED : FOLLOW);
       }),
-    [edges, name, still]
+    [edges, name, reducedMotion]
   );
+
+  const grab = () => {
+    for (const side of SIDES) edges[side].stop();
+    grabbed.current = true;
+  };
+
+  const pull = (corner: CornerHandle, x: number, y: number) => {
+    edges[corner.x].set(x);
+    edges[corner.y].set(y);
+    frames.share({ type: 'pull', pull: { frame: name, corner: corner.index, x, y } });
+  };
+
+  const letGo = () => {
+    grabbed.current = false;
+    settle(edges, heldElsewhere.current, reducedMotion);
+    frames.share({ type: 'drop', frame: name });
+  };
 
   const hatch = useMotionTemplate`inset(calc(${STRETCH}px + ${top}px) calc(${STRETCH}px - ${right}px) calc(${STRETCH}px - ${bottom}px) calc(${STRETCH}px + ${left}px))`;
   const outline = useTransform(
@@ -166,14 +198,7 @@ export function SelectionFrame({ name, children, className }: SelectionFrameProp
         <motion.path d={outline} fill="none" strokeWidth={1} className="stroke-primary/70" />
       </svg>
       {CORNERS.map((corner) => (
-        <Handle
-          key={corner.corner}
-          frame={name}
-          corner={corner}
-          edges={edges}
-          grabbedRef={grabbed}
-          className={corner.className}
-        />
+        <Handle key={corner.index} corner={corner} edges={edges} onGrab={grab} onPull={pull} onLetGo={letGo} />
       ))}
       <motion.div style={{ clipPath: clip }} className="relative">
         {children}

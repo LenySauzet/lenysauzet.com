@@ -3,9 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { layoutNow } from './layout';
 
 const viewport = (width: number) =>
-  vi.spyOn(window, 'matchMedia').mockImplementation(
-    (query) => ({ matches: width >= Number(/([\d.]+)rem/.exec(query)?.[1]) * 16 }) as MediaQueryList
-  );
+  vi
+    .spyOn(window, 'matchMedia')
+    .mockImplementation(
+      (query) => ({ matches: width >= Number(/([\d.]+)rem/.exec(query)?.[1]) * 16 }) as MediaQueryList
+    );
 
 describe('layoutNow', () => {
   afterEach(() => vi.restoreAllMocks());

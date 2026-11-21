@@ -1,194 +1,93 @@
 'use client';
 
-import { AnimatePresence, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { prefersReducedMotion } from '@/lib/motion';
 import { connect } from '@/lib/presence/connection';
-import { frames, type FrameEvent } from '@/lib/presence/frames';
+import { frames } from '@/lib/presence/frames';
 import { layoutNow, LAYOUT_QUERIES } from '@/lib/presence/layout';
 import { watchOverlays } from '@/lib/presence/overlays';
-import type { Layout, Marks, Path, ServerMessage } from '@/lib/presence/protocol';
 import { cn } from '@/lib/utils';
 
 import { Cursor } from './Cursor';
 import { shareOwnCursor } from './own-cursor';
-import { createRemoteCursors } from './remote-cursors';
+import { createRemoteCursors, type Ink } from './remote-cursors';
 import { createRemoteHighlights } from './remote-highlights';
 import { createRipples } from './ripple';
+import { createRoomState } from './room-state';
 
-type Attach = (id: string, element: HTMLElement | null) => void;
+const SURFACE =
+  'pointer-events-none fixed inset-0 m-0 size-full max-h-none max-w-none overflow-hidden border-0 bg-transparent p-0';
+
+type Attach = (id: string, ink: Ink | null) => void;
 
 export function Room({ url, className }: { url: string; className?: string }) {
   const [ids, setIds] = useState<string[]>([]);
   const [covered, setCovered] = useState(false);
-  const layer = useRef<HTMLDivElement>(null);
-  const waves = useRef<HTMLDivElement>(null);
-  const still = useReducedMotion();
-  const stillness = useRef(still);
+  const cursorLayer = useRef<HTMLDivElement>(null);
+  const rippleLayer = useRef<HTMLDivElement>(null);
   const attachTo = useRef<Attach>(() => {});
-  const attach = useCallback<Attach>((id, element) => attachTo.current(id, element), []);
+  const attach = useCallback<Attach>((id, ink) => attachTo.current(id, ink), []);
 
   useEffect(() => {
-    stillness.current = still;
-  }, [still]);
+    const cursorsAbove = cursorLayer.current;
+    const ripplesAbove = rippleLayer.current;
+    if (!cursorsAbove || !ripplesAbove) return;
+    cursorsAbove.showPopover();
+    ripplesAbove.showPopover();
 
-  useEffect(() => {
-    const top = layer.current;
-    const above = waves.current;
-    if (!top || !above) return;
-    top.showPopover();
-    above.showPopover();
-
-    const isStill = () => Boolean(stillness.current);
-    const ripples = createRipples(above);
+    const ripples = createRipples(ripplesAbove);
+    const ripple = (client: { x: number; y: number }) => {
+      if (!prefersReducedMotion()) ripples.at(client);
+    };
     const cursors = createRemoteCursors({
       onChange: setIds,
-      onClick: (_, point) => {
-        if (!isStill()) ripples.at({ x: point.x - window.scrollX, y: point.y - window.scrollY });
-      },
-      isStill,
+      onClick: (point) => ripple({ x: point.x - window.scrollX, y: point.y - window.scrollY }),
+      onFrame: (id, event) => room.framed(id, event),
+      reducedMotion: prefersReducedMotion,
     });
-    const highlights = createRemoteHighlights(isStill);
-    const pulling = new Map<string, string>();
-    const replays = new Map<string, { due: number; timers: Set<number> }>();
+    const highlights = createRemoteHighlights(prefersReducedMotion);
+    const room = createRoomState({ cursors, highlights, frames, layoutNow });
+    attachTo.current = cursors.attach;
 
-    const replay = (id: string, event: FrameEvent) => {
-      const queue = replays.get(id) ?? { due: 0, timers: new Set<number>() };
-      replays.set(id, queue);
-      queue.due = Math.max(queue.due, performance.now() + cursors.delayOf(id));
-      const timer = window.setTimeout(() => {
-        queue.timers.delete(timer);
-        frames.receive(event);
-      }, queue.due - performance.now());
-      queue.timers.add(timer);
-    };
-
-    const letGoAll = () => {
-      for (const frame of pulling.values()) frames.receive({ type: 'drop', frame });
-      pulling.clear();
-    };
-
-    const forget = (id: string) => {
-      for (const timer of replays.get(id)?.timers ?? []) window.clearTimeout(timer);
-      replays.delete(id);
-    };
-
-    const layouts = new Map<string, Layout>();
-    const selections = new Map<string, Marks>();
-    let own = layoutNow();
-    const alike = (id: string) => layouts.get(id) === own;
-
-    const showHighlight = (id: string) => {
-      const marks = selections.get(id);
-      if (marks?.layout === own) highlights.show(id, marks);
-      else highlights.hide(id);
-    };
-
-    const place = (id: string, path: Path) => {
-      layouts.set(id, path.layout);
-      if (!alike(id)) {
-        cursors.remove(id);
-        return;
-      }
-      cursors.move(id, path);
-    };
-
-    const regroup = () => {
-      own = layoutNow();
-      for (const id of layouts.keys()) if (!alike(id)) cursors.remove(id);
-      for (const id of selections.keys()) showHighlight(id);
-    };
-
-    const receive = (message: ServerMessage) => {
-      switch (message.type) {
-        case 'snapshot': {
-          letGoAll();
-          layouts.clear();
-          selections.clear();
-          cursors.keepOnly(new Set(message.cursors.map(({ id }) => id)));
-          highlights.keepOnly(new Set(message.highlights.map(({ id }) => id)));
-          for (const { id, path } of message.cursors) place(id, path);
-          for (const { id, marks } of message.highlights) {
-            selections.set(id, marks);
-            showHighlight(id);
-          }
-          return;
-        }
-        case 'move':
-          return place(message.id, message.path);
-        case 'press':
-          return cursors.press(message.id);
-        case 'release':
-          return cursors.release(message.id);
-        case 'click':
-          return cursors.click(message.id);
-        case 'leave':
-          return cursors.leave(message.id);
-        case 'gone': {
-          forget(message.id);
-          const frame = pulling.get(message.id);
-          if (frame) frames.receive({ type: 'drop', frame });
-          pulling.delete(message.id);
-          layouts.delete(message.id);
-          selections.delete(message.id);
-          cursors.remove(message.id);
-          return highlights.hide(message.id);
-        }
-        case 'highlight':
-          selections.set(message.id, message.marks);
-          return showHighlight(message.id);
-        case 'unhighlight':
-          selections.delete(message.id);
-          return highlights.hide(message.id);
-        case 'pull':
-          if (!alike(message.id)) return;
-          pulling.set(message.id, message.pull.frame);
-          return replay(message.id, { type: 'pull', pull: message.pull });
-        case 'drop':
-          if (!pulling.has(message.id)) return;
-          pulling.delete(message.id);
-          return replay(message.id, { type: 'drop', frame: message.frame });
-      }
-    };
-
-    const queries = LAYOUT_QUERIES.map((query) => window.matchMedia(query));
-    for (const query of queries) query.addEventListener('change', regroup);
-
-    const connection = connect(url, receive);
-    const sharing = shareOwnCursor(connection, (point) => {
-      if (!isStill()) ripples.at(point);
+    const connection = connect(url, {
+      onMessage: room.receive,
+      onOpen: () => sharing.opened(),
+      onLost: room.reset,
     });
+    const sharing = shareOwnCursor(connection, ripple);
+
     const stopWatching = watchOverlays((next) => {
       setCovered(next);
       sharing.cover(next);
+      cursors.cover(next);
       highlights.cover(next);
     });
-    attachTo.current = cursors.attach;
+    const queries = LAYOUT_QUERIES.map((query) => window.matchMedia(query));
+    for (const query of queries) query.addEventListener('change', room.regroup);
 
     return () => {
-      for (const query of queries) query.removeEventListener('change', regroup);
-      for (const id of [...replays.keys()]) forget(id);
-      letGoAll();
+      for (const query of queries) query.removeEventListener('change', room.regroup);
       stopWatching();
       sharing.stop();
       connection.close();
+      room.dispose();
       cursors.stop();
       highlights.stop();
       ripples.stop();
-      top.hidePopover();
-      above.hidePopover();
+      cursorsAbove.hidePopover();
+      ripplesAbove.hidePopover();
     };
   }, [url]);
-
-  const surface = 'pointer-events-none fixed inset-0 m-0 size-full max-h-none max-w-none overflow-hidden border-0 bg-transparent p-0';
 
   return (
     <>
       <div
-        ref={layer}
+        ref={cursorLayer}
         popover="manual"
         aria-hidden
-        className={cn(surface, 'transition-opacity duration-200', covered && 'opacity-0', className)}
+        className={cn(SURFACE, 'transition-opacity duration-200', covered && 'opacity-0', className)}
       >
         <AnimatePresence>
           {ids.map((id) => (
@@ -196,7 +95,7 @@ export function Room({ url, className }: { url: string; className?: string }) {
           ))}
         </AnimatePresence>
       </div>
-      <div ref={waves} popover="manual" aria-hidden className={surface} />
+      <div ref={rippleLayer} popover="manual" aria-hidden className={SURFACE} />
     </>
   );
 }

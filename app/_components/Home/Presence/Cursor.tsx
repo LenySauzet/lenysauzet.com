@@ -1,17 +1,18 @@
 'use client';
 
 import { motion, useReducedMotion } from 'motion/react';
-import type { CSSProperties } from 'react';
+import { memo, useEffect, useRef, type CSSProperties } from 'react';
 
-import { EASE_OUT } from '@/lib/motion';
+import { blurred, EASE_OUT, sharp } from '@/lib/motion';
 import { hueOf } from '@/lib/presence/hue';
+import { GHOSTS } from '@/lib/presence/pose';
 import { cn } from '@/lib/utils';
 
-import { GHOSTS } from './remote-cursors';
+import type { Ink } from './remote-cursors';
 
 const ARROW = 'M4.5 4L21.5 10.6L13.6 13.3L10.9 21.2Z';
-const GONE = { opacity: 0, scale: 0.6, filter: 'blur(6px)' };
-const HERE = { opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } };
+const GONE = { ...blurred(6), scale: 0.6 };
+const HERE = { ...sharp, scale: 1 };
 const FADED = { opacity: 0 };
 const SHOWN = { opacity: 1 };
 const PLACED = 'absolute top-0 left-0 origin-top-left will-change-transform';
@@ -35,35 +36,50 @@ function Arrow({ filter, rimmed = false, className }: ArrowProps) {
 
 interface CursorProps {
   id: string;
-  attach: (id: string, element: HTMLElement | null) => void;
+  attach: (id: string, ink: Ink | null) => void;
   className?: string;
 }
 
-export function Cursor({ id, attach, className }: CursorProps) {
+export const Cursor = memo(function Cursor({ id, attach, className }: CursorProps) {
   const still = useReducedMotion();
   const filter = `${id}-motion`;
+  const main = useRef<HTMLDivElement>(null);
+  const ghosts = useRef<(HTMLDivElement | null)[]>([]);
+  const blur = useRef<SVGFEGaussianBlurElement>(null);
+
+  useEffect(() => {
+    if (!main.current) return;
+    attach(id, {
+      main: main.current,
+      ghosts: ghosts.current.filter((ghost): ghost is HTMLDivElement => ghost !== null),
+      blur: blur.current,
+    });
+    return () => attach(id, null);
+  }, [attach, id, still]);
 
   return (
-    <div
-      ref={(element) => attach(id, element)}
-      className={cn('absolute inset-0', className)}
-      style={{ '--cursor-hue': hueOf(id) } as CSSProperties}
-    >
+    <div className={cn('absolute inset-0', className)} style={{ '--cursor-hue': hueOf(id) } as CSSProperties}>
       <svg aria-hidden className="absolute size-0">
         <filter id={filter} x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation="0 0" />
+          <feGaussianBlur ref={blur} stdDeviation="0 0" />
         </filter>
       </svg>
       {!still && (
         <motion.div exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
           {Array.from({ length: GHOSTS }, (_, index) => (
-            <div key={index} data-cursor-ghost className={cn(PLACED, 'opacity-0')}>
+            <div
+              key={index}
+              ref={(ghost) => {
+                ghosts.current[index] = ghost;
+              }}
+              className={cn(PLACED, 'opacity-0')}
+            >
               <Arrow filter={filter} />
             </div>
           ))}
         </motion.div>
       )}
-      <div data-cursor-main className={cn(PLACED, 'invisible')}>
+      <div ref={main} className={cn(PLACED, 'invisible')}>
         <motion.div
           initial={still ? FADED : GONE}
           animate={still ? SHOWN : HERE}
@@ -76,4 +92,4 @@ export function Cursor({ id, attach, className }: CursorProps) {
       </div>
     </div>
   );
-}
+});

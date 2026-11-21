@@ -20,7 +20,7 @@ import siteConfig from '@/config/site';
 import { announce } from '@/hooks/use-island-store';
 import { usePresenceStore } from '@/hooks/use-presence-store';
 import { prefersReducedMotion } from '@/lib/motion';
-import { hasFinePointer } from '@/lib/presence/pointer';
+import { presenceAvailable } from '@/lib/presence/availability';
 import { openBooking } from '@/lib/services/booking';
 import { announceResume, RESUME_ROUTE } from '@/lib/services/resume';
 import { withThemeTransition } from '@/lib/theme/theme-transition';
@@ -129,7 +129,7 @@ export const commands: Command[] = [
     group: 'Tools',
     keywords: ['toggle', 'presence', 'visitors', 'others', 'hide', 'show'],
     status: () => (usePresenceStore.getState().hidden ? 'Off' : 'On'),
-    available: hasFinePointer,
+    available: presenceAvailable,
     run: () => announce(usePresenceStore.getState().toggle() ? 'Cursors hidden' : 'Cursors shown', Cursor01Icon),
   },
   {

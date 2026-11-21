@@ -12,6 +12,7 @@ const CHANNELS = [
 ];
 const MAP_SIZE = 256;
 const RING_FROM = 0.5;
+const MOST_AT_ONCE = 3;
 const PLACED = 'pointer-events-none absolute';
 
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
@@ -59,6 +60,10 @@ export function createRipples(layer: HTMLElement) {
   defs.style.position = 'absolute';
   layer.append(defs);
   const running = new Set<() => void>();
+  const makeRoom = () => {
+    const [oldest] = running;
+    if (running.size >= MOST_AT_ONCE && oldest) oldest();
+  };
   let count = 0;
 
   const place = (center: Vector) => {
@@ -87,21 +92,22 @@ export function createRipples(layer: HTMLElement) {
       'color-interpolation-filters': 'sRGB',
     });
     const image = create('feImage', { href: map, preserveAspectRatio: 'none', result: 'wave' });
-    const displacements = CHANNELS.map((_, index) =>
-      create('feDisplacementMap', {
+    const displacements = CHANNELS.map(({ spread }, index) => ({
+      spread,
+      node: create('feDisplacementMap', {
         in: 'SourceGraphic',
         in2: 'map',
         scale: 0,
         xChannelSelector: 'R',
         yChannelSelector: 'G',
         result: `shifted-${index}`,
-      })
-    );
+      }),
+    }));
     filter.append(
       create('feFlood', { 'flood-color': 'rgb(128,128,128)', result: 'still' }),
       image,
       create('feComposite', { in: 'wave', in2: 'still', operator: 'over', result: 'map' }),
-      ...displacements,
+      ...displacements.map(({ node }) => node),
       ...CHANNELS.map(({ keep }, index) =>
         create('feColorMatrix', { in: `shifted-${index}`, type: 'matrix', values: keep, result: `channel-${index}` })
       ),
@@ -113,10 +119,10 @@ export function createRipples(layer: HTMLElement) {
     const element = place(center);
     element.style.backdropFilter = `url(#${id})`;
     const startedAt = performance.now();
-    let frame = 0;
+    let rafId = 0;
 
     const end = () => {
-      window.cancelAnimationFrame(frame);
+      window.cancelAnimationFrame(rafId);
       element.remove();
       filter.remove();
       running.delete(end);
@@ -130,21 +136,21 @@ export function createRipples(layer: HTMLElement) {
       image.setAttribute('width', String(radius * 2));
       image.setAttribute('height', String(radius * 2));
       const strength = STRENGTH * (1 - t) ** 2;
-      displacements.forEach((displacement, index) =>
-        displacement.setAttribute('scale', String(strength * (CHANNELS[index]?.spread ?? 1)))
-      );
-      if (t < 1) frame = window.requestAnimationFrame(step);
+      for (const { node, spread } of displacements) node.setAttribute('scale', String(strength * spread));
+      if (t < 1) rafId = window.requestAnimationFrame(step);
       else end();
     };
 
     running.add(end);
-    frame = window.requestAnimationFrame(step);
+    rafId = window.requestAnimationFrame(step);
   };
 
   return {
     at(client: Vector) {
       const map = distorts() ? waveMap() : undefined;
-      if (map) distort(client, map);
+      if (!map) return;
+      makeRoom();
+      distort(client, map);
     },
     stop() {
       for (const end of [...running]) end();

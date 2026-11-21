@@ -4,21 +4,26 @@ import {
   decodeClient,
   encodeServer,
   EVICTED,
+  FLOODING,
   HEARTBEAT,
   HEARTBEAT_REPLY,
   MAX_CLIENT_MESSAGE,
+  type ClientMessage,
   type Cursor,
   type Highlight,
+  type Marks,
   type Path,
   type ServerMessage,
-  type Marks,
 } from '../../../lib/presence/protocol';
+import { networkOf } from './address';
 import { Budget } from './budget';
 
 const CAPACITY = 24;
 const PER_ADDRESS = 4;
 const BURST = 120;
 const PER_SECOND = 75;
+const MOST_OVERDRAWN = 150;
+const REMEMBER_PATH_EVERY = 250;
 const RESERVED_CODES = new Set([1004, 1005, 1006, 1015]);
 
 interface Visitor {
@@ -26,14 +31,37 @@ interface Visitor {
   activeAt: number;
   path?: Path;
   marks?: Marks;
+  departed?: true;
 }
 
 const newId = () => crypto.randomUUID().replaceAll('-', '').slice(0, 10);
 
 async function addressTag(address: string) {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(address));
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(networkOf(address)));
   return [...new Uint8Array(digest).slice(0, 8)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
+
+const visitorOf = (socket: WebSocket) => socket.deserializeAttachment() as Visitor;
+
+const lastOf = (path: Path): Path => ({
+  ...path,
+  samples: path.samples.slice(-1).map((sample) => ({ ...sample, age: 0 })),
+});
+
+const changesFor = (message: ClientMessage, visitor: Visitor, now: number): Partial<Visitor> => {
+  switch (message.type) {
+    case 'move':
+      return now - visitor.activeAt >= REMEMBER_PATH_EVERY || !visitor.path ? { path: lastOf(message.path) } : {};
+    case 'leave':
+      return { path: undefined };
+    case 'highlight':
+      return { marks: message.marks };
+    case 'unhighlight':
+      return { marks: undefined };
+    default:
+      return {};
+  }
+};
 
 export class Room extends DurableObject<Env> {
   private readonly budgets = new WeakMap<WebSocket, Budget>();
@@ -46,12 +74,12 @@ export class Room extends DurableObject<Env> {
   async fetch(request: Request) {
     const address = request.headers.get('CF-Connecting-IP');
     const tags = address ? [await addressTag(address)] : [];
-    if (tags.some((tag) => this.open(tag).length >= PER_ADDRESS))
+    if (tags.some((tag) => this.openSockets(tag).length >= PER_ADDRESS))
       return new Response('Too many connections', { status: 429 });
 
-    if (this.open().length >= CAPACITY) this.evictTheIdlest();
+    if (this.openSockets().length >= CAPACITY) this.evictTheIdlest();
 
-    const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
+    const { 0: client, 1: server } = new WebSocketPair();
     this.ctx.acceptWebSocket(server, tags);
     server.serializeAttachment({ id: newId(), activeAt: Date.now() } satisfies Visitor);
     server.send(encodeServer({ type: 'snapshot', ...this.snapshot(server) }));
@@ -60,74 +88,62 @@ export class Room extends DurableObject<Env> {
   }
 
   webSocketMessage(socket: WebSocket, data: string | ArrayBuffer) {
-    if (!this.affords(socket) || typeof data !== 'string' || data.length > MAX_CLIENT_MESSAGE) return;
+    const budget = this.budgetOf(socket);
+    const now = Date.now();
+    if (!budget.spend(now)) {
+      if (budget.overdrawn > MOST_OVERDRAWN) this.dismiss(socket, FLOODING, 'flooding');
+      return;
+    }
+    if (typeof data !== 'string' || data.length > MAX_CLIENT_MESSAGE) return;
 
     const message = decodeClient(data);
     if (!message) return;
 
     const visitor = visitorOf(socket);
-    const { id } = visitor;
-    const remember = (changes: Partial<Visitor>) =>
-      socket.serializeAttachment({ ...visitor, ...changes, activeAt: Date.now() } satisfies Visitor);
-
-    switch (message.type) {
-      case 'move':
-        remember({ path: lastOf(message.path) });
-        return this.broadcast(socket, { type: 'move', id, path: message.path });
-      case 'leave':
-        remember({ path: undefined });
-        return this.broadcast(socket, { type: 'leave', id });
-      case 'highlight':
-        remember({ marks: message.marks });
-        return this.broadcast(socket, { type: 'highlight', id, marks: message.marks });
-      case 'unhighlight':
-        remember({ marks: undefined });
-        return this.broadcast(socket, { type: 'unhighlight', id });
-      case 'pull':
-        remember({});
-        return this.broadcast(socket, { type: 'pull', id, pull: message.pull });
-      case 'drop':
-        remember({});
-        return this.broadcast(socket, { type: 'drop', id, frame: message.frame });
-      default:
-        remember({});
-        return this.broadcast(socket, { type: message.type, id });
-    }
+    const changes = changesFor(message, visitor, now);
+    if (message.type !== 'move' || 'path' in changes)
+      socket.serializeAttachment({ ...visitor, ...changes, activeAt: now } satisfies Visitor);
+    this.broadcast(socket, { ...message, id: visitor.id });
   }
 
   webSocketClose(socket: WebSocket, code: number, reason: string) {
-    this.depart(socket);
+    this.announceGone(socket);
     if (RESERVED_CODES.has(code)) socket.close();
     else socket.close(code, reason);
   }
 
   webSocketError(socket: WebSocket) {
-    this.depart(socket);
+    this.announceGone(socket);
   }
 
   private evictTheIdlest() {
-    const [idlest] = this.open().sort((a, b) => visitorOf(a).activeAt - visitorOf(b).activeAt);
-    if (!idlest) return;
-    this.depart(idlest);
-    idlest.close(EVICTED, 'idle');
+    const [idlest] = this.openSockets().sort((a, b) => visitorOf(a).activeAt - visitorOf(b).activeAt);
+    if (idlest) this.dismiss(idlest, EVICTED, 'idle');
   }
 
-  private depart(socket: WebSocket) {
-    this.broadcast(socket, { type: 'gone', id: visitorOf(socket).id });
+  private dismiss(socket: WebSocket, code: number, reason: string) {
+    this.announceGone(socket);
+    socket.close(code, reason);
   }
 
-  private affords(socket: WebSocket) {
-    const now = Date.now();
+  private announceGone(socket: WebSocket) {
+    const visitor = visitorOf(socket);
+    if (visitor.departed) return;
+    socket.serializeAttachment({ ...visitor, departed: true } satisfies Visitor);
+    this.broadcast(socket, { type: 'gone', id: visitor.id });
+  }
+
+  private budgetOf(socket: WebSocket) {
     let budget = this.budgets.get(socket);
     if (!budget) {
-      budget = new Budget(BURST, PER_SECOND, now);
+      budget = new Budget(BURST, PER_SECOND, Date.now());
       this.budgets.set(socket, budget);
     }
-    return budget.spend(now);
+    return budget;
   }
 
   private snapshot(except: WebSocket): { cursors: Cursor[]; highlights: Highlight[] } {
-    const visitors = this.open()
+    const visitors = this.openSockets()
       .filter((socket) => socket !== except)
       .map(visitorOf);
 
@@ -137,21 +153,12 @@ export class Room extends DurableObject<Env> {
     };
   }
 
-  private open(tag?: string) {
+  private openSockets(tag?: string) {
     return this.ctx.getWebSockets(tag).filter((socket) => socket.readyState === WebSocket.OPEN);
   }
 
   private broadcast(from: WebSocket, message: ServerMessage) {
     const encoded = encodeServer(message);
-    for (const socket of this.ctx.getWebSockets()) {
-      if (socket !== from && socket.readyState === WebSocket.OPEN) socket.send(encoded);
-    }
+    for (const socket of this.openSockets()) if (socket !== from) socket.send(encoded);
   }
 }
-
-const visitorOf = (socket: WebSocket) => socket.deserializeAttachment() as Visitor;
-
-const lastOf = (path: Path): Path => ({
-  ...path,
-  samples: path.samples.slice(-1).map((sample) => ({ ...sample, age: 0 })),
-});

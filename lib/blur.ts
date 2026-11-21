@@ -4,7 +4,9 @@ export interface BlurLayer {
   to: number;
 }
 
-const strengthAt = (strongest: number, at: number) => (strongest * (2 ** (4 * at) - 1)) / 15;
+const STEEPNESS = 4;
+
+const strengthAt = (strongest: number, at: number) => (strongest * (2 ** (STEEPNESS * at) - 1)) / (2 ** STEEPNESS - 1);
 
 export function blurLayers(count: number, strongest: number): BlurLayer[] {
   return Array.from({ length: count }, (_, index) => {
@@ -15,3 +17,5 @@ export function blurLayers(count: number, strongest: number): BlurLayer[] {
     return { radius: Math.sqrt(after ** 2 - before ** 2), from, to };
   });
 }
+
+export const reachFor = (left: number, band: number) => (left < 1 || band <= 0 ? 0 : Math.min(1, left / band));

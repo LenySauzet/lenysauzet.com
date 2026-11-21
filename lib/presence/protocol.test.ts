@@ -19,7 +19,13 @@ const path = {
     { age: 0, x: 1, y: 0.5, dx: 12, dy: -4 },
   ],
 };
-const marks = { layout: 3 as const, spans: [{ anchor: 'role', start: 2, end: 9 }, { anchor: 'intro', start: 0, end: 12 }] };
+const marks = {
+  layout: 3 as const,
+  spans: [
+    { anchor: 'role', start: 2, end: 9 },
+    { anchor: 'intro', start: 0, end: 12 },
+  ],
+};
 const pull = { frame: 'headline', corner: 2 as const, x: 12.5, y: -3 };
 
 describe('the client messages', () => {
@@ -45,7 +51,15 @@ describe('the client messages', () => {
       '["m","intro",2,null,[16,0.1235,0.3333,5,0]]'
     );
     expect(
-      encodeClient({ type: 'move', path: { anchor: 'intro', layout: 2, detail: { part: '#12', x: 1 / 3, y: 0.5, width: 9.6, height: 20 }, samples: [sample] } })
+      encodeClient({
+        type: 'move',
+        path: {
+          anchor: 'intro',
+          layout: 2,
+          detail: { part: '#12', x: 1 / 3, y: 0.5, width: 9.6, height: 20 },
+          samples: [sample],
+        },
+      })
     ).toBe('["m","intro",2,["#12",0.3333,0.5,10,20],[16,0.1235,0.3333,5,0]]');
     expect(encodeClient({ type: 'pull', pull: { ...pull, x: 1 / 3 } })).toBe('["d","headline",2,0.3,-3]');
   });
@@ -60,8 +74,19 @@ describe('the client messages', () => {
     expect(encodeClient({ type: 'move', path: longest }).length).toBeLessThanOrEqual(MAX_CLIENT_MESSAGE);
   });
 
+  it('fit eight spans on the longest anchors within what the room reads', () => {
+    const span = { anchor: 'a'.repeat(64), start: 19_999, end: 20_000 };
+    const longest = { layout: 3 as const, spans: Array<typeof span>(8).fill(span), backward: true as const };
+
+    expect(encodeClient({ type: 'highlight', marks: longest }).length).toBeLessThanOrEqual(MAX_CLIENT_MESSAGE);
+  });
+
   it.each([
     'not json',
+    '["toString"]',
+    '["constructor"]',
+    '["__proto__"]',
+    '["s",[],[]]',
     '{"m":1}',
     '["m","intro",3,null]',
     '["m","intro",3,["#3",0.5,0.5],[0,0.5,0.5,0,0]]',
@@ -133,6 +158,7 @@ describe('the server messages', () => {
     '["e","a1"]',
     '["l"]',
     '["g","a1",1]',
+    '["toString","a1"]',
   ])('refuses %s', (data) => {
     expect(decodeServer(data)).toBeUndefined();
   });

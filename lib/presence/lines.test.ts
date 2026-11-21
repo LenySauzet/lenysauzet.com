@@ -6,12 +6,7 @@ const rect = (left: number, top: number, right: number, bottom: number) => ({ le
 
 describe('linesOf', () => {
   it('joins the pieces of one line, an inline element included, and keeps lines apart', () => {
-    const lines = linesOf([
-      rect(10, 0, 60, 20),
-      rect(60, 2, 90, 18),
-      rect(0, 24, 40, 44),
-      rect(60, 0, 90, 20),
-    ]);
+    const lines = linesOf([rect(10, 0, 60, 20), rect(60, 2, 90, 18), rect(0, 24, 40, 44), rect(60, 0, 90, 20)]);
 
     expect(lines).toEqual([rect(10, 0, 90, 20), rect(0, 24, 40, 44)]);
   });

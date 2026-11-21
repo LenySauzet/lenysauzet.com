@@ -44,7 +44,10 @@ describe('Copy email', () => {
   });
 
   it('says so once the address is on the clipboard', async () => {
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true });
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      configurable: true,
+    });
 
     await byId('copy-email').run(context);
 

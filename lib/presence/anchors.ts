@@ -1,76 +1,21 @@
+import { clamp } from '@/lib/utils';
+
+import { distanceTo, nearest, placeOn, pointOn, type Anchored, type Box, type Placement } from './geometry';
 import type { Vector } from './motion';
-import { MOST_SPANS, type Detail, type Sample, type Span, type Target } from './protocol';
+import { MOST_SPANS, type Detail, type Span } from './protocol';
+
+export interface Target {
+  anchor: string;
+  part: string;
+}
 
 const ANCHOR_ATTRIBUTE = 'data-presence';
+const VOLATILE = '[data-presence-volatile]';
 const PAGE_ANCHOR = 'page';
-const LONGEST_ANCHOR = 64;
 const DEEPEST = 16;
 const CHARACTER = '#';
 const SLACK = 2;
 const HOLD_REACH = 600;
-
-export interface Box {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
-export type Placement = Omit<Sample, 'age'>;
-
-interface Anchored {
-  anchor: string;
-  box: Box;
-}
-
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
-export const anchorFor = (kind: string, name?: string) =>
-  (name ? `${kind}:${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}` : kind).slice(
-    0,
-    LONGEST_ANCHOR
-  );
-
-const closestOn = (box: Box, point: Vector): Vector => ({
-  x: clamp(point.x, box.left, box.left + box.width),
-  y: clamp(point.y, box.top, box.top + box.height),
-});
-
-const distanceTo = (box: Box, point: Vector) => {
-  const closest = closestOn(box, point);
-  return Math.hypot(point.x - closest.x, point.y - closest.y);
-};
-
-export const placeOn = (box: Box, point: Vector): Placement => {
-  const closest = closestOn(box, point);
-  return {
-    x: box.width ? (closest.x - box.left) / box.width : 0,
-    y: box.height ? (closest.y - box.top) / box.height : 0,
-    dx: Math.round(point.x - closest.x),
-    dy: Math.round(point.y - closest.y),
-  };
-};
-
-export const pointOn = (box: Box, { x, y, dx, dy }: Placement): Vector => ({
-  x: box.left + x * box.width + dx,
-  y: box.top + y * box.height + dy,
-});
-
-const area = ({ width, height }: Box) => width * height;
-
-export function nearest<T extends Anchored>(candidates: T[], point: Vector): T | undefined {
-  let best: { candidate: T; distance: number } | undefined;
-  for (const candidate of candidates) {
-    const distance = distanceTo(candidate.box, point);
-    if (
-      !best ||
-      distance < best.distance ||
-      (distance === best.distance && area(candidate.box) < area(best.candidate.box))
-    )
-      best = { candidate, distance };
-  }
-  return best?.candidate;
-}
 
 const isShown = (element: Element) => element.getClientRects().length > 0;
 
@@ -97,30 +42,45 @@ const shownAnchors = (): Anchored[] =>
     return anchor ? [{ anchor, box: documentBox(element.getBoundingClientRect()) }] : [];
   });
 
+const textNodes = (root: Node) => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => (node.parentElement?.closest(VOLATILE) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+  });
+  const nodes: Text[] = [];
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) if (node instanceof Text) nodes.push(node);
+  return nodes;
+};
+
+const textLength = (root: Node) => textNodes(root).reduce((length, node) => length + node.length, 0);
+
 const offsetWithin = (anchor: Node, node: Node, offset: number) => {
   const before = document.createRange();
   before.selectNodeContents(anchor);
   before.setEnd(node, offset);
-  return before.toString().length;
+  let length = 0;
+  for (const text of textNodes(anchor)) {
+    if (text === node) return length + offset;
+    if (!before.intersectsNode(text)) break;
+    length += text.length;
+  }
+  return length;
 };
 
 function rangeWithin(root: Element, start: number, end: number): Range | undefined {
   const range = document.createRange();
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let passed = 0;
   let placedStart = false;
 
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    const length = node.textContent?.length ?? 0;
-    if (!placedStart && start < passed + length) {
+  for (const node of textNodes(root)) {
+    if (!placedStart && start < passed + node.length) {
       range.setStart(node, start - passed);
       placedStart = true;
     }
-    if (placedStart && end <= passed + length) {
+    if (placedStart && end <= passed + node.length) {
       range.setEnd(node, end - passed);
       return range;
     }
-    passed += length;
+    passed += node.length;
   }
 
   return undefined;
@@ -244,7 +204,7 @@ export function spansOf(range: Range): Span[] {
         : 0;
       const end = anchor.contains(range.endContainer)
         ? offsetWithin(anchor, range.endContainer, range.endOffset)
-        : (anchor.textContent?.length ?? 0);
+        : textLength(anchor);
       return name && end > start ? [{ anchor: name, start, end }] : [];
     })
     .slice(0, MOST_SPANS);
@@ -253,4 +213,13 @@ export function spansOf(range: Range): Span[] {
 export function rangeOf({ anchor, start, end }: Span): Range | undefined {
   const root = shownAnchor(anchor);
   return root && rangeWithin(root, start, end);
+}
+
+export function createRangeReader() {
+  const roots = new Map<string, Element | undefined>();
+  return ({ anchor, start, end }: Span): Range | undefined => {
+    if (!roots.has(anchor)) roots.set(anchor, shownAnchor(anchor));
+    const root = roots.get(anchor);
+    return root && rangeWithin(root, start, end);
+  };
 }

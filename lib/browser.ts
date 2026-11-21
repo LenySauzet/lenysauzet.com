@@ -8,3 +8,7 @@ const BROWSERS: [RegExp, string][] = [
 
 export const browserName = (userAgent: string) =>
   BROWSERS.find(([pattern]) => pattern.test(userAgent))?.[1] ?? 'Unknown';
+
+export const FINE_POINTER = '(pointer: fine)';
+
+export const hasFinePointer = () => window.matchMedia(FINE_POINTER).matches;

@@ -1,24 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { FrameEvent } from '@/lib/presence/frames';
+import { GHOSTS } from '@/lib/presence/pose';
 import type { Path } from '@/lib/presence/protocol';
 
-import { createRemoteCursors, GHOSTS } from './remote-cursors';
+import { createRemoteCursors, type Ink } from './remote-cursors';
 
 const at = (x: number, dx = 0): Path => ({ anchor: 'page', layout: 3, samples: [{ age: 0, x, y: 0, dx, dy: 0 }] });
 
-const ink = () => {
-  const element = document.createElement('div');
-  element.innerHTML = `<svg><filter><feGaussianBlur stdDeviation="0 0"></feGaussianBlur></filter></svg>${'<div data-cursor-ghost></div>'.repeat(GHOSTS)}<div data-cursor-main></div>`;
-  return element;
-};
+const ink = (): Ink => ({
+  main: document.createElement('div'),
+  ghosts: Array.from({ length: GHOSTS }, () => document.createElement('div')),
+  blur: document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur'),
+});
 
-const mainOf = (element: HTMLElement) => element.querySelector<HTMLElement>('[data-cursor-main]')!;
-const scaleOf = (element: HTMLElement) => Number(/scale\(([\d.]+)\)/.exec(mainOf(element).style.transform)?.[1]);
-const opacityOf = (element: HTMLElement) => Number(mainOf(element).style.opacity);
+const mainOf = ({ main }: Ink) => main;
+const scaleOf = (drawn: Ink) => Number(/scale\(([\d.]+)\)/.exec(drawn.main.style.transform)?.[1]);
+const opacityOf = (drawn: Ink) => Number(drawn.main.style.opacity);
 
 describe('the remote cursors', () => {
   let published: string[][];
   let clicked: number[];
+  let framed: FrameEvent[];
   let cursors: ReturnType<typeof createRemoteCursors>;
 
   beforeEach(() => {
@@ -29,10 +32,12 @@ describe('the remote cursors', () => {
     vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(1000);
     published = [];
     clicked = [];
+    framed = [];
     cursors = createRemoteCursors({
       onChange: (ids) => published.push(ids),
-      onClick: (_, point) => clicked.push(point.x),
-      isStill: () => false,
+      onClick: (point) => clicked.push(point.x),
+      onFrame: (_, event) => framed.push(event),
+      reducedMotion: () => false,
     });
   });
 
@@ -47,7 +52,8 @@ describe('the remote cursors', () => {
     for (let index = 0; index < 12; index += 1) cursors.move(`v${index}`, at(0.5));
     const updates = published.length;
 
-    for (let round = 0; round < 5; round += 1) for (let index = 0; index < 12; index += 1) cursors.move(`v${index}`, at(0.5));
+    for (let round = 0; round < 5; round += 1)
+      for (let index = 0; index < 12; index += 1) cursors.move(`v${index}`, at(0.5));
 
     expect(shown()).toHaveLength(10);
     expect(shown()).not.toContain('v10');
@@ -170,7 +176,10 @@ describe('the remote cursors', () => {
       anchor: 'card',
       layout: 3 as const,
       detail: { part: '0', x: 0.5, y: 0.5, width: 10, height: 10 },
-      samples: [{ age: 16, x: x - 0.016, y: 0.1, dx: 0, dy: 0 }, { age: 0, x, y: 0.1, dx: 0, dy: 0 }],
+      samples: [
+        { age: 16, x: x - 0.016, y: 0.1, dx: 0, dy: 0 },
+        { age: 0, x, y: 0.1, dx: 0, dy: 0 },
+      ],
     });
 
     let drift = 0;
@@ -244,6 +253,46 @@ describe('the remote cursors', () => {
     expect(shown()).toEqual(['v0']);
   });
 
+  it('plays frame pulls on the cursor timeline, and lets a pending drop out when its owner goes', () => {
+    cursors.move('v0', at(0.2));
+    cursors.attach('v0', ink());
+    vi.advanceTimersByTime(300);
+    const pull = { frame: 'headline', corner: 0 as const, x: 4, y: 2 };
+
+    cursors.pull('v0', pull);
+    expect(framed).toEqual([]);
+    vi.advanceTimersByTime(200);
+    expect(framed).toEqual([{ type: 'pull', pull }]);
+
+    cursors.drop('v0', 'headline');
+    cursors.remove('v0');
+    expect(framed.at(-1)).toEqual({ type: 'drop', frame: 'headline' });
+  });
+
+  it('ripples a flood of clicks from one visitor at a human pace', () => {
+    cursors.move('v0', at(0.2));
+    cursors.attach('v0', ink());
+    vi.advanceTimersByTime(300);
+
+    for (let index = 0; index < 50; index += 1) cursors.click('v0');
+    vi.advanceTimersByTime(300);
+
+    expect(clicked).toHaveLength(1);
+  });
+
+  it('stops drawing while a modal covers the page, and picks up after', () => {
+    const drawn = ink();
+    cursors.attach('v0', drawn);
+    cursors.cover(true);
+    cursors.move('v0', at(0.4));
+    vi.advanceTimersByTime(300);
+    expect(drawn.main.style.transform).toBe('');
+
+    cursors.cover(false);
+    vi.advanceTimersByTime(300);
+    expect(drawn.main.style.transform).toMatch(/^translate3d\(400px/);
+  });
+
   it('draws a trail behind a fast cursor only', () => {
     const element = ink();
     cursors.attach('v0', element);
@@ -251,7 +300,7 @@ describe('the remote cursors', () => {
       cursors.move('v0', at(time / 300));
       vi.advanceTimersByTime(16);
     }
-    const ghost = element.querySelector<HTMLElement>('[data-cursor-ghost]')!;
+    const [ghost] = element.ghosts;
     expect(Number(ghost.style.opacity)).toBeGreaterThan(0.1);
 
     vi.advanceTimersByTime(1000);

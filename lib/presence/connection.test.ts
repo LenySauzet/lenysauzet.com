@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { connect, retryDelay } from './connection';
-import { encodeServer, EVICTED } from './protocol';
+import { encodeServer, EVICTED, FLOODING } from './protocol';
 
 class FakeSocket extends EventTarget {
   static OPEN = 1;
@@ -56,22 +56,26 @@ describe('connect', () => {
 
   it('hands on what the room says, and reconnects when the line drops', () => {
     const received = vi.fn();
-    connect('wss://presence.test', received);
+    const lost = vi.fn();
+    connect('wss://presence.test', { onMessage: received, onOpen: vi.fn(), onLost: lost });
     latest().opened();
 
     latest().dispatchEvent(new MessageEvent('message', { data: encodeServer({ type: 'leave', id: 'a1' }) }));
     expect(received).toHaveBeenCalledWith({ type: 'leave', id: 'a1' });
 
     latest().dropped();
+    expect(lost).toHaveBeenCalledOnce();
     vi.advanceTimersByTime(1000);
     expect(FakeSocket.made).toHaveLength(2);
   });
 
-  it('stays down once evicted for idling, until woken', () => {
-    const connection = connect('wss://presence.test', vi.fn());
+  const events = () => ({ onMessage: vi.fn(), onOpen: vi.fn(), onLost: vi.fn() });
+
+  it.each([EVICTED, FLOODING])('stays down once dismissed with %i, until woken', (code) => {
+    const connection = connect('wss://presence.test', events());
     latest().opened();
 
-    latest().dropped(EVICTED);
+    latest().dropped(code);
     vi.advanceTimersByTime(60_000);
     expect(FakeSocket.made).toHaveLength(1);
 
@@ -79,8 +83,21 @@ describe('connect', () => {
     expect(FakeSocket.made).toHaveLength(2);
   });
 
+  it('stays closed for good, even when asked to wake', () => {
+    const handlers = events();
+    const connection = connect('wss://presence.test', handlers);
+    latest().opened();
+
+    connection.close();
+    connection.wake();
+    vi.advanceTimersByTime(60_000);
+
+    expect(FakeSocket.made).toHaveLength(1);
+    expect(handlers.onLost).toHaveBeenCalledOnce();
+  });
+
   it('sleeps without reconnecting, and only sends while open', () => {
-    const connection = connect('wss://presence.test', vi.fn());
+    const connection = connect('wss://presence.test', events());
     connection.send({ type: 'press' });
     expect(latest().sent).toEqual([]);
 

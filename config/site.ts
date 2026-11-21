@@ -38,6 +38,7 @@ const siteConfig = {
   presenceUrl:
     process.env.NEXT_PUBLIC_PRESENCE_URL ??
     (process.env.NEXT_PUBLIC_VERCEL_ENV === 'production' ? 'wss://presence.lenysauzet.com' : undefined),
+  presenceOrigin: process.env.NEXT_PUBLIC_PRESENCE_URL ? undefined : url,
   author,
   social,
   profiles,

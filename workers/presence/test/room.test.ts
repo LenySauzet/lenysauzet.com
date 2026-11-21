@@ -1,7 +1,14 @@
 import { exports } from 'cloudflare:workers';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { decodeServer, encodeClient, EVICTED, MAX_CLIENT_MESSAGE, type ServerMessage } from '../../../lib/presence/protocol';
+import {
+  decodeServer,
+  encodeClient,
+  EVICTED,
+  FLOODING,
+  MAX_CLIENT_MESSAGE,
+  type ServerMessage,
+} from '../../../lib/presence/protocol';
 
 const ORIGIN = 'https://lenysauzet.com';
 const path = {
@@ -13,7 +20,12 @@ const path = {
     { age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 },
   ],
 };
-const last = { anchor: 'project:ankhora', layout: 3 as const, detail: { part: '0', x: 0.5, y: 0.5, width: 100, height: 40 }, samples: [{ age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 }] };
+const last = {
+  anchor: 'project:ankhora',
+  layout: 3 as const,
+  detail: { part: '0', x: 0.5, y: 0.5, width: 100, height: 40 },
+  samples: [{ age: 0, x: 0.25, y: 0.5, dx: 0, dy: 8 }],
+};
 const pull = { frame: 'headline', corner: 1 as const, x: 12, y: -6 };
 const marks = { layout: 3 as const, spans: [{ anchor: 'intro', start: 4, end: 12 }] };
 const open: { socket: WebSocket; closed: Promise<number> }[] = [];
@@ -45,7 +57,9 @@ async function connect(address?: string) {
 
   const silent = async () => (await Promise.race([next(), idle()])) === undefined;
 
-  const closed = new Promise<number>((resolve) => socket.addEventListener('close', (event: CloseEvent) => resolve(event.code)));
+  const closed = new Promise<number>((resolve) =>
+    socket.addEventListener('close', (event: CloseEvent) => resolve(event.code))
+  );
   open.push({ socket, closed });
 
   return { socket, next, silent, closed };
@@ -99,7 +113,11 @@ describe('the presence worker', () => {
 
     const newcomer = await connect();
 
-    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [{ id: idOf(moved), path: last }], highlights: [] });
+    expect(await newcomer.next()).toEqual({
+      type: 'snapshot',
+      cursors: [{ id: idOf(moved), path: last }],
+      highlights: [],
+    });
   });
 
   it('lets the others know when a cursor leaves the page or the visitor goes', async () => {
@@ -142,7 +160,11 @@ describe('the presence worker', () => {
     reader.socket.send(encodeClient({ type: 'leave' }));
     await watcher.next();
     const newcomer = await connect();
-    expect(await newcomer.next()).toEqual({ type: 'snapshot', cursors: [], highlights: [{ id: idOf(highlighted), marks }] });
+    expect(await newcomer.next()).toEqual({
+      type: 'snapshot',
+      cursors: [],
+      highlights: [{ id: idOf(highlighted), marks }],
+    });
 
     reader.socket.send(encodeClient({ type: 'unhighlight' }));
     reader.socket.send(encodeClient({ type: 'release' }));
@@ -186,9 +208,12 @@ describe('the presence worker', () => {
     }
     await idle();
 
+    const [watcher] = others;
     await connect('198.51.100.200');
 
     expect(await idlest.closed).toBe(EVICTED);
+    const gone = watcher ? (await drain(watcher)).filter((message) => message.type === 'gone') : [];
+    expect(gone).toHaveLength(1);
   });
 
   it('ignores an oversized message without reading it', async () => {
@@ -203,24 +228,43 @@ describe('the presence worker', () => {
   });
 
   it('drops what it cannot read, and what comes faster than it allows', async () => {
-    const flooder = await connect();
+    const sender = await connect();
     const watcher = await connect();
-    await flooder.next();
+    await sender.next();
     await watcher.next();
 
     const startedAt = Date.now();
-    flooder.socket.send('["m","<script>",3,null,[0,0.5,0.5,0,0]]');
-    for (let index = 0; index < 400; index += 1) flooder.socket.send(encodeClient({ type: 'press' }));
+    sender.socket.send('["m","<script>",3,null,[0,0.5,0.5,0,0]]');
+    for (let index = 0; index < 150; index += 1) sender.socket.send(encodeClient({ type: 'press' }));
 
-    const received: ServerMessage[] = [];
-    for (let message = await settled(watcher.next()); message; message = await settled(watcher.next())) received.push(message);
+    const received = await drain(watcher);
     const seconds = (Date.now() - startedAt) / 1000;
 
     expect(received.every((message) => message.type === 'press')).toBe(true);
     expect(received.length).toBeGreaterThanOrEqual(120);
     expect(received.length).toBeLessThanOrEqual(120 + Math.ceil(75 * seconds));
   });
+
+  it('lets a visitor who keeps flooding go, and says so once', async () => {
+    const flooder = await connect();
+    const watcher = await connect();
+    await flooder.next();
+    await watcher.next();
+
+    for (let index = 0; index < 600; index += 1) flooder.socket.send(encodeClient({ type: 'press' }));
+
+    expect(await flooder.closed).toBe(FLOODING);
+    const gone = (await drain(watcher)).filter((message) => message.type === 'gone');
+    expect(gone).toHaveLength(1);
+  });
 });
 
 const idle = () => new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 150));
 const settled = (message: Promise<ServerMessage>) => Promise.race([message, idle()]);
+
+async function drain(visitor: { next: () => Promise<ServerMessage> }) {
+  const received: ServerMessage[] = [];
+  for (let message = await settled(visitor.next()); message; message = await settled(visitor.next()))
+    received.push(message);
+  return received;
+}

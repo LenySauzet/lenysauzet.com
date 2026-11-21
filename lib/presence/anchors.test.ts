@@ -1,51 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { anchorFor, createPlacer, locate, nearest, placeOn, pointOn, rangeOf, spansOf } from './anchors';
-
-const box = { left: 100, top: 400, width: 200, height: 100 };
-
-describe('anchors', () => {
-  it('name an element in the alphabet the protocol accepts', () => {
-    expect(anchorFor('project', 'Taxi v3 Q-Learning')).toBe('project:taxi-v3-q-learning');
-    expect(anchorFor('intro')).toBe('intro');
-  });
-
-  it('place a point inside a box by where it falls, and back', () => {
-    const placement = placeOn(box, { x: 150, y: 475 });
-
-    expect(placement).toEqual({ x: 0.25, y: 0.75, dx: 0, dy: 0 });
-    expect(pointOn(box, placement)).toEqual({ x: 150, y: 475 });
-  });
-
-  it('place a point inside a box of another size where it was on the first', () => {
-    const wider = { left: 0, top: 0, width: 800, height: 400 };
-
-    expect(pointOn(wider, placeOn(box, { x: 200, y: 450 }))).toEqual({ x: 400, y: 200 });
-  });
-
-  it('keep a point outside a box at the same distance from it, whatever its size', () => {
-    const below = placeOn(box, { x: 200, y: 540 });
-    const wider = { left: 0, top: 0, width: 800, height: 400 };
-
-    expect(below).toEqual({ x: 0.5, y: 1, dx: 0, dy: 40 });
-    expect(pointOn(wider, below)).toEqual({ x: 400, y: 440 });
-  });
-
-  it('do not divide by a box with no size', () => {
-    expect(placeOn({ left: 0, top: 0, width: 0, height: 0 }, { x: 5, y: 5 })).toEqual({ x: 0, y: 0, dx: 5, dy: 5 });
-  });
-
-  it('choose the closest box, and the smallest of those holding the point', () => {
-    const card = { anchor: 'card', box };
-    const below = { anchor: 'below', box: { left: 100, top: 600, width: 200, height: 100 } };
-    const inner = { anchor: 'inner', box: { left: 120, top: 420, width: 20, height: 20 } };
-
-    expect(nearest([card, below], { x: 200, y: 540 })).toBe(card);
-    expect(nearest([card, below], { x: 200, y: 580 })).toBe(below);
-    expect(nearest([card, inner], { x: 130, y: 430 })).toBe(inner);
-    expect(nearest([], { x: 0, y: 0 })).toBeUndefined();
-  });
-});
+import { createPlacer, locate, rangeOf, spansOf } from './anchors';
 
 const card = (visible: boolean, left: number, top = 0) => {
   const element = document.createElement('article');
@@ -55,7 +10,12 @@ const card = (visible: boolean, left: number, top = 0) => {
   vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ left, top, width: 100, height: 50 } as DOMRect);
   const button = element.querySelector('a')!;
   vi.spyOn(button, 'getClientRects').mockReturnValue((visible ? [{}] : []) as unknown as DOMRectList);
-  vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({ left: left + 10, top: top + 30, width: 80, height: 20 } as DOMRect);
+  vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({
+    left: left + 10,
+    top: top + 30,
+    width: 80,
+    height: 20,
+  } as DOMRect);
   document.body.append(element);
   return element;
 };
@@ -109,7 +69,12 @@ describe('locate and place', () => {
     card(false, 0);
     card(true, 500);
 
-    expect(locate([{ x: 400, y: 25 }, { x: 550, y: 80 }])).toEqual({
+    expect(
+      locate([
+        { x: 400, y: 25 },
+        { x: 550, y: 80 },
+      ])
+    ).toEqual({
       anchor: 'project:ankhora',
       placements: [
         { x: 0, y: 0.5, dx: -100, dy: 0 },
@@ -136,7 +101,10 @@ describe('locate and place', () => {
 
     expect(located?.anchor).toBe('intro');
     expect(located?.detail).toEqual({ part: '#1', x: 0.6, y: 0.5, width: 10, height: 20 });
-    expect(createPlacer().place({ anchor: 'intro', part: '#4' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({ x: 145, y: 10 });
+    expect(createPlacer().place({ anchor: 'intro', part: '#4' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toEqual({
+      x: 145,
+      y: 10,
+    });
     Reflect.deleteProperty(document, 'caretPositionFromPoint');
     Reflect.deleteProperty(Range.prototype, 'getClientRects');
   });
@@ -162,7 +130,9 @@ describe('locate and place', () => {
       x: 500,
       y: 0,
     });
-    expect(createPlacer().place({ anchor: 'project:elsewhere', part: '' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })).toBeUndefined();
+    expect(
+      createPlacer().place({ anchor: 'project:elsewhere', part: '' }, { x: 0.5, y: 0.5, dx: 0, dy: 0 })
+    ).toBeUndefined();
   });
 });
 
@@ -224,6 +194,21 @@ describe('spans', () => {
 
     expect(range?.startContainer).toBe(element.querySelector('em')!.firstChild);
     expect(range?.toString()).toBe('Lény');
+  });
+
+  it('leave out text that differs between visitors, as the reading of a clock', () => {
+    const element = document.createElement('dl');
+    element.dataset.presence = 'metadata';
+    element.innerHTML = '<dt>Time</dt><dd data-presence-volatile>5:28:38 PM</dd><dt>Source</dt>';
+    vi.spyOn(element, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+    document.body.append(element);
+    const source = element.querySelectorAll('dt')[1]!.firstChild!;
+    const range = document.createRange();
+    range.setStart(source, 0);
+    range.setEnd(source, 6);
+
+    expect(spansOf(range)).toEqual([{ anchor: 'metadata', start: 4, end: 10 }]);
+    expect(rangeOf({ anchor: 'metadata', start: 4, end: 10 })?.toString()).toBe('Source');
   });
 
   it('share nothing outside an anchor, and place nothing past its text', () => {

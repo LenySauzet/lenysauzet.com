@@ -30,7 +30,13 @@ describe('Trail', () => {
 
   it('interpolates between the samples around the time asked', () => {
     const trail = new Trail<Vector>();
-    for (const [time, x] of [[0, 0], [100, 10], [200, 20], [300, 30]]) trail.push({ at: time!, value: at(x!) });
+    for (const [time, x] of [
+      [0, 0],
+      [100, 10],
+      [200, 20],
+      [300, 30],
+    ])
+      trail.push({ at: time!, value: at(x!) });
 
     expect(trail.at(150, identity)!.x).toBeCloseTo(15);
   });

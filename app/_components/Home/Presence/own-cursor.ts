@@ -1,22 +1,18 @@
 import { locate, spansOf } from '@/lib/presence/anchors';
-import { createClickFilter } from '@/lib/presence/clicks';
-import { layoutNow, LAYOUT_QUERIES } from '@/lib/presence/layout';
+import { createClickJudge } from '@/lib/presence/clicks';
 import type { Connection } from '@/lib/presence/connection';
 import { frames } from '@/lib/presence/frames';
+import { layoutNow, LAYOUT_QUERIES } from '@/lib/presence/layout';
 import type { Timed, Vector } from '@/lib/presence/motion';
-import { MOST_SAMPLES, type Marks, type Pull } from '@/lib/presence/protocol';
+import { encodeClient, MOST_SAMPLES, type ClientMessage, type Marks, type Pull } from '@/lib/presence/protocol';
 
 const SEND_EVERY = 33;
 const OLDEST = 1000;
 const SCROLL_SETTLES_AFTER = 160;
 const SELECTION_EVERY = 50;
-const CLICK_SLOP = 8;
 const UNSHARED = '[data-presence-ignore]';
 
-const sameMarks = (a?: Marks, b?: Marks) => JSON.stringify(a) === JSON.stringify(b);
-
-const isBackward = (selection: Selection) => {
-  const { anchorNode, anchorOffset, focusNode, focusOffset } = selection;
+const isBackward = ({ anchorNode, anchorOffset, focusNode, focusOffset }: Selection) => {
   if (!anchorNode || !focusNode) return false;
   const range = document.createRange();
   range.setStart(anchorNode, anchorOffset);
@@ -24,46 +20,69 @@ const isBackward = (selection: Selection) => {
   return range.collapsed && !(anchorNode === focusNode && anchorOffset === focusOffset);
 };
 
-export function shareOwnCursor(connection: Connection, onClick: (point: Vector) => void) {
+function selectionMessage(): ClientMessage {
+  const selection = document.getSelection();
+  const spans = selection && !selection.isCollapsed && selection.rangeCount ? spansOf(selection.getRangeAt(0)) : [];
+  if (!selection || !spans.length) return { type: 'unhighlight' };
+  const marks: Marks = isBackward(selection)
+    ? { layout: layoutNow(), spans, backward: true }
+    : { layout: layoutNow(), spans };
+  return { type: 'highlight', marks };
+}
+
+type Line = Pick<Connection, 'send' | 'wake' | 'sleep'>;
+
+export function shareOwnCursor(connection: Line, onClick: (point: Vector) => void) {
   const listening = new AbortController();
   const options = { passive: true, signal: listening.signal };
+  const judge = createClickJudge();
   let client: Vector | undefined;
   let held: string | undefined;
   let pressed: Timed<Vector> | undefined;
+  let sentPress = false;
   let covered = false;
-  let down = false;
   let taken: Timed<Vector>[] = [];
   let pulled: Pull | undefined;
   let sentAt = -Infinity;
   let pending = 0;
   let scrolling = 0;
   let selecting = 0;
-  let shared: Marks | undefined;
   let selectedAt = -Infinity;
-  const isFresh = createClickFilter();
+  let shared = '';
+
+  const cancelPending = () => {
+    window.clearTimeout(pending);
+    pending = 0;
+  };
 
   const take = (at: number) => {
     if (!client) return;
-    const point = { x: client.x + window.scrollX, y: client.y + window.scrollY };
-    taken = [...taken, { at, value: point }].slice(-MOST_SAMPLES);
+    taken = [...taken, { at, value: { x: client.x + window.scrollX, y: client.y + window.scrollY } }].slice(
+      -MOST_SAMPLES
+    );
   };
 
   const flush = () => {
-    window.clearTimeout(pending);
-    pending = 0;
+    cancelPending();
     const now = performance.now();
-    const located = scrolling || covered ? undefined : locate(taken.map(({ value }) => value), held);
+    const located =
+      scrolling || covered
+        ? undefined
+        : locate(
+            taken.map(({ value }) => value),
+            held
+          );
     if (located) {
       held = located.anchor;
+      const { anchor, detail } = located;
       const samples = located.placements.map((placement, index) => ({
         age: Math.min(OLDEST, Math.max(0, Math.round(now - (taken[index]?.at ?? now)))),
         ...placement,
       }));
+      const layout = layoutNow();
       connection.send({
         type: 'move',
-        path: located.detail
-          ? { anchor: located.anchor, layout: layoutNow(), detail: located.detail, samples }
-          : { anchor: located.anchor, layout: layoutNow(), samples },
+        path: detail ? { anchor, layout, detail, samples } : { anchor, layout, samples },
       });
     }
     if (pulled) connection.send({ type: 'pull', pull: pulled });
@@ -79,37 +98,27 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
     else pending = window.setTimeout(flush, wait);
   };
 
+  const hush = () => {
+    taken = [];
+    cancelPending();
+    connection.send({ type: 'leave' });
+  };
+
   const leave = () => {
     client = undefined;
     held = undefined;
-    taken = [];
-    window.clearTimeout(pending);
-    pending = 0;
-    connection.send({ type: 'leave' });
+    hush();
   };
 
   const shareSelection = () => {
     selecting = 0;
     selectedAt = performance.now();
-    const selection = document.getSelection();
-    const spans = selection && !selection.isCollapsed && selection.rangeCount ? spansOf(selection.getRangeAt(0)) : [];
-    const layout = layoutNow();
-    const marks: Marks | undefined = !spans.length
-      ? undefined
-      : selection && isBackward(selection)
-        ? { layout, spans, backward: true }
-        : { layout, spans };
-    if (sameMarks(marks, shared)) return;
-    shared = marks;
-    connection.send(marks ? { type: 'highlight', marks } : { type: 'unhighlight' });
+    const message = selectionMessage();
+    const encoded = encodeClient(message);
+    if (encoded === shared) return;
+    shared = encoded;
+    connection.send(message);
   };
-
-  connection.onOpen(() => {
-    shared = undefined;
-    shareSelection();
-    take(performance.now());
-    flush();
-  });
 
   const stopSharingFrames = frames.onShared((event) => {
     if (event.type === 'pull') {
@@ -139,9 +148,11 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
       if (event.pointerType !== 'mouse') return;
       const unshared = event.target instanceof Element && event.target.closest(UNSHARED) !== null;
       pressed =
-        event.button === 0 && !unshared ? { at: event.timeStamp, value: { x: event.clientX, y: event.clientY } } : undefined;
-      if (covered || unshared) return;
-      down = true;
+        event.button === 0 && !unshared
+          ? { at: event.timeStamp, value: { x: event.clientX, y: event.clientY } }
+          : undefined;
+      sentPress = !covered && !unshared;
+      if (!sentPress) return;
       flush();
       connection.send({ type: 'press' });
     },
@@ -151,22 +162,21 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
     'pointerup',
     (event) => {
       if (event.pointerType !== 'mouse') return;
-      if (down && !covered) {
+      if (sentPress && !covered) {
         flush();
         connection.send({ type: 'release' });
       }
-      down = false;
-      const click = pressed;
+      const press = pressed;
+      const announced = sentPress;
       pressed = undefined;
+      sentPress = false;
       if (
-        click &&
-        Math.hypot(event.clientX - click.value.x, event.clientY - click.value.y) < CLICK_SLOP &&
-        document.getSelection()?.isCollapsed !== false &&
-        isFresh({ at: event.timeStamp, value: click.value })
-      ) {
-        onClick(click.value);
-        if (!covered) connection.send({ type: 'click' });
-      }
+        !press ||
+        !judge(press, { x: event.clientX, y: event.clientY }, document.getSelection()?.isCollapsed !== false)
+      )
+        return;
+      onClick(press.value);
+      if (announced && !covered) connection.send({ type: 'click' });
     },
     options
   );
@@ -174,12 +184,7 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
     'scroll',
     () => {
       if (!client) return;
-      if (!scrolling) {
-        taken = [];
-        window.clearTimeout(pending);
-        pending = 0;
-        connection.send({ type: 'leave' });
-      }
+      if (!scrolling) hush();
       window.clearTimeout(scrolling);
       scrolling = window.setTimeout(() => {
         scrolling = 0;
@@ -210,6 +215,12 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
   );
 
   return {
+    opened() {
+      shared = '';
+      shareSelection();
+      take(performance.now());
+      flush();
+    },
     cover(next: boolean) {
       if (next === covered) return;
       covered = next;
@@ -218,7 +229,7 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
     stop() {
       listening.abort();
       stopSharingFrames();
-      window.clearTimeout(pending);
+      cancelPending();
       window.clearTimeout(scrolling);
       window.clearTimeout(selecting);
     },

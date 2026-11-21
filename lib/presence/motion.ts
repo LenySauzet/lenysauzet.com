@@ -1,3 +1,5 @@
+import { clamp } from '@/lib/utils';
+
 export interface Vector {
   x: number;
   y: number;
@@ -27,8 +29,6 @@ const LEARNING = 0.1;
 const SHORTEST_DELAY = 40;
 const LONGEST_DELAY = 160;
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
 export function catmullRom(p0: Vector, p1: Vector, p2: Vector, p3: Vector, t: number): Vector {
   const t2 = t * t;
   const t3 = t2 * t;
@@ -53,7 +53,14 @@ export class Trail<T> {
   }
 
   at(time: number, resolve: (value: T) => Vector | undefined): Vector | undefined {
-    const points = this.samples.flatMap(({ at, value }) => {
+    let low = 0;
+    let high = this.samples.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if ((this.samples[middle]?.at ?? Infinity) > time) high = middle;
+      else low = middle + 1;
+    }
+    const points = this.samples.slice(Math.max(0, low - 2), low + 2).flatMap(({ at, value }) => {
       const point = resolve(value);
       return point ? [{ at, point }] : [];
     });
@@ -62,12 +69,13 @@ export class Trail<T> {
     if (after === -1) return points.at(-1)?.point;
     if (after === 0) return points[0]?.point;
 
-    const index = (offset: number) => points[clamp(after + offset, 0, points.length - 1)]!;
+    const index = (offset: number) => points[clamp(after + offset, 0, points.length - 1)];
     const start = index(-1);
     const end = index(0);
+    if (!start || !end) return undefined;
     const t = (time - start.at) / (end.at - start.at);
 
-    return catmullRom(index(-2).point, start.point, end.point, index(1).point, t);
+    return catmullRom(index(-2)?.point ?? start.point, start.point, end.point, index(1)?.point ?? end.point, t);
   }
 }
 
@@ -94,8 +102,9 @@ export function lineAt(history: Timed<Vector>[], time: number): Vector | undefin
   const after = history.findIndex(({ at }) => at > time);
   if (after === -1) return history.at(-1)?.value;
   if (after === 0) return history[0]?.value;
-  const from = history[after - 1]!;
-  const to = history[after]!;
+  const from = history[after - 1];
+  const to = history[after];
+  if (!from || !to) return undefined;
   const t = (time - from.at) / (to.at - from.at);
   return { x: from.value.x + (to.value.x - from.value.x) * t, y: from.value.y + (to.value.y - from.value.y) * t };
 }

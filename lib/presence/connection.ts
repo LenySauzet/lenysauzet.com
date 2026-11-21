@@ -8,13 +8,21 @@ const GOING_AWAY = 1000;
 export const retryDelay = (attempt: number, random = Math.random) =>
   Math.min(LAST_RETRY, FIRST_RETRY * 2 ** attempt) * (0.5 + random() / 2);
 
-export function connect(url: string, onMessage: (message: ServerMessage) => void) {
+const isDismissal = (code: number) => code >= EVICTED;
+
+interface ConnectionEvents {
+  onMessage: (message: ServerMessage) => void;
+  onOpen: () => void;
+  onLost: () => void;
+}
+
+export function connect(url: string, { onMessage, onOpen, onLost }: ConnectionEvents) {
   let socket: WebSocket | undefined;
   let attempt = 0;
   let retry = 0;
   let heartbeat = 0;
   let asleep = false;
-  const openers = new Set<() => void>();
+  let closed = false;
 
   const stopTimers = () => {
     window.clearTimeout(retry);
@@ -27,7 +35,7 @@ export function connect(url: string, onMessage: (message: ServerMessage) => void
     current.addEventListener('open', () => {
       attempt = 0;
       heartbeat = window.setInterval(() => current.send(HEARTBEAT), HEARTBEAT_EVERY);
-      for (const opened of openers) opened();
+      onOpen();
     });
     current.addEventListener('message', (event) => {
       if (typeof event.data !== 'string') return;
@@ -38,8 +46,9 @@ export function connect(url: string, onMessage: (message: ServerMessage) => void
       if (current !== socket) return;
       stopTimers();
       socket = undefined;
-      if (asleep) return;
-      if (event.code === EVICTED) {
+      onLost();
+      if (asleep || closed) return;
+      if (isDismissal(event.code)) {
         asleep = true;
         return;
       }
@@ -53,6 +62,7 @@ export function connect(url: string, onMessage: (message: ServerMessage) => void
     stopTimers();
     const current = socket;
     socket = undefined;
+    if (current) onLost();
     current?.close(GOING_AWAY);
   };
 
@@ -63,16 +73,16 @@ export function connect(url: string, onMessage: (message: ServerMessage) => void
       if (socket?.readyState === WebSocket.OPEN) socket.send(encodeClient(message));
     },
     wake() {
-      if (!asleep) return;
+      if (!asleep || closed) return;
       asleep = false;
       attempt = 0;
       open();
     },
-    onOpen(opened: () => void) {
-      openers.add(opened);
-    },
     sleep,
-    close: sleep,
+    close() {
+      closed = true;
+      sleep();
+    },
   };
 }
 

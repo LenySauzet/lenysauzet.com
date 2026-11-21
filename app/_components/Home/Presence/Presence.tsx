@@ -3,9 +3,9 @@
 import dynamic from 'next/dynamic';
 import { useSyncExternalStore } from 'react';
 
-import siteConfig from '@/config/site';
 import { usePresenceStore } from '@/hooks/use-presence-store';
-import { FINE_POINTER } from '@/lib/presence/pointer';
+import { FINE_POINTER } from '@/lib/browser';
+import { presenceUrl } from '@/lib/presence/availability';
 
 const Room = dynamic(() => import('./Room').then((module) => module.Room), { ssr: false });
 
@@ -22,7 +22,7 @@ export function Presence({ className }: { className?: string }) {
     () => window.matchMedia(FINE_POINTER).matches,
     () => false
   );
-  const url = siteConfig.presenceUrl;
+  const url = finePointer && !hidden ? presenceUrl() : undefined;
 
-  return url && finePointer && !hidden ? <Room url={url} className={className} /> : null;
+  return url ? <Room url={url} className={className} /> : null;
 }

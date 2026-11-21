@@ -8,11 +8,6 @@ export interface Sample {
   dy: number;
 }
 
-export interface Target {
-  anchor: string;
-  part: string;
-}
-
 export interface Detail {
   part: string;
   x: number;
@@ -85,11 +80,12 @@ export type ServerMessage =
 
 export const HEARTBEAT = 'ping';
 export const HEARTBEAT_REPLY = 'pong';
-export const MAX_CLIENT_MESSAGE = 512;
+export const MAX_CLIENT_MESSAGE = 768;
 export const MOST_SPANS = 8;
 export const MOST_SAMPLES = 4;
 const LONGEST_PULL = 64;
 export const EVICTED = 4000;
+export const FLOODING = 4001;
 
 const NAME = /^[a-z0-9][a-z0-9:-]{0,63}$/;
 const ID = /^[a-z0-9]{1,16}$/;
@@ -99,8 +95,24 @@ const LONGEST_TEXT = 20_000;
 const FARTHEST = 4000;
 const OLDEST = 1000;
 
-const SIGNALS = { p: 'press', c: 'click', r: 'release', l: 'leave', u: 'unhighlight' } as const;
-const TAGS = { press: 'p', click: 'c', release: 'r', leave: 'l', unhighlight: 'u', gone: 'g' } as const;
+const TAGS = {
+  snapshot: 's',
+  move: 'm',
+  press: 'p',
+  click: 'c',
+  release: 'r',
+  leave: 'l',
+  gone: 'g',
+  highlight: 'h',
+  unhighlight: 'u',
+  pull: 'd',
+  drop: 'e',
+} as const;
+
+type Type = keyof typeof TAGS;
+type Body = ClientMessage | Exclude<ServerMessage, { type: 'snapshot' | 'gone' }>;
+
+const TYPES = new Map<unknown, Type>(Object.entries(TAGS).map(([type, tag]) => [tag, type as Type]));
 
 const round = (value: number, precision = PRECISION) => Math.round(value * precision) / precision;
 const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
@@ -160,7 +172,11 @@ const pathFrom = ([anchor, layout, rawDetail, ...fields]: unknown[]): Path | und
 const spanFrom = (value: unknown): Span | undefined => {
   if (!Array.isArray(value)) return undefined;
   const [anchor, start, end, ...rest] = value;
-  return rest.length === 0 && isName(anchor) && isCount(start, LONGEST_TEXT) && isCount(end, LONGEST_TEXT) && end > start
+  return rest.length === 0 &&
+    isName(anchor) &&
+    isCount(start, LONGEST_TEXT) &&
+    isCount(end, LONGEST_TEXT) &&
+    end > start
     ? { anchor, start, end }
     : undefined;
 };
@@ -184,13 +200,17 @@ const pullFrom = ([frame, corner, x, y, ...rest]: unknown[]): Pull | undefined =
 
 const dropFrom = ([frame, ...rest]: unknown[]) => (rest.length === 0 && isName(frame) ? frame : undefined);
 
-const sampleTo = ({ age, x, y, dx, dy }: Sample) => [Math.round(age), round(x), round(y), Math.round(dx), Math.round(dy)];
+const sampleTo = ({ age, x, y, dx, dy }: Sample) => [
+  Math.round(age),
+  round(x),
+  round(y),
+  Math.round(dx),
+  Math.round(dy),
+];
 const pathTo = ({ anchor, layout, detail, samples }: Path) => [
   anchor,
   layout,
-  detail
-    ? [detail.part, round(detail.x), round(detail.y), Math.round(detail.width), Math.round(detail.height)]
-    : null,
+  detail ? [detail.part, round(detail.x), round(detail.y), Math.round(detail.width), Math.round(detail.height)] : null,
   ...samples.map(sampleTo),
 ];
 const marksTo = ({ layout, spans, backward }: Marks) => [
@@ -209,65 +229,69 @@ const parse = (data: string): unknown[] | undefined => {
   }
 };
 
-const isSignal = (tag: unknown): tag is keyof typeof SIGNALS => typeof tag === 'string' && tag in SIGNALS;
-
-export function encodeClient(message: ClientMessage) {
+const bodyTo = (message: Body): unknown[] => {
   switch (message.type) {
     case 'move':
-      return JSON.stringify(['m', ...pathTo(message.path)]);
+      return pathTo(message.path);
     case 'highlight':
-      return JSON.stringify(['h', ...marksTo(message.marks)]);
+      return marksTo(message.marks);
     case 'pull':
-      return JSON.stringify(['d', ...pullTo(message.pull)]);
+      return pullTo(message.pull);
     case 'drop':
-      return JSON.stringify(['e', message.frame]);
+      return [message.frame];
     default:
-      return JSON.stringify([TAGS[message.type]]);
+      return [];
+  }
+};
+
+function bodyFrom(type: Type | undefined, fields: unknown[]): ClientMessage | undefined {
+  switch (type) {
+    case 'move': {
+      const path = pathFrom(fields);
+      return path && { type, path };
+    }
+    case 'highlight': {
+      const marks = marksFrom(fields);
+      return marks && { type, marks };
+    }
+    case 'pull': {
+      const pull = pullFrom(fields);
+      return pull && { type, pull };
+    }
+    case 'drop': {
+      const frame = dropFrom(fields);
+      return frame === undefined ? undefined : { type, frame };
+    }
+    case 'press':
+    case 'click':
+    case 'release':
+    case 'leave':
+    case 'unhighlight':
+      return fields.length === 0 ? { type } : undefined;
+    default:
+      return undefined;
   }
 }
 
+export const encodeClient = (message: ClientMessage) => JSON.stringify([TAGS[message.type], ...bodyTo(message)]);
+
 export function decodeClient(data: string): ClientMessage | undefined {
-  const [tag, ...rest] = parse(data) ?? [];
-  switch (tag) {
-    case 'm': {
-      const path = pathFrom(rest);
-      return path && { type: 'move', path };
-    }
-    case 'h': {
-      const marks = marksFrom(rest);
-      return marks && { type: 'highlight', marks };
-    }
-    case 'd': {
-      const pull = pullFrom(rest);
-      return pull && { type: 'pull', pull };
-    }
-    case 'e': {
-      const frame = dropFrom(rest);
-      return frame === undefined ? undefined : { type: 'drop', frame };
-    }
-    default:
-      return isSignal(tag) && rest.length === 0 ? { type: SIGNALS[tag] } : undefined;
-  }
+  const [tag, ...fields] = parse(data) ?? [];
+  return bodyFrom(TYPES.get(tag), fields);
 }
 
 export function encodeServer(message: ServerMessage) {
   switch (message.type) {
     case 'snapshot':
       return JSON.stringify([
-        's',
+        TAGS.snapshot,
         message.cursors.map(({ id, path }) => [id, ...pathTo(path)]),
         message.highlights.map(({ id, marks }) => [id, ...marksTo(marks)]),
       ]);
-    case 'move':
-      return JSON.stringify(['m', message.id, ...pathTo(message.path)]);
-    case 'highlight':
-      return JSON.stringify(['h', message.id, ...marksTo(message.marks)]);
-    case 'pull':
-      return JSON.stringify(['d', message.id, ...pullTo(message.pull)]);
-    case 'drop':
-      return JSON.stringify(['e', message.id, message.frame]);
+    case 'gone':
+      return JSON.stringify([TAGS.gone, message.id]);
     default:
-      return JSON.stringify([TAGS[message.type], message.id]);
+      return JSON.stringify([TAGS[message.type], message.id, ...bodyTo(message)]);
   }
 }
 
@@ -285,39 +309,21 @@ function listFrom<T>(value: unknown, read: (fields: unknown[]) => T | undefined)
 }
 
 export function decodeServer(data: string): ServerMessage | undefined {
-  const [tag, id, ...rest] = parse(data) ?? [];
-  if (tag === 's') {
-    const [highlights, ...extra] = rest;
+  const [tag, id, ...fields] = parse(data) ?? [];
+  const type = TYPES.get(tag);
+  if (type === 'snapshot') {
+    const [highlights, ...extra] = fields;
     const cursors = listFrom(id, pathFrom);
     const marked = listFrom(highlights, marksFrom);
     if (!cursors || !marked || extra.length) return undefined;
     return {
-      type: 'snapshot',
+      type,
       cursors: cursors.map(({ id: owner, value }) => ({ id: owner, path: value })),
       highlights: marked.map(({ id: owner, value }) => ({ id: owner, marks: value })),
     };
   }
   if (!isId(id)) return undefined;
-  switch (tag) {
-    case 'm': {
-      const path = pathFrom(rest);
-      return path && { type: 'move', id, path };
-    }
-    case 'h': {
-      const marks = marksFrom(rest);
-      return marks && { type: 'highlight', id, marks };
-    }
-    case 'd': {
-      const pull = pullFrom(rest);
-      return pull && { type: 'pull', id, pull };
-    }
-    case 'e': {
-      const frame = dropFrom(rest);
-      return frame === undefined ? undefined : { type: 'drop', id, frame };
-    }
-    case 'g':
-      return rest.length ? undefined : { type: 'gone', id };
-    default:
-      return isSignal(tag) && rest.length === 0 ? { type: SIGNALS[tag], id } : undefined;
-  }
+  if (type === 'gone') return fields.length ? undefined : { type, id };
+  const body = bodyFrom(type, fields);
+  return body && { ...body, id };
 }
