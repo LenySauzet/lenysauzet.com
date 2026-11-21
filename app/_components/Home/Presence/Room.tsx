@@ -34,8 +34,8 @@ export function Room({ url, className }: { url: string; className?: string }) {
     const cursorsAbove = cursorLayer.current;
     const ripplesAbove = rippleLayer.current;
     if (!cursorsAbove || !ripplesAbove) return;
-    cursorsAbove.showPopover();
     ripplesAbove.showPopover();
+    cursorsAbove.showPopover();
 
     const ripples = createRipples(ripplesAbove);
     const ripple = (client: { x: number; y: number }) => {
@@ -83,6 +83,7 @@ export function Room({ url, className }: { url: string; className?: string }) {
 
   return (
     <>
+      <div ref={rippleLayer} popover="manual" aria-hidden className={SURFACE} />
       <div
         ref={cursorLayer}
         popover="manual"
@@ -95,7 +96,6 @@ export function Room({ url, className }: { url: string; className?: string }) {
           ))}
         </AnimatePresence>
       </div>
-      <div ref={rippleLayer} popover="manual" aria-hidden className={SURFACE} />
     </>
   );
 }
