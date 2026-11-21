@@ -15,9 +15,9 @@ describe('the ripples', () => {
       putImageData: () => {},
     } as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,');
-    window.innerWidth = 800;
-    window.innerHeight = 600;
     layer = document.createElement('div');
+    vi.spyOn(layer, 'clientWidth', 'get').mockReturnValue(800);
+    vi.spyOn(layer, 'clientHeight', 'get').mockReturnValue(600);
     ripples = createRipples(layer);
   });
 
@@ -42,7 +42,15 @@ describe('the ripples', () => {
     expect(shown()).toEqual(['800px']);
   });
 
-  it('holds clicks and other claps back until the clap has crossed', () => {
+  it('sends a clap far enough to reach the farthest corner', () => {
+    ripples.across({ x: 200, y: 200 });
+    vi.advanceTimersByTime(1080);
+
+    const wave = layer.querySelector('feImage');
+    expect(Number(wave?.getAttribute('width')) / 2).toBeCloseTo(Math.hypot(600, 400), -1);
+  });
+
+  it('drops clicks and other claps while a clap crosses', () => {
     ripples.across({ x: 300, y: 200 });
     ripples.at({ x: 100, y: 100 });
     ripples.across({ x: 100, y: 100 });

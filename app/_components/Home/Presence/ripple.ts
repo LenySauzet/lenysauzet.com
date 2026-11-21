@@ -165,8 +165,8 @@ export function createRipples(layer: HTMLElement) {
     across(client: Vector) {
       if (crossing) return;
       for (const end of [...running]) end();
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+      const width = layer.clientWidth;
+      const height = layer.clientHeight;
       const reach = Math.hypot(Math.max(client.x, width - client.x), Math.max(client.y, height - client.y));
       crossing = ripple(client, { ...CLAP, reach }, { left: 0, top: 0, width, height });
     },

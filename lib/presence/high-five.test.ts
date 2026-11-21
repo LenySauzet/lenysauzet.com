@@ -55,6 +55,13 @@ describe('createClapWatch', () => {
     expect(clap('b', press(1000, 40), pairs)).toBeUndefined();
   });
 
+  it('claps for a pair the first press was made in, though it broke since', () => {
+    const clap = createClapWatch();
+    clap('a', press(0, 0), pairs);
+
+    expect(clap('b', press(150, 40), new Set())).toEqual({ x: 20, y: 0 });
+  });
+
   it('claps once per pair of presses', () => {
     const clap = createClapWatch();
     clap('a', press(0, 0), pairs);

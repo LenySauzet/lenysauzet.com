@@ -1,6 +1,7 @@
-import { createClapWatch, handsIn, nearPairs, SELF, type Placed } from '@/lib/presence/high-five';
+import { createClapWatch, handsIn, nearPairs, SELF, type Hand } from '@/lib/presence/high-five';
 import type { Vector } from '@/lib/presence/motion';
 
+const FRESH = 500;
 const ACTIONS =
   'a, button, input, select, textarea, label, summary, [role="button"], [contenteditable], [data-presence-ignore], [data-presence-action]';
 
@@ -26,13 +27,12 @@ export function createHighFive({ onHands, onClap }: HighFiveOptions) {
   let hands = new Set<string>();
   let covered = false;
 
-  const ownPoint = () => pointer && { x: pointer.x + window.scrollX, y: pointer.y + window.scrollY };
+  const onPage = ({ x, y }: Vector) => ({ x: x + window.scrollX, y: y + window.scrollY });
 
   const update = () => {
-    const placed: Placed[] = [...others].map(([id, point]) => ({ id, point }));
-    const own = ownPoint();
-    if (own && !covered) placed.push({ id: SELF, point: own });
-    pairs = nearPairs(placed, pairs, isFree);
+    const present: Hand[] = [...others].map(([id, point]) => ({ id, point }));
+    if (pointer && !covered) present.push({ id: SELF, point: onPage(pointer) });
+    pairs = nearPairs(present, pairs, isFree);
     const next = handsIn(pairs);
     if (sameIds(next, hands)) return;
     hands = next;
@@ -46,6 +46,7 @@ export function createHighFive({ onHands, onClap }: HighFiveOptions) {
   };
 
   const press = (id: string, point: Vector, at: number) => {
+    if (performance.now() - at > FRESH) return;
     const met = clap(id, { at, value: point }, pairs);
     if (met) onClap(met);
   };
@@ -62,8 +63,8 @@ export function createHighFive({ onHands, onClap }: HighFiveOptions) {
   window.addEventListener(
     'pointerdown',
     (event) => {
-      const own = ownPoint();
-      if (event.pointerType === 'mouse' && event.button === 0 && own) press(SELF, own, event.timeStamp);
+      if (event.pointerType !== 'mouse' || event.button !== 0 || covered) return;
+      press(SELF, onPage({ x: event.clientX, y: event.clientY }), event.timeStamp);
     },
     options
   );

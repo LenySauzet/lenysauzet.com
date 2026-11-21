@@ -20,8 +20,6 @@ const SMALLEST = 8;
 const CLICKS_APART = 150;
 const STILL: Vector = { x: 0, y: 0 };
 
-export const MARK_SIZE = 20;
-
 export interface Ink {
   main: HTMLElement;
   ghosts: HTMLElement[];
@@ -203,33 +201,37 @@ export function createRemoteCursors({
       return target ? [{ id, remote, ink, time, target, aim }] : [];
     });
 
-    let busy = false;
-    let wakeIn = Infinity;
-    const drawn = new Map<string, Vector>();
-
-    for (const { id, remote, ink, time, target, aim } of read) {
+    const stepped = read.map((entry) => {
+      const { remote, target } = entry;
       if (remote.pressed && (now - remote.pressed.at > LONGEST_PRESS || now >= (remote.letGoAt ?? Infinity))) {
         remote.pressed = undefined;
         remote.letGoAt = undefined;
       }
-      if (!remote.pose) {
-        remote.pose = poseAt(target, now);
-        ink.main.style.visibility = 'visible';
-      }
-      const { pose } = remote;
-      const { settled, restsIn } = stepPose(pose, {
+      const appeared = !remote.pose;
+      const pose = remote.pose ?? poseAt(target, now);
+      remote.pose = pose;
+      const step = stepPose(pose, {
         target,
         now,
         elapsed,
         pressed: remote.pressed !== undefined,
         reducedMotion: still,
       });
+      return { ...entry, pose, appeared, ...step };
+    });
 
-      drawn.set(id, pose.shown);
-      const turn = `rotate(${pose.tilt}deg) scale(${pose.scale.value})`;
-      const pivot = hands.has(id) ? MARK_SIZE / 2 : 0;
-      ink.main.style.transform = `translate3d(${pose.shown.x - scroll.x + pivot}px, ${pose.shown.y - scroll.y + pivot}px, 0) ${turn} translate(${-pivot}px, ${-pivot}px)`;
+    onDrawn(new Map(stepped.map(({ id, pose }) => [id, pose.shown])));
+
+    let busy = false;
+    let wakeIn = Infinity;
+
+    for (const { remote, ink, time, aim, pose, appeared, settled, restsIn } of stepped) {
+      if (appeared) ink.main.style.visibility = 'visible';
+      ink.main.style.transform = `translate3d(${pose.shown.x - scroll.x}px, ${pose.shown.y - scroll.y}px, 0)`;
+      ink.main.style.setProperty('--turn', `${pose.tilt}deg`);
+      ink.main.style.setProperty('--press', String(pose.scale.value));
       remote.drawn.opacity = fade(ink.main, pose.opacity, remote.drawn.opacity);
+      const turn = `rotate(${pose.tilt}deg) scale(${pose.scale.value})`;
       ghostsOf(pose, now, still).forEach(({ point, opacity }, index) => {
         const ghost = ink.ghosts[index];
         if (!ghost) return;
@@ -256,7 +258,6 @@ export function createRemoteCursors({
 
     for (const { id, point, at } of presses) onPress(id, point, at);
     for (const point of clicks) onClick(point);
-    onDrawn(drawn);
     if (departed.length) {
       for (const id of departed) forget(id);
       publish();
