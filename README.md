@@ -4,6 +4,7 @@ My portfolio. Next.js, Tailwind and shadcn/ui, statically generated.
 
 ```bash
 bun install
+(cd workers/presence && bun install)
 bun dev
 ```
 
