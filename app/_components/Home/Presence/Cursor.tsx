@@ -16,16 +16,19 @@ const FADED = { opacity: 0 };
 const SHOWN = { opacity: 1 };
 const PLACED = 'absolute top-0 left-0 origin-top-left will-change-transform';
 
-function Arrow({ filter, className }: { filter: string; className?: string }) {
+interface ArrowProps {
+  filter: string;
+  rimmed?: boolean;
+  className?: string;
+}
+
+function Arrow({ filter, rimmed = false, className }: ArrowProps) {
   return (
     <svg width="20" height="20" viewBox="0 0 26 26" overflow="visible" className={className}>
-      <path
-        d={ARROW}
-        filter={`url(#${filter})`}
-        strokeWidth="3.5"
-        strokeLinejoin="round"
-        className="fill-cursor stroke-cursor"
-      />
+      <g filter={`url(#${filter})`} strokeLinejoin="round">
+        {rimmed && <path d={ARROW} strokeWidth="6" className="fill-white stroke-white" />}
+        <path d={ARROW} strokeWidth="3.5" className="fill-cursor stroke-cursor" />
+      </g>
     </svg>
   );
 }
@@ -68,7 +71,7 @@ export function Cursor({ id, attach, className }: CursorProps) {
           transition={{ duration: 0.35, ease: EASE_OUT }}
           className="origin-top-left"
         >
-          <Arrow filter={filter} className="drop-shadow-md" />
+          <Arrow filter={filter} rimmed className="drop-shadow-md" />
         </motion.div>
       </div>
     </div>
