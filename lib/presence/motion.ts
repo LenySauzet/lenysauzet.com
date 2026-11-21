@@ -14,8 +14,8 @@ export interface Spring {
 }
 
 const TRAIL_LENGTH = 24;
-const MAX_TILT = 26;
-const TILT_PER_SPEED = 24;
+const MAX_TILT = 34;
+const TILT_PER_SPEED = 34;
 const MAX_BLUR = 7;
 const BLUR_PER_SPEED = 5;
 const SPRING_STEP = 1;
@@ -118,6 +118,6 @@ export function spring(
   return { value, velocity };
 }
 
-export const tiltFor = (horizontalSpeed: number) => clamp(horizontalSpeed * TILT_PER_SPEED, -MAX_TILT, MAX_TILT);
+export const tiltFor = ({ x, y }: Vector) => clamp(((x - y) / Math.SQRT2) * TILT_PER_SPEED, -MAX_TILT, MAX_TILT);
 
 export const blurFor = (speed: number) => Math.min(MAX_BLUR, Math.abs(speed) * BLUR_PER_SPEED);

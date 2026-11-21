@@ -136,10 +136,17 @@ describe('spring', () => {
 });
 
 describe('the motion of a cursor', () => {
-  it('tilts with its horizontal speed, within bounds', () => {
-    expect(tiltFor(0)).toBe(0);
-    expect(tiltFor(0.5)).toBeGreaterThan(10);
-    expect(tiltFor(-50)).toBe(-26);
+  it('turns its tip towards where it goes, within bounds', () => {
+    expect(tiltFor(at(0))).toBe(0);
+    expect(tiltFor(at(0.5))).toBeGreaterThan(10);
+    expect(tiltFor(at(0, -0.5))).toBeGreaterThan(10);
+    expect(tiltFor(at(-0.5))).toBeLessThan(-10);
+    expect(tiltFor(at(0, 0.5))).toBeLessThan(-10);
+    expect(tiltFor(at(-50))).toBe(-34);
+  });
+
+  it('stays put when it already goes where its tip points', () => {
+    expect(tiltFor(at(-0.5, -0.5))).toBeCloseTo(0);
   });
 
   it('blurs with speed, never more than its cap', () => {

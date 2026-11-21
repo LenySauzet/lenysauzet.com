@@ -16,6 +16,13 @@ describe('linesOf', () => {
     expect(lines).toEqual([rect(10, 0, 90, 20), rect(0, 24, 40, 44)]);
   });
 
+  it('keeps apart pieces of one line that do not touch, as columns of a grid', () => {
+    expect(linesOf([rect(0, 0, 60, 20), rect(300, 0, 360, 20), rect(60, 0, 80, 20)])).toEqual([
+      rect(0, 0, 80, 20),
+      rect(300, 0, 360, 20),
+    ]);
+  });
+
   it('drops pieces with no area', () => {
     expect(linesOf([rect(10, 0, 10, 20), rect(0, 0, 5, 0)])).toEqual([]);
   });

@@ -37,13 +37,28 @@ const ruleFor = (id: string) => `::highlight(${nameOf(id)}) { color: ${tintOf(id
 const widthOf = (anchor: string, index: number) =>
   index < 0 ? 0 : (rangeOf({ anchor, start: index, end: index + 1 })?.getBoundingClientRect().width ?? 0);
 
+function textRects(range: Range): Rect[] {
+  const root = range.commonAncestorContainer;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const rects: Rect[] = [];
+  for (let node = root.nodeType === Node.TEXT_NODE ? root : walker.nextNode(); node; node = walker.nextNode()) {
+    if (!range.intersectsNode(node)) continue;
+    const piece = document.createRange();
+    piece.selectNodeContents(node);
+    if (node === range.startContainer) piece.setStart(node, range.startOffset);
+    if (node === range.endContainer) piece.setEnd(node, range.endOffset);
+    for (const { left, top, right, bottom } of piece.getClientRects()) rects.push({ left, top, right, bottom });
+  }
+  return rects;
+}
+
 function linesFor({ anchor, start, end }: Mark): Rect[] {
   const from = Math.floor(start);
   const to = Math.ceil(end);
   const range = to > from ? rangeOf({ anchor, start: from, end: to }) : undefined;
   if (!range) return [];
   return trimEnds(
-    linesOf([...range.getClientRects()].map(({ left, top, right, bottom }) => ({ left, top, right, bottom }))),
+    linesOf(textRects(range)),
     { width: widthOf(anchor, from), part: start - from },
     { width: widthOf(anchor, to - 1), part: to - end }
   );

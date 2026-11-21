@@ -10,7 +10,6 @@ const SEND_EVERY = 33;
 const OLDEST = 1000;
 const SCROLL_SETTLES_AFTER = 160;
 const SELECTION_EVERY = 50;
-const LONGEST_CLICK = 350;
 const CLICK_SLOP = 8;
 const UNSHARED = '[data-presence-ignore]';
 
@@ -157,7 +156,6 @@ export function shareOwnCursor(connection: Connection, onClick: (point: Vector) 
       pressed = undefined;
       if (
         click &&
-        event.timeStamp - click.at < LONGEST_CLICK &&
         Math.hypot(event.clientX - click.value.x, event.clientY - click.value.y) < CLICK_SLOP &&
         document.getSelection()?.isCollapsed !== false &&
         isFresh({ at: event.timeStamp, value: click.value })

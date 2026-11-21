@@ -6,6 +6,7 @@ export interface Rect {
 }
 
 const SAME_LINE = 0.5;
+const TOUCHING = 2;
 
 const sharedHeight = (a: Rect, b: Rect) => Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
 
@@ -18,8 +19,9 @@ export function linesOf(rects: Rect[]): Rect[] {
   for (const rect of drawn) {
     const line = lines.find(
       (candidate) =>
-        sharedHeight(candidate, rect) >
-        SAME_LINE * Math.min(candidate.bottom - candidate.top, rect.bottom - rect.top)
+        sharedHeight(candidate, rect) > SAME_LINE * Math.min(candidate.bottom - candidate.top, rect.bottom - rect.top) &&
+        rect.left <= candidate.right + TOUCHING &&
+        rect.right >= candidate.left - TOUCHING
     );
     if (!line) {
       lines.push({ ...rect });

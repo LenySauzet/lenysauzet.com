@@ -235,10 +235,13 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   the part inside; `rangeOf` walks the text nodes of the shown copy back to a range.
   `remote-highlights` animates the shown ends towards the shared ones in characters,
   fractions included, so a selection sweeps along the text: the background is drawn as
-  one rounded rectangle per line in a layer on `body` (document coordinates, under the
+  one rounded rectangle per run of touching text in a layer on `body` (document coordinates, under the
   island at `z-40`), its ends trimmed by the uncovered part of their character; the
   text takes the hue through a `::highlight()` rule per visitor on the whole characters
-  covered. A cleared selection folds back to its start as it fades. Only a selection
+  covered. The rectangles come from the range's text nodes alone, each measured on its
+  own, and join only where they touch: the range's own rectangles include the box of
+  every element it wholly holds, and joining by line ran one band across a grid's
+  columns, so the Metadata cells lit up as a stripe. A cleared selection folds back to its start as it fades. Only a selection
   that continues the last (same anchor, same start or same end, as a drag keeps one)
   sweeps from it; any other fades the last out and grows on its own, since sweeping
   between two unrelated ranges ran the highlight along every line between them. `DOMRect` fields
@@ -250,7 +253,10 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **The others' cursors move in one frame loop, outside React.** React only adds and
   removes them (with an entrance in opacity, scale and blur); each frame reads the
   path through Catmull-Rom curves at the cadence delay, damps it lightly (28 ms), and
-  writes the transform: a tilt and a directional SVG blur from the damped velocity,
+  writes the transform: a tilt that turns the tip towards where the cursor goes (in
+  proportion to the velocity across the arrow's axis, the up-left diagonal its tip
+  points along, so it neither turns when already heading there nor flips when backing
+  away, up to 34°) and a directional SVG blur from the damped velocity,
   four ghosts along the last 56 ms of the drawn path that fade in with speed (motion
   blur as a shutter would record it), and a scale on a light spring (`spring`, fixed
   1 ms steps, so any frame rate moves alike) held down between a press and its release
@@ -269,7 +275,7 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   under the modal is not what its owner is looking at. Reduced motion keeps the path and drops the tilt, blur,
   ghosts, spring and ripple.
 - **A click ripples the page under it (an experiment).** A click is a press released
-  within 350 ms and 8 px, leaving no selection, and not the second or third of a double
+  within 8 px of where it went down, however long it was held, leaving no selection, and not the second or third of a double
   or triple click (`lib/presence/clicks.ts`), so selecting text or dragging never
   ripples. The owner decides and sends `click`, rippled for the others at the point
   their cursor was pressed: inferred on the receiving side, a double click rippled

@@ -182,7 +182,7 @@ export function createRemoteCursors({ onChange, onClick, isStill }: RemoteCursor
       const speed = Math.hypot(remote.velocity.x, remote.velocity.y);
       if (speed > MOVING || pressed) remote.movedAt = now;
       const awake = now - remote.movedAt < RESTING_AFTER;
-      remote.tilt = still ? 0 : damp(remote.tilt, tiltFor(remote.velocity.x), SETTLE, elapsed);
+      remote.tilt = still ? 0 : damp(remote.tilt, tiltFor(remote.velocity), SETTLE, elapsed);
       const scaleGoal = pressed ? PRESSED_SCALE : 1;
       remote.scale = still ? { value: scaleGoal, velocity: 0 } : spring(remote.scale, scaleGoal, elapsed, PRESS);
       const opacityGoal = awake ? 1 : RESTING_OPACITY;
