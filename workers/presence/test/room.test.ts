@@ -30,8 +30,8 @@ const pull = { frame: 'headline', corner: 1 as const, x: 12, y: -6 };
 const marks = { layout: 3 as const, spans: [{ anchor: 'intro', start: 4, end: 12 }] };
 const open: { socket: WebSocket; closed: Promise<number> }[] = [];
 
-async function connect(address?: string) {
-  const response = await exports.default.fetch('https://presence.test/', {
+async function connect(address?: string, room = '/') {
+  const response = await exports.default.fetch(`https://presence.test${room}`, {
     headers: { Upgrade: 'websocket', Origin: ORIGIN, ...(address && { 'CF-Connecting-IP': address }) },
   });
   const socket = response.webSocket;
@@ -87,6 +87,30 @@ describe('the presence worker', () => {
     const response = await exports.default.fetch('https://presence.test/', { headers: { Origin: ORIGIN } });
 
     expect(response.status).toBe(426);
+  });
+
+  it('refuses a room it does not hold', async () => {
+    const response = await exports.default.fetch('https://presence.test/de', {
+      headers: { Upgrade: 'websocket', Origin: ORIGIN },
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('keeps each language in its own room', async () => {
+    const english = await connect();
+    const french = await connect(undefined, '/fr');
+    const reader = await connect(undefined, '/fr');
+    await english.next();
+    await french.next();
+    await reader.next();
+
+    english.socket.send(encodeClient({ type: 'move', path }));
+    french.socket.send(encodeClient({ type: 'press' }));
+
+    expect(await reader.next()).toMatchObject({ type: 'press' });
+    expect(await reader.silent()).toBe(true);
+    expect(await english.silent()).toBe(true);
   });
 
   it('relays a cursor to the others, never back to its owner', async () => {

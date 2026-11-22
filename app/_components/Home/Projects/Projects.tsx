@@ -1,3 +1,5 @@
+import { getTranslations } from 'next-intl/server';
+
 import { projects, type Project } from '@/content/projects';
 import { distribute, laneOf, WORK_ID } from '@/lib/masonry';
 import { resolveMedia } from '@/lib/media/cdn';
@@ -21,6 +23,7 @@ interface Tile {
 }
 
 export async function Projects({ className }: { className?: string }) {
+  const t = await getTranslations('Projects');
   const tiles: Tile[] = await Promise.all(
     projects.map(async (project) => ({ project, image: await probeImage(resolveMedia(project.image)) }))
   );
@@ -32,7 +35,7 @@ export async function Projects({ className }: { className?: string }) {
   return (
     <section id={WORK_ID} aria-labelledby="work-heading" className={cn('px-4 pb-16 lg:px-6', className)}>
       <h2 id="work-heading" className="sr-only">
-        Work
+        {t('heading')}
       </h2>
       {LAYOUTS.map(({ columns, className: shown }) => (
         <div key={columns} className={cn('gap-4', shown)}>

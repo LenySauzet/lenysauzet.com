@@ -1,3 +1,5 @@
+import { useTranslations } from 'next-intl';
+
 import { HatchBand } from '@/components/shared/HatchBand';
 import { SelectionFrame } from '@/components/shared/SelectionFrame';
 import { pageGrid } from '@/components/shared/styles';
@@ -9,7 +11,8 @@ import { Actions } from './Actions';
 import { Clients } from './Clients';
 
 export function Hero({ className }: { className?: string }) {
-  const { role, location } = siteConfig.author;
+  const t = useTranslations('Hero');
+  const site = useTranslations('Site');
 
   return (
     <section className={cn(pageGrid, className)}>
@@ -17,7 +20,7 @@ export function Hero({ className }: { className?: string }) {
 
       <div className="flex flex-col items-center pt-16 pb-20 text-center sm:pt-40 lg:col-start-3">
         <p data-presence="role" className="rise text-sm text-subtle-foreground">
-          {role} · {location}
+          {site('role')} · {siteConfig.author.location}
         </p>
 
         <SelectionFrame name="headline" className="rise mt-6 [--rise-step:1]">
@@ -25,7 +28,7 @@ export function Hero({ className }: { className?: string }) {
             data-presence="headline"
             className="font-serif text-4xl leading-[1.1] tracking-tight text-balance sm:text-5xl"
           >
-            Turning complex challenges into <em>delightful</em> &amp; <em>fast</em> products.
+            {t.rich('headline', { em: (chunks) => <em>{chunks}</em> })}
           </h1>
         </SelectionFrame>
 
@@ -33,9 +36,7 @@ export function Hero({ className }: { className?: string }) {
           data-presence="intro"
           className="rise mt-8 max-w-xl text-base leading-7 text-pretty text-muted-foreground [--rise-step:2]"
         >
-          I&apos;m Lény, an AI and software engineer bridging the gap between complex engineering and seamless user
-          experiences. From innovative startups to large-scale enterprise products, I bring the cross-disciplinary
-          expertise that carries ambitious products to success. Familiar with both remote and in-office roles.
+          {t('intro')}
         </p>
 
         <Actions className="rise mt-10 [--rise-step:3]" />

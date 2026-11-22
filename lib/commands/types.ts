@@ -12,6 +12,7 @@ interface CommandContext {
 export interface Command {
   id: string;
   label: string;
+  lang?: string;
   icon: IconSvgElement;
   group: Group;
   keywords?: string[];

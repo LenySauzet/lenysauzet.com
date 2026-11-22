@@ -1,9 +1,9 @@
 import { Download01Icon } from '@hugeicons/core-free-icons';
 
 import { announce } from '@/hooks/use-island-store';
+import { getPathname } from '@/i18n/navigation';
+import type { Locale } from '@/i18n/routing';
 
-export const RESUME_ROUTE = '/resume';
+export const resumeRoute = (locale: Locale) => getPathname({ href: '/resume', locale });
 
-export const announceResume = () => announce('Downloading my resume', Download01Icon);
-
-export const resumeAnchor = { href: RESUME_ROUTE, download: true, onClick: announceResume };
+export const announceResume = (message: string) => announce(message, Download01Icon);

@@ -5,10 +5,16 @@ import Link from 'next/link';
 import { focusRing } from '@/components/shared/styles';
 import { cn } from '@/lib/utils';
 
-export function HomeLink({ className }: { className?: string }) {
+export interface HomeLinkProps {
+  href: string;
+  label: string;
+  className?: string;
+}
+
+export function HomeLink({ href, label, className }: HomeLinkProps) {
   return (
     <Link
-      href="/"
+      href={href}
       className={cn(
         'group inline-flex items-center gap-1 rounded-sm text-subtle-foreground transition-colors duration-200 hover:text-foreground',
         focusRing,
@@ -21,7 +27,7 @@ export function HomeLink({ className }: { className?: string }) {
         strokeWidth={1.5}
         className="transition-transform duration-400 group-hover:-translate-x-1.25 motion-reduce:transition-none"
       />
-      Home
+      {label}
     </Link>
   );
 }

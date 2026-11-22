@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import { englishCommands } from '@/test/intl';
+
 import { chordKey, commandFor, keyLabel, modifierLabel, platformOf, type Chord } from './keys';
-import { commands } from './registry';
+
+const commands = englishCommands();
 
 const chord = (fields: Partial<Chord>): Chord => ({
   key: 'd',
@@ -25,7 +28,13 @@ describe('chordKey', () => {
   });
 
   it('ignores a key held down, another modifier, a composition and a key already handled', () => {
-    for (const disturbance of [{ repeat: true }, { altKey: true }, { shiftKey: true }, { isComposing: true }, { defaultPrevented: true }])
+    for (const disturbance of [
+      { repeat: true },
+      { altKey: true },
+      { shiftKey: true },
+      { isComposing: true },
+      { defaultPrevented: true },
+    ])
       expect(chordKey(chord(disturbance), 'apple')).toBeUndefined();
   });
 

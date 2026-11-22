@@ -1,11 +1,18 @@
 import siteConfig from '@/config/site';
 import { clients } from '@/content/clients';
 
-const { url, blogUrl, author, description, profiles } = siteConfig;
+const { url, blogUrl, author, profiles } = siteConfig;
 
 export const PERSON_ID = `${url}/#person`;
 
-export function structuredData() {
+interface Page {
+  locale: string;
+  url: string;
+  role: string;
+  description: string;
+}
+
+export function structuredData(page: Page) {
   const employer = clients.find((client) => client.employer);
 
   return {
@@ -18,8 +25,8 @@ export function structuredData() {
         alternateName: ['Leny Sauzet', author.handle],
         givenName: 'Lény',
         familyName: 'Sauzet',
-        jobTitle: author.role,
-        description,
+        jobTitle: page.role,
+        description: page.description,
         url,
         image: `${url}/opengraph-image`,
         email: `mailto:${siteConfig.email}`,
@@ -31,11 +38,11 @@ export function structuredData() {
       },
       {
         '@type': 'ProfilePage',
-        '@id': `${url}/#profile`,
-        url,
-        name: siteConfig.title,
+        '@id': `${page.url}#profile`,
+        url: page.url,
+        name: `${author.name} · ${page.role}`,
         mainEntity: { '@id': PERSON_ID },
-        inLanguage: 'en',
+        inLanguage: page.locale,
       },
       {
         '@type': 'WebSite',

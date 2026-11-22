@@ -38,4 +38,13 @@ describe('the island store', () => {
 
     expect(useIslandStore.getState().presented).toBe(before);
   });
+
+  it('keeps an announcement up as long as asked', () => {
+    announce('Version française disponible', undefined, { ttl: 5000 });
+
+    vi.advanceTimersByTime(4999);
+    expect(ids()).toEqual(['announcement']);
+    vi.advanceTimersByTime(1);
+    expect(ids()).toEqual([]);
+  });
 });

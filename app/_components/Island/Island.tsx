@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { useIslandStore } from '@/hooks/use-island-store';
@@ -23,6 +24,7 @@ const onBreakpoint = (change: () => void) => {
 };
 
 export function Island({ className }: { className?: string }) {
+  const t = useTranslations('Island');
   const [opened, setOpened] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [widthWhenPointed, setWidthWhenPointed] = useState<number>();
@@ -66,6 +68,7 @@ export function Island({ className }: { className?: string }) {
 
   const shown: Shown = opened ? (presented.at(-1) ?? { id: hovered ? 'hint' : 'identity' }) : { id: 'resting' };
   const view = viewOf(shown);
+  const action = shown.id === 'announcement' ? shown.action : undefined;
 
   const point = () => {
     window.clearTimeout(mention.current);
@@ -87,10 +90,14 @@ export function Island({ className }: { className?: string }) {
     >
       <button
         type="button"
-        aria-label="Open the command palette"
-        aria-haspopup="dialog"
-        aria-expanded={paletteOpen}
-        onClick={() => usePaletteStore.getState().setIsOpen(true)}
+        aria-label={action && shown.id === 'announcement' ? shown.message : t('open')}
+        aria-haspopup={action ? undefined : 'dialog'}
+        aria-expanded={action ? undefined : paletteOpen}
+        onClick={() => {
+          if (!action) return usePaletteStore.getState().setIsOpen(true);
+          useIslandStore.getState().dismiss('announcement');
+          action();
+        }}
         onPointerEnter={point}
         onPointerLeave={() => setHovered(false)}
         onFocus={() => {

@@ -32,4 +32,12 @@ describe('presenceUrl', () => {
 
     expect((await load())()).toBeUndefined();
   });
+
+  it('puts each language in its own room, the default one where it always was', async () => {
+    const { roomUrl } = await import('./availability');
+
+    expect(roomUrl('wss://presence.lenysauzet.com', 'en')).toBe('wss://presence.lenysauzet.com');
+    expect(roomUrl('wss://presence.lenysauzet.com', 'fr')).toBe('wss://presence.lenysauzet.com/fr');
+    expect(roomUrl('ws://localhost:8787/', 'fr')).toBe('ws://localhost:8787/fr');
+  });
 });

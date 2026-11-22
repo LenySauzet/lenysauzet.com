@@ -2,8 +2,8 @@
 
 import type { ComponentProps } from 'react';
 
-import { resumeAnchor } from '@/lib/services/resume';
+import { useResumeAnchor } from '@/hooks/use-resume-anchor';
 
-export function ResumeAnchor(props: Omit<ComponentProps<'a'>, keyof typeof resumeAnchor>) {
-  return <a {...resumeAnchor} {...props} />;
+export function ResumeAnchor(props: Omit<ComponentProps<'a'>, 'href' | 'download' | 'onClick'>) {
+  return <a {...useResumeAnchor()} {...props} />;
 }

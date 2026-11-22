@@ -1,5 +1,6 @@
 import { Tick02Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 import { Logo } from '@/components/shared/Logo';
@@ -8,6 +9,19 @@ import type { Presence } from '@/hooks/use-island-store';
 import { modifierLabel, platformOf } from '@/lib/commands/keys';
 
 export type Shown = Presence | { id: 'identity' } | { id: 'resting' };
+
+function Hint() {
+  const t = useTranslations('Island');
+
+  return (
+    <span className="w-full px-3 text-center font-mono text-xs leading-none whitespace-nowrap text-subtle-foreground">
+      <span className="pointer-coarse:hidden">
+        {t('hint', { modifier: modifierLabel(platformOf(navigator.userAgent)) })}
+      </span>
+      <span className="pointer-fine:hidden">{t('tap')}</span>
+    </span>
+  );
+}
 
 interface View {
   key: string | number;
@@ -35,14 +49,7 @@ export function viewOf(shown: Shown): View {
     case 'hint':
       return {
         key: shown.id,
-        content: (
-          <span className="w-full px-3 text-center font-mono text-xs leading-none whitespace-nowrap text-subtle-foreground">
-            <span className="pointer-coarse:hidden">
-              Click or {modifierLabel(platformOf(navigator.userAgent))}K for commands
-            </span>
-            <span className="pointer-fine:hidden">Tap for commands</span>
-          </span>
-        ),
+        content: <Hint />,
       };
     case 'announcement':
       return {

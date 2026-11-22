@@ -3,9 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useIslandStore } from '@/hooks/use-island-store';
 import { usePresenceStore } from '@/hooks/use-presence-store';
 
-import { commands } from './registry';
+import { englishCommands } from '@/test/intl';
+
 import { GROUPS } from './types';
 
+const switchLanguage = vi.fn();
+const commands = englishCommands(switchLanguage);
 const byId = (id: string) => commands.find((command) => command.id === id)!;
 const context = { resolvedTheme: 'dark', setTheme: vi.fn() };
 const announced = () => {
@@ -83,5 +86,13 @@ describe('Live cursors', () => {
     expect(usePresenceStore.getState().hidden).toBe(false);
     expect(announced()).toBe('Cursors shown');
     expect(command.status?.()).toBe('On');
+  });
+});
+
+describe('the other language', () => {
+  it('switches the page to it, named in that language', () => {
+    expect(byId('other-language')).toMatchObject({ label: 'Lire en français', lang: 'fr' });
+    byId('other-language').run(context);
+    expect(switchLanguage).toHaveBeenCalledOnce();
   });
 });

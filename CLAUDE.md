@@ -36,8 +36,10 @@ instead. Never run `prettier` on a directory; on exact paths, with `--single-quo
 
 ## Layout and conventions
 
-Next.js 16 App Router. Every page is static; `/resume` alone runs on request. Server
-Components by default, `'use client'` only for state, effects or browser APIs.
+Next.js 16 App Router, in English at `/` and French at `/fr`: every page lives under
+`app/[locale]` and is static; `/resume` alone runs on request. Server Components by
+default, `'use client'` only for state, effects or browser APIs. Languages are in
+`.claude/rules/i18n.md`, which loads with their files.
 
 - **`app/_components/`** is what the pages share (Island, CommandPalette, PageBlur,
   StatusPage, HomeLink, ResumeAnchor, ThemeColor, the error body, `document.ts`, the
@@ -55,7 +57,9 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **`workers/presence/`** is the Cloudflare Worker behind the live cursors, deployed on
   its own; the app's type-check and tests leave it out, its own run it.
 - **`content/`** is what the page shows, typed, by hand; **`config/site.ts`** the
-  identity, links and handles everything else derives from.
+  identity, links and handles everything else derives from; **`messages/`** every
+  sentence, per language; **`i18n/`** the routing, the request config and the helpers
+  between languages.
 - Named exports everywhere but where Next.js asks for a default, and `siteConfig`.
   Every component accepts and forwards `className`. Hugeicons only, `motion/react`
   only, tokens only.
@@ -64,18 +68,20 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 
 | Path | What it owns |
 |---|---|
-| `config/site.ts` | Identity, handle, time zone, links, profiles, the resume, cal.com |
+| `config/site.ts` | Identity, handle, time zone, links, profiles, each language's resume, cal.com |
+| `i18n/`, `messages/`, `proxy.ts` | The languages, their sentences, and the routing between them |
 | `content/projects.ts`, `content/clients.ts` | The work and the logos; a client may be the employer |
 | `lib/masonry.ts` | Tiles into columns, shortest first, and the lane contract the footer reads |
 | `lib/media/probe.ts` | An image's size and a 16px blur placeholder, read with sharp at build time |
 | `lib/media/cdn.ts` | A bare media path to its URL under `portfolio/` on the CDN |
-| `lib/commands/` | The palette's registry, its groups, and how a key chord maps to a command |
+| `lib/commands/` | The palette's commands, made per language, their groups, and how a key chord maps to a command |
 | `lib/services/` | cal.com's modal; the resume's route, anchor and announcement |
 | `lib/seo/structured-data.ts` | The `Person` and `ProfilePage` JSON-LD |
 | `lib/theme/` | The view-transition sweep, and the stored theme `global-error` reads |
 | `lib/build-info.ts` | The commit and build date the footer shows |
 | `hooks/use-island-store.ts` | What the island presents, as data, and `announce` |
 | `hooks/use-palette-store.ts` | Whether the palette is wanted, open, and handing focus back |
+| `hooks/use-commands.ts` | The commands in the page's language, with the switch to the other |
 | `lib/presence/` | The live cursors' logic: wire protocol, placement, motion, selections, clicks, availability |
 | `lib/blur.ts` | The progressive blur's layers: radii stacking to an exponential curve |
 | `hooks/use-presence-store.ts` | Whether this visitor hides the others' cursors, kept in the browser |
@@ -85,10 +91,11 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 ## What the code does not say
 
 - **The island renders data.** Its store holds presences (`hint`, `announcement` with
-  its message and icon), never markup, so `lib/` announces without reaching into
-  `app/`; `views.tsx` turns each into its pill. An announcement also lands in an
-  `sr-only` `role="status"`, emptied and refilled a task later so the same message,
-  repeated, is read again. The hint names the modifier of the visitor's platform.
+  its message, icon and an optional action a click runs in place of the palette), never
+  markup, so `lib/` announces without reaching into `app/`; `views.tsx` turns each into
+  its pill. An announcement also lands in an `sr-only` `role="status"`, emptied and
+  refilled a task later so the same message, repeated, is read again. The hint names the
+  modifier of the visitor's platform.
 - **The palette loads on intent.** `PaletteLauncher` holds the keyboard and mounts the
   palette through `next/dynamic` once it is `wanted`: pointing at or focusing the island,
   or opening it. A shortcut runs its command without loading it. Shortcuts are ⌘ on
@@ -153,8 +160,10 @@ Components by default, `'use client'` only for state, effects or browser APIs.
 - **The status pages share `StatusPage`**: the status as a hairline outline of
   Departure Mono (stroked at twice its width, then covered by the same text in
   `--background`, so only the outer half shows), the serif title, the copy, faded
-  bands. `global-error` replaces the root layout, so it brings the fonts and applies
-  the stored theme itself. The 404 declares no canonical URL.
+  bands. `global-error` replaces the root layout, so it brings the fonts, applies the
+  stored theme (`StoredTheme`) and reads its language from the path. A path outside
+  both languages reaches `global-not-found`, in English. The 404 declares no canonical
+  URL.
 - **The footer is a metadata block**: commit, browser, the local time, the window, the
   build date and the source repository, then links. The live readings use
   `useSyncExternalStore` with a pending server snapshot; the clock ticks on the second.
@@ -173,8 +182,9 @@ Components by default, `'use client'` only for state, effects or browser APIs.
   `scroll-padding-bottom` keeps a focused element out from under it.
 - **The footer belongs to the home page**; the status pages render their own `<main>`
   and none, its bands rising from the project columns.
-- **`/resume` proxies the PDF** so `download` holds across origins; the edge caches it
-  a day and a failure is never cached.
+- **`/resume` proxies the PDF** of the page's language (`/fr/resume` the French CV) so
+  `download` holds across origins; the edge caches it a day and a failure is never
+  cached. A PDF replaced on the CDN under the same name needs a Cloudflare purge.
 - **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to
   `64:ff9b::`, which the optimizer refuses as a private IP. Never set
   `dangerouslyAllowLocalIP`; to look at a local production build, serve the original

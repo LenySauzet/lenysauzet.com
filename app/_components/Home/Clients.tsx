@@ -1,5 +1,6 @@
 import { Add01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 import { focusRing } from '@/components/shared/styles';
@@ -27,6 +28,8 @@ function Tip({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function Clients({ clients, className }: { clients: Client[]; className?: string }) {
+  const t = useTranslations('Hero');
+
   return (
     <AvatarGroup data-presence="clients" className={className}>
       {clients.map((client) => (
@@ -39,8 +42,8 @@ export function Clients({ clients, className }: { clients: Client[]; className?:
           </a>
         </Tip>
       ))}
-      <Tip label="Your company next?">
-        <BookingButton aria-label="Your company next? Book a call" className={TRIGGER}>
+      <Tip label={t('nextClient')}>
+        <BookingButton aria-label={t('nextClientAction')} className={TRIGGER}>
           <Avatar size="lg" className={RAISED}>
             <AvatarFallback className="text-subtle-foreground">
               <HugeiconsIcon icon={Add01Icon} strokeWidth={2} className="size-4" />

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { openBooking } from '@/lib/services/booking';
+import { InEnglish } from '@/test/intl';
 
 import { BookingButton } from './BookingButton';
 
@@ -19,11 +20,12 @@ describe('BookingButton', () => {
             <BookingButton>Your company next?</BookingButton>
           </TooltipTrigger>
         </Tooltip>
-      </TooltipProvider>
+      </TooltipProvider>,
+      { wrapper: InEnglish }
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Your company next?' }));
 
-    expect(openBooking).toHaveBeenCalledWith('dark');
+    expect(openBooking).toHaveBeenCalledWith('dark', 'Booking is unreachable');
   });
 });

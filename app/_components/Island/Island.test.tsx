@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { announce, useIslandStore } from '@/hooks/use-island-store';
 import { usePaletteStore } from '@/hooks/use-palette-store';
+import { InEnglish } from '@/test/intl';
 
 import { Island } from './Island';
 
@@ -19,7 +20,7 @@ describe('Island', () => {
   it('rests on the name, and says how to reach the commands when pointed at', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(<Island />);
+    render(<Island />, { wrapper: InEnglish });
     settle();
 
     const island = screen.getByRole('button', { name: 'Open the command palette' });
@@ -31,7 +32,7 @@ describe('Island', () => {
   });
 
   it('reads an announcement out through a live region, again when it repeats', async () => {
-    render(<Island />);
+    render(<Island />, { wrapper: InEnglish });
 
     act(() => announce('Email copied'));
     await nextTask();
@@ -45,10 +46,25 @@ describe('Island', () => {
 
   it('opens the palette on a click', async () => {
     const user = userEvent.setup();
-    render(<Island />);
+    render(<Island />, { wrapper: InEnglish });
 
     await user.click(screen.getByRole('button', { name: 'Open the command palette' }));
 
     expect(usePaletteStore.getState().isOpen).toBe(true);
+  });
+
+  it('runs what an announcement offers on a click, in place of the palette', async () => {
+    const user = userEvent.setup();
+    const offered = vi.fn();
+    usePaletteStore.setState({ isOpen: false });
+    render(<Island />, { wrapper: InEnglish });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
+    act(() => announce('Version française disponible', undefined, { action: offered }));
+
+    await user.click(screen.getByRole('button', { name: 'Version française disponible' }));
+
+    expect(offered).toHaveBeenCalledOnce();
+    expect(usePaletteStore.getState().isOpen).toBe(false);
+    expect(useIslandStore.getState().presented).toEqual([]);
   });
 });

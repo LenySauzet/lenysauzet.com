@@ -1,10 +1,12 @@
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
 
 const nextConfig: NextConfig = {
+  experimental: { globalNotFound: true },
   images: {
     unoptimized: process.env.NODE_ENV === 'development',
     remotePatterns: [{ protocol: 'https', hostname: 'cdn.lenysauzet.com' }],
   },
 };
 
-export default nextConfig;
+export default createNextIntlPlugin('./i18n/request.ts')(nextConfig);
