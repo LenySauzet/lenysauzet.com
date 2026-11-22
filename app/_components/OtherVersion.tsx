@@ -11,7 +11,8 @@ import { versionToOffer } from '@/i18n/locales';
 
 import { MENTIONS_PALETTE_AFTER, MENTIONS_PALETTE_FOR } from './Island/motion';
 
-const OFFERED_AFTER = MENTIONS_PALETTE_AFTER + MENTIONS_PALETTE_FOR + 600;
+const TAKES_OVER_THE_HINT = 200;
+const OFFERED_AFTER = MENTIONS_PALETTE_AFTER + MENTIONS_PALETTE_FOR - TAKES_OVER_THE_HINT;
 const OFFERED_FOR = 5000;
 const OFFERED = 'other-version-offered';
 
