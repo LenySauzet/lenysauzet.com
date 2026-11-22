@@ -1,10 +1,12 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
-import { Logo } from '@/components/shared/Logo';
 import { pillSurface } from '@/components/shared/styles';
+import siteConfig from '@/config/site';
 import { useBooking } from '@/hooks/use-booking';
+import { resolveMedia } from '@/lib/media/cdn';
 import { cn } from '@/lib/utils';
 
 const TRANSITION = 'duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none';
@@ -29,8 +31,8 @@ export function BookCall({ className }: { className?: string }) {
         className
       )}
     >
-      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-background ring-1 ring-border">
-        <Logo className="size-4" />
+      <span className="relative size-8 shrink-0 overflow-hidden rounded-full ring-1 ring-border">
+        <Image src={resolveMedia(siteConfig.author.avatar)} alt="" fill sizes="32px" className="object-cover" />
       </span>
       <span aria-hidden className={cn('w-0 shrink-0 transition-[width]', TRANSITION, OPEN)}>
         <span
