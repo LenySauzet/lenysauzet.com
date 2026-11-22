@@ -27,7 +27,7 @@ describe('the French messages', () => {
 
   it('follow French typography', () => {
     for (const [key, message] of french) {
-      expect(message, key).not.toMatch(/'|\.\.\.| [?!;]| :/);
+      expect(message, key).not.toMatch(/'|\.\.\.| [?!;]|[^\u00a0]:/u);
       expect(message, key).not.toMatch(/[^ ][?!;]/u);
     }
   });

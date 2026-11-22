@@ -4,11 +4,10 @@ import { useLocale } from 'next-intl';
 import { useMemo, useSyncExternalStore } from 'react';
 
 import siteConfig from '@/config/site';
-import { browserName } from '@/lib/browser';
+import { browserName, unchanging } from '@/lib/browser';
 
 const PENDING = '-';
 
-const unchanging = () => () => {};
 const pending = () => PENDING;
 
 const onEverySecond = (change: () => void) => {

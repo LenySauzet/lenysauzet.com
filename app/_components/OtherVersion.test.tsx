@@ -1,63 +1,114 @@
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useIslandStore } from '@/hooks/use-island-store';
 import { usePaletteStore } from '@/hooks/use-palette-store';
+import { goTo } from '@/lib/browser';
 import { InEnglish } from '@/test/intl';
 
+import { Island } from './Island';
 import { OtherVersion } from './OtherVersion';
 
-const OFFERED = 'other-version-offered';
+vi.mock('@/lib/browser', async (original) => ({
+  ...(await original<typeof import('@/lib/browser')>()),
+  goTo: vi.fn(),
+}));
 
-const offer = () => useIslandStore.getState().presented.find((presence) => presence.id === 'announcement');
+const HINT_ENDS = 3800;
+
+const ids = () => useIslandStore.getState().presented.map((presence) => presence.id);
+const offered = () => useIslandStore.getState().presented.some((presence) => presence.id === 'announcement');
 
 const visit = (languages: string[]) => {
   vi.spyOn(navigator, 'languages', 'get').mockReturnValue(languages);
-  render(<OtherVersion />, { wrapper: InEnglish });
-  act(() => vi.advanceTimersByTime(5000));
+  return render(
+    <>
+      <Island />
+      <OtherVersion />
+    </>,
+    { wrapper: InEnglish }
+  );
 };
+
+const wait = (ms: number) => act(() => vi.advanceTimersByTime(ms));
 
 describe('OtherVersion', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     sessionStorage.clear();
     useIslandStore.setState({ presented: [] });
-    usePaletteStore.setState({ isOpen: false });
+    usePaletteStore.setState({ wanted: false, isOpen: false, returningFocus: false });
   });
 
   afterEach(() => sessionStorage.clear());
 
-  it('offers the French page once a visit, in the page language, to a reader whose first language it is', () => {
+  it('takes over from the hint the moment it ends', () => {
     visit(['fr-FR', 'en']);
 
-    expect(offer()).toMatchObject({
-      message: 'French version available',
-      action: expect.any(Function),
-    });
-    expect(sessionStorage.getItem(OFFERED)).not.toBeNull();
+    wait(HINT_ENDS - 1);
+    expect(ids()).toEqual(['hint']);
+    wait(1);
+
+    expect(ids()).toEqual(['announcement']);
   });
 
-  it('stays quiet once offered this visit, for other readers, or while it could not be seen', () => {
-    sessionStorage.setItem(OFFERED, '1');
+  it('goes to the French page when clicked, in place of the palette', () => {
     visit(['fr-FR']);
-    expect(offer()).toBeUndefined();
+    wait(HINT_ENDS);
 
-    sessionStorage.clear();
+    fireEvent.click(screen.getByRole('button', { name: 'French version available' }));
+
+    expect(goTo).toHaveBeenCalledWith('/fr');
+    expect(usePaletteStore.getState().isOpen).toBe(false);
+  });
+
+  it('stays quiet for a reader who reached for the island', () => {
+    visit(['fr-FR']);
+    wait(2000);
+    expect(ids()).toEqual(['hint']);
+
+    fireEvent.pointerEnter(screen.getByRole('button'));
+    wait(HINT_ENDS);
+
+    expect(offered()).toBe(false);
+  });
+
+  it('stays quiet for a reader who reads the page language first', () => {
     visit(['en-US', 'fr']);
-    expect(offer()).toBeUndefined();
+    wait(HINT_ENDS);
 
-    usePaletteStore.setState({ isOpen: true });
-    visit(['fr-FR']);
-    expect(offer()).toBeUndefined();
-    expect(sessionStorage.getItem(OFFERED)).toBeNull();
+    expect(offered()).toBe(false);
   });
 
-  it('never offers when the browser refuses its storage, rather than offering on every visit', () => {
+  it('waits for a tab opened in the background to be seen', () => {
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    visit(['fr-FR']);
+    wait(HINT_ENDS);
+    expect(offered()).toBe(false);
+
+    visibility.mockReturnValue('visible');
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(offered()).toBe(true);
+  });
+
+  it('offers once a visit', () => {
+    visit(['fr-FR']);
+    wait(HINT_ENDS);
+    expect(offered()).toBe(true);
+
+    useIslandStore.setState({ presented: [] });
+    visit(['fr-FR']);
+    wait(HINT_ENDS);
+    expect(offered()).toBe(false);
+  });
+
+  it('never offers when the browser refuses its storage, rather than on every load', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('denied');
     });
     visit(['fr-FR']);
+    wait(HINT_ENDS);
 
-    expect(offer()).toBeUndefined();
+    expect(offered()).toBe(false);
   });
 });

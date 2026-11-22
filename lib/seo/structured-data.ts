@@ -1,12 +1,15 @@
+import type { Locale } from 'next-intl';
+
 import siteConfig from '@/config/site';
 import { clients } from '@/content/clients';
+import { routing } from '@/i18n/routing';
 
 const { url, blogUrl, author, profiles } = siteConfig;
 
 export const PERSON_ID = `${url}/#person`;
 
 interface Page {
-  locale: string;
+  locale: Locale;
   url: string;
   role: string;
   description: string;
@@ -28,7 +31,7 @@ export function structuredData(page: Page) {
         jobTitle: page.role,
         description: page.description,
         url,
-        image: `${url}/opengraph-image`,
+        image: `${url}${siteConfig.shareImage.url}`,
         email: `mailto:${siteConfig.email}`,
         address: { '@type': 'PostalAddress', addressLocality: author.city, addressCountry: 'FR' },
         worksFor: employer && { '@type': 'Organization', name: employer.name, url: employer.href },
@@ -38,9 +41,9 @@ export function structuredData(page: Page) {
       },
       {
         '@type': 'ProfilePage',
-        '@id': `${page.url}#profile`,
+        '@id': `${page.url}/#profile`,
         url: page.url,
-        name: `${author.name} · ${page.role}`,
+        name: siteConfig.titleOf(page.role),
         mainEntity: { '@id': PERSON_ID },
         inLanguage: page.locale,
       },
@@ -49,6 +52,7 @@ export function structuredData(page: Page) {
         '@id': `${url}/#website`,
         url,
         name: author.name,
+        inLanguage: [...routing.locales],
         publisher: { '@id': PERSON_ID },
       },
     ],

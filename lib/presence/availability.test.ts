@@ -33,7 +33,7 @@ describe('presenceUrl', () => {
     expect((await load())()).toBeUndefined();
   });
 
-  it('puts each language in its own room, the default one where it always was', async () => {
+  it('puts each language in its own room, the default one at the root', async () => {
     const { roomUrl } = await import('./availability');
 
     expect(roomUrl('wss://presence.lenysauzet.com', 'en')).toBe('wss://presence.lenysauzet.com');

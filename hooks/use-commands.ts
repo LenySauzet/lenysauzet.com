@@ -5,12 +5,12 @@ import { useMemo } from 'react';
 
 import { createCommands } from '@/lib/commands/registry';
 
-import { useSwitchLanguage } from './use-switch-language';
+import { useOtherVersion } from './use-other-version';
 
 export function useCommands() {
   const t = useTranslations('Commands');
   const locale = useLocale();
-  const switchLanguage = useSwitchLanguage();
+  const goToOtherVersion = useOtherVersion();
 
-  return useMemo(() => createCommands({ t, locale, switchLanguage }), [t, locale, switchLanguage]);
+  return useMemo(() => createCommands({ t, locale, goToOtherVersion }), [t, locale, goToOtherVersion]);
 }

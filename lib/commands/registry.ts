@@ -16,17 +16,16 @@ import {
   News01Icon,
   PaintBoardIcon,
 } from '@hugeicons/core-free-icons';
-import type { Messages } from 'next-intl';
+import type { Locale, Messages } from 'next-intl';
 
 import siteConfig from '@/config/site';
 import { announce } from '@/hooks/use-island-store';
 import { usePresenceStore } from '@/hooks/use-presence-store';
-import { getPathname } from '@/i18n/navigation';
-import type { Locale } from '@/i18n/routing';
+import { homeUrl } from '@/i18n/locales';
 import { prefersReducedMotion } from '@/lib/motion';
 import { presenceAvailable } from '@/lib/presence/availability';
 import { openBooking } from '@/lib/services/booking';
-import { announceResume, resumeRoute } from '@/lib/services/resume';
+import { resumeLink } from '@/lib/services/resume';
 import { withThemeTransition } from '@/lib/theme/theme-transition';
 
 import type { Command } from './types';
@@ -36,7 +35,7 @@ type Translate = (key: keyof Messages['Commands']) => string;
 interface CommandSetup {
   t: Translate;
   locale: Locale;
-  switchLanguage: () => void;
+  goToOtherVersion: () => void;
 }
 
 const { social, email } = siteConfig;
@@ -68,19 +67,19 @@ interface Link {
 
 const link = ({ url, hint = shortUrl(url), keywords, ...rest }: Link): Command => ({
   ...rest,
-  group: 'Links',
+  group: 'links',
   hint,
   keywords: words(keywords),
   run: visit(url),
 });
 
-export function createCommands({ t, locale, switchLanguage }: CommandSetup): Command[] {
+export function createCommands({ t, locale, goToOtherVersion }: CommandSetup): Command[] {
   return [
     {
       id: 'book-a-call',
       label: t('bookCall'),
       icon: Calendar01Icon,
-      group: 'Contact',
+      group: 'contact',
       keywords: words(t('bookCallKeywords')),
       run: ({ resolvedTheme }) => openBooking(resolvedTheme, t('bookingUnreachable')),
     },
@@ -88,7 +87,7 @@ export function createCommands({ t, locale, switchLanguage }: CommandSetup): Com
       id: 'write-me',
       label: t('writeMe'),
       icon: Mail01Icon,
-      group: 'Contact',
+      group: 'contact',
       keywords: words(t('writeMeKeywords')),
       hint: email,
       run: () => {
@@ -99,7 +98,7 @@ export function createCommands({ t, locale, switchLanguage }: CommandSetup): Com
       id: 'copy-email',
       label: t('copyEmail'),
       icon: Copy01Icon,
-      group: 'Contact',
+      group: 'contact',
       keywords: words(t('copyEmailKeywords')),
       run: () => copy(email, t('emailCopied'), Copy01Icon),
     },
@@ -107,49 +106,50 @@ export function createCommands({ t, locale, switchLanguage }: CommandSetup): Com
       id: 'resume',
       label: t('resume'),
       icon: Download01Icon,
-      group: 'Contact',
+      group: 'contact',
       keywords: words(t('resumeKeywords')),
       shortcut: 's',
       run: () => {
+        const { href, onClick } = resumeLink(locale, t('downloadingResume'));
         const anchor = document.createElement('a');
-        anchor.href = resumeRoute(locale);
+        anchor.href = href;
         anchor.download = '';
         anchor.click();
-        announceResume(t('downloadingResume'));
+        onClick();
       },
     },
     {
       id: 'toggle-theme',
       label: t('toggleTheme'),
       icon: Moon02Icon,
-      group: 'Tools',
+      group: 'tools',
       keywords: words(t('toggleThemeKeywords')),
       shortcut: 'd',
       run: ({ resolvedTheme, setTheme }) =>
         withThemeTransition(() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')),
     },
     {
-      id: 'other-language',
-      label: t('otherLanguage'),
+      id: 'other-version',
+      label: t('otherVersion'),
       icon: LanguageCircleIcon,
-      group: 'Tools',
-      keywords: words(t('otherLanguageKeywords')),
-      run: switchLanguage,
+      group: 'tools',
+      keywords: words(t('otherVersionKeywords')),
+      run: goToOtherVersion,
     },
     {
       id: 'copy-link',
       label: t('copyLink'),
       icon: CopyLinkIcon,
-      group: 'Tools',
+      group: 'tools',
       keywords: words(t('copyLinkKeywords')),
       shortcut: 'l',
-      run: () => copy(new URL(getPathname({ href: '/', locale }), siteConfig.url).href, t('linkCopied'), CopyLinkIcon),
+      run: () => copy(homeUrl(locale), t('linkCopied'), CopyLinkIcon),
     },
     {
       id: 'toggle-cursors',
       label: t('cursors'),
       icon: Cursor01Icon,
-      group: 'Tools',
+      group: 'tools',
       keywords: words(t('cursorsKeywords')),
       status: () => (usePresenceStore.getState().hidden ? t('cursorsOff') : t('cursorsOn')),
       available: presenceAvailable,
@@ -160,7 +160,7 @@ export function createCommands({ t, locale, switchLanguage }: CommandSetup): Com
       id: 'go-to-top',
       label: t('goToTop'),
       icon: ArrowUp01Icon,
-      group: 'Tools',
+      group: 'tools',
       keywords: words(t('goToTopKeywords')),
       shortcut: 'ArrowUp',
       run: () => window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' }),

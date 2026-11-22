@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { SelectionFrame } from '@/components/shared/SelectionFrame';
 import { focusRing, pageGrid } from '@/components/shared/styles';
 import siteConfig from '@/config/site';
-import { otherLocale, otherVersionOf } from '@/i18n/locales';
+import { CONTENT_LOCALE, otherLocale, otherVersionOf } from '@/i18n/locales';
 import { buildInfo } from '@/lib/build-info';
 import { cn } from '@/lib/utils';
 
@@ -69,7 +69,7 @@ export function Footer({ className }: { className?: string }) {
               <Reading label={t('browser')} live>
                 <Browser />
               </Reading>
-              <Reading label={t('time')} live>
+              <Reading label={t('time', { country: siteConfig.author.country })} live>
                 <Clock />
               </Reading>
               <Reading label={t('dimensions')} live>
@@ -96,7 +96,7 @@ export function Footer({ className }: { className?: string }) {
           <p className={cn(LABEL, 'col-span-2 sm:col-span-1')}>{t('links')}</p>
           <LinkList>
             <li>
-              <a href={siteConfig.blogUrl} hrefLang="en" className={LINK}>
+              <a href={siteConfig.blogUrl} hrefLang={CONTENT_LOCALE} className={LINK}>
                 {t('blog')}
               </a>
             </li>
@@ -110,7 +110,7 @@ export function Footer({ className }: { className?: string }) {
             </li>
             <li>
               <a href={otherVersionOf('/', locale)} hrefLang={other} className={LINK}>
-                {t('otherLanguage')}
+                {t('otherVersion')}
               </a>
             </li>
           </LinkList>

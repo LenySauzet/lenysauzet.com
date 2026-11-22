@@ -5,9 +5,10 @@ import { useCallback } from 'react';
 
 import { otherVersionOf } from '@/i18n/locales';
 import { usePathname } from '@/i18n/navigation';
+import { goTo } from '@/lib/browser';
 
-export function useSwitchLanguage() {
+export function useOtherVersion() {
   const target = otherVersionOf(usePathname(), useLocale());
 
-  return useCallback(() => window.location.assign(target), [target]);
+  return useCallback(() => goTo(target), [target]);
 }

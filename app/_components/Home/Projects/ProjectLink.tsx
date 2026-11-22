@@ -8,6 +8,7 @@ import { focusRing } from '@/components/shared/styles';
 import siteConfig from '@/config/site';
 import type { ProjectAction } from '@/content/projects';
 import { useAnimatedIcon } from '@/hooks/use-animated-icon';
+import { CONTENT_LOCALE } from '@/i18n/locales';
 import { cn } from '@/lib/utils';
 
 interface ProjectLinkProps {
@@ -26,7 +27,7 @@ export function ProjectLink({ action, project, className }: ProjectLinkProps) {
   return (
     <a
       href={external ? action.href : `${siteConfig.blogUrl}/posts/${action.slug}`}
-      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : { hrefLang: 'en' })}
+      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : { hrefLang: CONTENT_LOCALE })}
       {...trigger}
       aria-label={t(external ? 'externalLabel' : 'label', { action: label, project })}
       className={cn(

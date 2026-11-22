@@ -11,7 +11,9 @@ const project = (fields: Partial<Project>): Project => ({ title: 'Atrean', year:
 
 describe('ProjectCard', () => {
   it('links the article to the blog post that tells it', () => {
-    render(<ProjectCard project={project({ action: { kind: 'article', slug: 'atrean' } })} image={image} />, { wrapper: InEnglish });
+    render(<ProjectCard project={project({ action: { kind: 'article', slug: 'atrean' } })} image={image} />, {
+      wrapper: InEnglish,
+    });
 
     expect(screen.getByRole('link', { name: 'Read article: Atrean' })).toHaveAttribute(
       'href',
@@ -23,7 +25,9 @@ describe('ProjectCard', () => {
     ['app', 'View app'],
     ['source', 'View code'],
   ] as const)('opens the %s in a new tab', (kind, name) => {
-    render(<ProjectCard project={project({ action: { kind, href: 'https://atrean.com' } })} image={image} />, { wrapper: InEnglish });
+    render(<ProjectCard project={project({ action: { kind, href: 'https://atrean.com' } })} image={image} />, {
+      wrapper: InEnglish,
+    });
 
     const link = screen.getByRole('link', { name: `${name}: Atrean, in a new tab` });
     expect(link).toHaveAttribute('href', 'https://atrean.com');

@@ -1,5 +1,7 @@
+import type { Locale } from 'next-intl';
+
 import siteConfig from '@/config/site';
-import { routing, type Locale } from '@/i18n/routing';
+import { routing } from '@/i18n/routing';
 import { hasFinePointer } from '@/lib/browser';
 
 const supportsPopover = () => 'showPopover' in HTMLElement.prototype;

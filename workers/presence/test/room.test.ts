@@ -9,6 +9,7 @@ import {
   MAX_CLIENT_MESSAGE,
   type ServerMessage,
 } from '../../../lib/presence/protocol';
+import { BURST, PER_SECOND } from '../src/room';
 
 const ORIGIN = 'https://lenysauzet.com';
 const path = {
@@ -264,10 +265,10 @@ describe('the presence worker', () => {
     const received = await drain(watcher);
     const seconds = (Date.now() - startedAt) / 1000;
 
-    const burstAfterUnreadable = 120 - 1;
+    const burstAfterUnreadable = BURST - 1;
     expect(received.every((message) => message.type === 'press')).toBe(true);
     expect(received.length).toBeGreaterThanOrEqual(burstAfterUnreadable);
-    expect(received.length).toBeLessThanOrEqual(burstAfterUnreadable + Math.ceil(75 * seconds));
+    expect(received.length).toBeLessThanOrEqual(burstAfterUnreadable + Math.ceil(PER_SECOND * seconds));
   });
 
   it('lets a visitor who keeps flooding go, and says so once', async () => {

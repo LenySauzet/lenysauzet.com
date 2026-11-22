@@ -6,13 +6,13 @@ import { CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
 const FADE_DISTANCE = 80;
-const CLEAR_OF_EDGES = 12;
-const ACROSS = `linear-gradient(to right, transparent, black ${CLEAR_OF_EDGES}px, black calc(100% - ${CLEAR_OF_EDGES}px), transparent)`;
+const CLEAR_OF_EDGES = 'var(--radius-xl)';
+const ACROSS = `linear-gradient(to right, transparent, black ${CLEAR_OF_EDGES}, black calc(100% - ${CLEAR_OF_EDGES}), transparent)`;
 const VEIL = 'pointer-events-none absolute inset-x-(--rim-width) opacity-0 backdrop-blur-xs';
 
 const veil = (toward: 'top' | 'bottom'): CSSProperties => ({
   height: FADE_DISTANCE,
-  maskImage: `linear-gradient(to ${toward}, transparent, black ${CLEAR_OF_EDGES}px, transparent), ${ACROSS}`,
+  maskImage: `linear-gradient(to ${toward}, transparent, black ${CLEAR_OF_EDGES}, transparent), ${ACROSS}`,
   maskComposite: 'intersect',
 });
 
@@ -46,7 +46,6 @@ export function FadingList({ children, className }: { children: ReactNode; class
     const mask = fadeMask(top, bottom);
 
     node.style.maskImage = mask;
-    node.style.webkitMaskImage = mask;
     if (topVeil.current) topVeil.current.style.opacity = String(top);
     if (bottomVeil.current) bottomVeil.current.style.opacity = String(bottom);
   }, []);

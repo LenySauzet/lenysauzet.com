@@ -47,4 +47,18 @@ describe('the island store', () => {
     vi.advanceTimersByTime(1);
     expect(ids()).toEqual([]);
   });
+
+  it('keeps a held presence up, and gives it its whole time again once let go', () => {
+    announce('French version available', { ttl: 1000 });
+    vi.advanceTimersByTime(900);
+    useIslandStore.getState().hold('announcement');
+    vi.advanceTimersByTime(5000);
+    expect(ids()).toEqual(['announcement']);
+
+    useIslandStore.getState().release('announcement');
+    vi.advanceTimersByTime(999);
+    expect(ids()).toEqual(['announcement']);
+    vi.advanceTimersByTime(1);
+    expect(ids()).toEqual([]);
+  });
 });

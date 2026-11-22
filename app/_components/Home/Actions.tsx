@@ -21,7 +21,12 @@ export function Actions({ className }: { className?: string }) {
       className={cn('grid w-full max-w-sm grid-cols-2 gap-3 sm:flex sm:max-w-none sm:justify-center', className)}
     >
       <BookCall className="col-span-2 justify-center" />
-      <PillLink href={`mailto:${siteConfig.email}`} icon={AnimatedMailIcon} label={t('email')} className="justify-center" />
+      <PillLink
+        href={`mailto:${siteConfig.email}`}
+        icon={AnimatedMailIcon}
+        label={t('email')}
+        className="justify-center"
+      />
       <PillLink {...resumeAnchor} icon={AnimatedDownloadIcon} label={t('resume')} className="justify-center" />
     </div>
   );

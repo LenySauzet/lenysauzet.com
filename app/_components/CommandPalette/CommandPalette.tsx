@@ -18,6 +18,7 @@ import {
 import { useCommands } from '@/hooks/use-commands';
 import { usePaletteStore } from '@/hooks/use-palette-store';
 import { keyLabel, modifierLabel, platformOf } from '@/lib/commands/keys';
+import { matchCommand } from '@/lib/commands/search';
 import { GROUPS, type Command } from '@/lib/commands/types';
 
 import { FadingList } from './FadingList';
@@ -59,7 +60,7 @@ export function CommandPalette({ className }: { className?: string }) {
       description={t('description')}
       className={className}
     >
-      <CommandRoot label={t('title')}>
+      <CommandRoot label={t('title')} filter={matchCommand}>
         <CommandInput placeholder={t('placeholder')} />
         <FadingList>
           <CommandEmpty>{t('empty')}</CommandEmpty>

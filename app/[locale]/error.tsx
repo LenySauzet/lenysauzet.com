@@ -1,14 +1,14 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
+import { useLocale, useMessages } from 'next-intl';
 import { useEffect } from 'react';
 
-import { getPathname } from '@/i18n/navigation';
+import { homePath } from '@/i18n/locales';
 
 import { ErrorBody, type ErrorProps } from '../_components/ErrorBody';
 
 export default function Error({ error, retry }: ErrorProps) {
-  const t = useTranslations('Status');
+  const { Status } = useMessages();
   const locale = useLocale();
 
   useEffect(() => {
@@ -17,13 +17,7 @@ export default function Error({ error, retry }: ErrorProps) {
 
   return (
     <main>
-      <ErrorBody
-        heading={t('errorHeading')}
-        message={t('pageFailed')}
-        home={{ href: getPathname({ href: '/', locale }), label: t('home') }}
-        retryLabel={t('retry')}
-        retry={retry}
-      />
+      <ErrorBody status={Status} message={Status.pageFailed} homeHref={homePath(locale)} retry={retry} />
     </main>
   );
 }

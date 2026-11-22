@@ -12,3 +12,7 @@ export const browserName = (userAgent: string) =>
 export const FINE_POINTER = '(pointer: fine)';
 
 export const hasFinePointer = () => window.matchMedia(FINE_POINTER).matches;
+
+export const unchanging = () => () => {};
+
+export const goTo = (path: string) => window.location.assign(path);

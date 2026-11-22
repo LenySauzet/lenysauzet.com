@@ -12,7 +12,7 @@ import { Clients } from './Clients';
 
 export function Hero({ className }: { className?: string }) {
   const t = useTranslations('Hero');
-  const site = useTranslations('Site');
+  const role = useTranslations('Site')('role');
 
   return (
     <section className={cn(pageGrid, className)}>
@@ -20,7 +20,7 @@ export function Hero({ className }: { className?: string }) {
 
       <div className="flex flex-col items-center pt-16 pb-20 text-center sm:pt-40 lg:col-start-3">
         <p data-presence="role" className="rise text-sm text-subtle-foreground">
-          {site('role')} · {siteConfig.author.location}
+          {role} · {siteConfig.author.location}
         </p>
 
         <SelectionFrame name="headline" className="rise mt-6 [--rise-step:1]">

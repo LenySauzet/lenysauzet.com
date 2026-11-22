@@ -42,7 +42,7 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
 `.claude/rules/i18n.md`, which loads with their files.
 
 - **`app/_components/`** is what the pages share (Island, CommandPalette, PageBlur,
-  StatusPage, HomeLink, ResumeAnchor, ThemeColor, OtherVersion, StoredTheme, the error
+  StatusPage, HomeLink, ResumeAnchor, ThemeColor, OtherVersion, SiteTheme, the error
   body, `document.ts`, the fonts and body classes the root layout and `global-error`
   both need), and `Home/` the home page, its footer included. A component with parts is
   a folder with an `index.ts`; a single file stays flat.
@@ -69,14 +69,14 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
 | Path | What it owns |
 |---|---|
 | `config/site.ts` | Identity, handle, time zone, links, profiles, each language's resume, cal.com |
-| `i18n/`, `messages/`, `proxy.ts` | The languages, their sentences, and the routing between them |
+| `i18n/`, `messages/` | The languages, their sentences, and the paths between them |
 | `content/projects.ts`, `content/clients.ts` | The work and the logos; a client may be the employer |
 | `lib/masonry.ts` | Tiles into columns, shortest first, and the lane contract the footer reads |
 | `lib/media/probe.ts` | An image's size and a 16px blur placeholder, read with sharp at build time |
 | `lib/media/cdn.ts` | A bare media path to its URL under `portfolio/` on the CDN |
 | `lib/commands/` | The palette's commands, made per language, their groups, and how a key chord maps to a command |
 | `lib/services/` | cal.com's modal; the resume's route and announcement |
-| `hooks/use-resume-anchor.ts`, `hooks/use-switch-language.ts` | The resume link and the other language, for the page's language |
+| `hooks/use-resume-anchor.ts`, `hooks/use-other-version.ts` | The resume link and the other language, for the page's language |
 | `lib/seo/structured-data.ts` | The `Person` and `ProfilePage` JSON-LD |
 | `lib/theme/` | The view-transition sweep, and the stored theme `global-error` reads |
 | `lib/build-info.ts` | The commit and build date the footer shows |
@@ -140,7 +140,7 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
   the language; "Book a call" grows leftwards by a margin it gives back as it widens, so
   its box, and the other two, never move. Its "+ You" scales from 0 at its left edge on
   the curve and duration of the space opening, unclipped, so it fills the gap as it
-  grows. The space is an explicit width (`w-13`, the pair's own, and the margin's), not
+  grows. The space is an explicit width (`--you`, the pair's own, and the margin's), not
   a `0fr` track: WebKit sizes a collapsed track from its unclipped content. Below `sm`
   or under a coarse pointer it is shown grown and spans the row.
 - **Animated icons are Hugeicons Animated** (community, MIT), added with
@@ -162,10 +162,8 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
 - **The status pages share `StatusPage`**: the status as a hairline outline of
   Departure Mono (stroked at twice its width, then covered by the same text in
   `--background`, so only the outer half shows), the serif title, the copy, faded
-  bands. `global-error` replaces the root layout, so it brings the fonts, applies the
-  stored theme (`StoredTheme`) and reads its language from the path. A path outside
-  both languages reaches `global-not-found`, in English. The 404 declares no canonical
-  URL.
+  bands. `global-error` and `global-not-found` replace the root layout, so they bring
+  the fonts and the theme themselves. The 404 declares no canonical URL.
 - **The footer is a metadata block**: commit, browser, the local time, the window, the
   build date and the source repository, then links. The live readings use
   `useSyncExternalStore` with a pending server snapshot; the clock ticks on the second.
@@ -184,9 +182,9 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
   `scroll-padding-bottom` keeps a focused element out from under it.
 - **The footer belongs to the home page**; the status pages render their own `<main>`
   and none, its bands rising from the project columns.
-- **`/resume` proxies the PDF** of the page's language (`/fr/resume` the French CV) so
-  `download` holds across origins; the edge caches it a day and a failure is never
-  cached. A PDF replaced on the CDN under the same name needs a Cloudflare purge.
+- **`/resume` proxies the PDF** so `download` holds across origins; the edge caches it
+  a day and a failure is never cached. A PDF replaced on the CDN under the same name
+  needs a Cloudflare purge.
 - **Images are unoptimized under `next dev`**: on a NAT64 network the CDN resolves to
   `64:ff9b::`, which the optimizer refuses as a private IP. Never set
   `dangerouslyAllowLocalIP`; to look at a local production build, serve the original

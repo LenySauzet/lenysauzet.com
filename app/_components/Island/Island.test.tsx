@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -66,5 +66,21 @@ describe('Island', () => {
     expect(offered).toHaveBeenCalledOnce();
     expect(usePaletteStore.getState().isOpen).toBe(false);
     expect(useIslandStore.getState().presented).toEqual([]);
+  });
+
+  it('keeps an announcement up while pointed at, and lets it go after its time once left', () => {
+    vi.useFakeTimers();
+    render(<Island />, { wrapper: InEnglish });
+    settle();
+    act(() => announce('Link copied', { ttl: 1000 }));
+    const island = screen.getByRole('button');
+
+    fireEvent.pointerEnter(island);
+    act(() => vi.advanceTimersByTime(5000));
+    expect(island).toHaveTextContent('Link copied');
+
+    fireEvent.pointerLeave(island);
+    act(() => vi.advanceTimersByTime(1000));
+    expect(island).not.toHaveTextContent('Link copied');
   });
 });

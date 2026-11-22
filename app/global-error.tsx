@@ -1,21 +1,21 @@
 'use client';
 
 import { hasLocale } from 'next-intl';
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useSyncExternalStore } from 'react';
 
-import { getPathname } from '@/i18n/navigation';
-import { routing, type Locale } from '@/i18n/routing';
+import { homePath } from '@/i18n/locales';
+import { routing } from '@/i18n/routing';
+import { unchanging } from '@/lib/browser';
+import { storedTheme } from '@/lib/theme/stored-theme';
 import en from '@/messages/en.json';
 import fr from '@/messages/fr.json';
 
 import { bodyClassName } from './_components/document';
 import { ErrorBody, type ErrorProps } from './_components/ErrorBody';
-import { StoredTheme } from './_components/StoredTheme';
 import './globals.css';
 
-const STATUS = { en: en.Status, fr: fr.Status } satisfies Record<Locale, typeof en.Status>;
+const STATUS = { en: en.Status, fr: fr.Status };
 
-const unchanging = () => () => {};
 const localeOfPage = () => {
   const segment = window.location.pathname.split('/')[1];
   return hasLocale(routing.locales, segment) ? segment : routing.defaultLocale;
@@ -23,25 +23,24 @@ const localeOfPage = () => {
 
 export default function GlobalError({ error, retry }: ErrorProps) {
   const locale = useSyncExternalStore(unchanging, localeOfPage, () => routing.defaultLocale);
-  const t = STATUS[locale];
+  const status = STATUS[locale];
 
   useEffect(() => {
     console.error(error);
   }, [error]);
 
+  useLayoutEffect(() => {
+    const theme = storedTheme();
+    document.documentElement.classList.add(theme);
+    document.documentElement.style.colorScheme = theme;
+  }, []);
+
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={bodyClassName}>
-        <StoredTheme />
-        <title>{t.errorHeading}</title>
+        <title>{status.errorHeading}</title>
         <main>
-          <ErrorBody
-            heading={t.errorHeading}
-            message={t.siteFailed}
-            home={{ href: getPathname({ href: '/', locale }), label: t.home }}
-            retryLabel={t.retry}
-            retry={retry}
-          />
+          <ErrorBody status={status} message={status.siteFailed} homeHref={homePath(locale)} retry={retry} />
         </main>
       </body>
     </html>

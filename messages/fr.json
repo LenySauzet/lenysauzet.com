@@ -26,7 +26,7 @@
     "commit": "Commit",
     "local": "local",
     "browser": "Navigateur",
-    "time": "Heure en France",
+    "time": "Heure en {country}",
     "dimensions": "Dimensions",
     "updated": "Dernière mise à jour",
     "source": "Source",
@@ -34,7 +34,7 @@
     "blog": "Blog (en anglais)",
     "resume": "CV",
     "email": "E-mail",
-    "otherLanguage": "Version anglaise"
+    "otherVersion": "Version anglaise"
   },
   "Status": {
     "notFoundTitle": "Page introuvable",
@@ -57,9 +57,9 @@
     "description": "Me contacter, télécharger mon CV ou changer de thème.",
     "placeholder": "Saisissez une commande…",
     "empty": "Rien ne correspond.",
-    "Contact": "Contact",
-    "Tools": "Outils",
-    "Links": "Liens"
+    "contact": "Contact",
+    "tools": "Outils",
+    "links": "Liens"
   },
   "Commands": {
     "bookCall": "Réserver un appel",
@@ -85,8 +85,6 @@
     "cursorsShown": "Curseurs affichés",
     "goToTop": "Revenir en haut",
     "goToTopKeywords": "défiler début haut scroll top",
-    "otherLanguage": "Lire en anglais",
-    "otherLanguageKeywords": "anglais english langue language version",
     "blog": "Blog (en anglais)",
     "blogKeywords": "articles écrits billets writing posts",
     "githubKeywords": "code source",
@@ -97,6 +95,8 @@
     "roadmapKeywords": "figma projets plans roadmap",
     "support": "Me soutenir",
     "supportKeywords": "don café soutenir donate coffee sponsor",
-    "bookingUnreachable": "Réservation indisponible"
+    "bookingUnreachable": "Réservation indisponible",
+    "otherVersion": "Lire en anglais",
+    "otherVersionKeywords": "anglais english langue language version"
   }
 }

@@ -18,12 +18,10 @@ anonymous, relayed by one Durable Object room per language.
   `NEXT_PUBLIC_PRESENCE_URL` anywhere), and for production's URL the site's own origin,
   which the room alone accepts. "Live cursors" in the palette shows On or Off and closes
   the socket when off.
-- **Each language is its own room** (`roomUrl`): English at the worker's `/`, where it
-  always was, French at `/fr`, which the worker maps to `portfolio-fr`. The pages differ
-  in every text a cursor is placed on and every frame it pulls, so nothing crosses.
-  Deploy the worker before the site: an old worker ignores the path, and French
-  visitors would share the English room until it ships. The seats per address count
-  per room.
+- **Each language is its own room** (`roomUrl`): English at the worker's `/`
+  (`portfolio`), French at `/fr` (`portfolio-fr`), anything else refused. The pages
+  differ in every text a cursor is placed on and every frame it pulls, so nothing
+  crosses. The seats per address count per room.
 - **Only visitors on the same layout are shown** (`layout.ts`: the columns the projects
   take, 1 below 48rem, 2 below 64rem, 3 above). Between layouts no mapping keeps both
   the motion and what is pointed at. Paths and selections carry their owner's layout,

@@ -4,7 +4,7 @@ import { PERSON_ID, serialize, structuredData } from './structured-data';
 
 describe('structuredData', () => {
   const page = {
-    locale: 'fr',
+    locale: 'fr' as const,
     url: 'https://lenysauzet.com/fr',
     role: 'Ingénieur IA & Software',
     description: 'Je suis Lény.',

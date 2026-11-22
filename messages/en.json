@@ -26,7 +26,7 @@
     "commit": "Commit",
     "local": "local",
     "browser": "Browser",
-    "time": "Time in France",
+    "time": "Time in {country}",
     "dimensions": "Dimensions",
     "updated": "Last updated",
     "source": "Source",
@@ -34,7 +34,7 @@
     "blog": "Blog",
     "resume": "Resume",
     "email": "Email",
-    "otherLanguage": "French version"
+    "otherVersion": "French version"
   },
   "Status": {
     "notFoundTitle": "Page not found",
@@ -57,9 +57,9 @@
     "description": "Reach me, download my resume or change the theme.",
     "placeholder": "Type a command…",
     "empty": "Nothing matches that.",
-    "Contact": "Contact",
-    "Tools": "Tools",
-    "Links": "Links"
+    "contact": "Contact",
+    "tools": "Tools",
+    "links": "Links"
   },
   "Commands": {
     "bookCall": "Book a call",
@@ -85,8 +85,6 @@
     "cursorsShown": "Cursors shown",
     "goToTop": "Go to top",
     "goToTopKeywords": "scroll beginning",
-    "otherLanguage": "Read in French",
-    "otherLanguageKeywords": "french français language langue version",
     "blog": "Blog",
     "blogKeywords": "articles writing posts",
     "githubKeywords": "code source",
@@ -97,6 +95,8 @@
     "roadmapKeywords": "figma plans next",
     "support": "Support me",
     "supportKeywords": "donate coffee sponsor",
-    "bookingUnreachable": "Booking is unreachable"
+    "bookingUnreachable": "Booking is unreachable",
+    "otherVersion": "Read in French",
+    "otherVersionKeywords": "french français language langue version"
   }
 }
