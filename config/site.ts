@@ -11,6 +11,7 @@ const author = {
   handle,
   role: 'AI & Software Engineer',
   city,
+  country,
   location: `${city}, ${country}`,
   timeZone: 'Europe/Paris',
 };
