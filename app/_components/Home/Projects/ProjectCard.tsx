@@ -1,3 +1,5 @@
+import { useLocale } from 'next-intl';
+
 import type { Project } from '@/content/projects';
 import { resolveMedia } from '@/lib/media/cdn';
 import type { ImageMeta } from '@/lib/media/probe';
@@ -14,6 +16,8 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, image, className }: ProjectCardProps) {
+  const locale = useLocale();
+
   return (
     <article
       data-presence={anchorFor('project', project.title)}
@@ -37,7 +41,9 @@ export function ProjectCard({ project, image, className }: ProjectCardProps) {
           className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-scrim/95 via-scrim/50 to-transparent"
         />
         <div className="absolute inset-x-0 bottom-0 flex items-baseline justify-between gap-4 px-4 pb-3.5 text-sm text-media-ink">
-          <h3 className="truncate font-medium">{project.title}</h3>
+          <h3 lang={locale === 'en' ? undefined : 'en'} className="truncate font-medium">
+            {project.title}
+          </h3>
           <span className="shrink-0 tabular-nums">{project.year}</span>
         </div>
       </div>

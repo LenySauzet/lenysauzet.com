@@ -42,10 +42,10 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
 `.claude/rules/i18n.md`, which loads with their files.
 
 - **`app/_components/`** is what the pages share (Island, CommandPalette, PageBlur,
-  StatusPage, HomeLink, ResumeAnchor, ThemeColor, the error body, `document.ts`, the
-  fonts and body classes the root layout and `global-error` both need), and `Home/` the
-  home page, its footer included. A component with parts is a folder with an `index.ts`;
-  a single file stays flat.
+  StatusPage, HomeLink, ResumeAnchor, ThemeColor, OtherVersion, StoredTheme, the error
+  body, `document.ts`, the fonts and body classes the root layout and `global-error`
+  both need), and `Home/` the home page, its footer included. A component with parts is
+  a folder with an `index.ts`; a single file stays flat.
 - **`components/`** is what is not tied to a page: `ui/` the shadcn primitives,
   `icons/` the animated icons, `shared/` the logo, the hatching, the selection frame and
   `styles.ts`, the class strings several places compose (`focusRing`, `pillSurface`,
@@ -75,7 +75,8 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
 | `lib/media/probe.ts` | An image's size and a 16px blur placeholder, read with sharp at build time |
 | `lib/media/cdn.ts` | A bare media path to its URL under `portfolio/` on the CDN |
 | `lib/commands/` | The palette's commands, made per language, their groups, and how a key chord maps to a command |
-| `lib/services/` | cal.com's modal; the resume's route, anchor and announcement |
+| `lib/services/` | cal.com's modal; the resume's route and announcement |
+| `hooks/use-resume-anchor.ts`, `hooks/use-switch-language.ts` | The resume link and the other language, for the page's language |
 | `lib/seo/structured-data.ts` | The `Person` and `ProfilePage` JSON-LD |
 | `lib/theme/` | The view-transition sweep, and the stored theme `global-error` reads |
 | `lib/build-info.ts` | The commit and build date the footer shows |

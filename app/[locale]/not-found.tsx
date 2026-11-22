@@ -8,7 +8,7 @@ import { StatusPage } from '../_components/StatusPage';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('Status');
-  return { title: t('notFoundTitle'), alternates: { canonical: null } };
+  return { title: t('notFoundTitle'), alternates: { canonical: null }, openGraph: null };
 }
 
 export default async function NotFound() {

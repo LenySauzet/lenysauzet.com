@@ -24,4 +24,11 @@ describe('the French messages', () => {
   it('take the same arguments and tags as the English ones', () => {
     for (const [key, message] of english) expect(argumentsOf(french.get(key) ?? ''), key).toEqual(argumentsOf(message));
   });
+
+  it('follow French typography', () => {
+    for (const [key, message] of french) {
+      expect(message, key).not.toMatch(/'|\.\.\.| [?!;]| :/);
+      expect(message, key).not.toMatch(/[^ ][?!;]/u);
+    }
+  });
 });

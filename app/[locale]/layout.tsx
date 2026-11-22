@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import siteConfig from '@/config/site';
+import { OPEN_GRAPH_LOCALES, otherLocale } from '@/i18n/locales';
 import { getPathname } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
 import { DEFAULT_THEME, THEME_STORAGE_KEY } from '@/lib/theme/stored-theme';
@@ -50,7 +51,8 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       siteName: author.name,
-      locale: t('openGraphLocale'),
+      locale: OPEN_GRAPH_LOCALES[locale],
+      alternateLocale: OPEN_GRAPH_LOCALES[otherLocale(locale)],
       images: [image],
     },
     twitter: { card: 'summary_large_image', title, description, creator: `@${author.handle}`, images: [image] },

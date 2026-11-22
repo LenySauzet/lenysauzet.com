@@ -2,8 +2,12 @@ import { createTranslator, NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 
+import type { Locale } from '@/i18n/routing';
 import { createCommands } from '@/lib/commands/registry';
 import en from '@/messages/en.json';
+import fr from '@/messages/fr.json';
+
+const MESSAGES = { en, fr };
 
 export const englishCommands = (switchLanguage = vi.fn()) =>
   createCommands({
@@ -12,10 +16,13 @@ export const englishCommands = (switchLanguage = vi.fn()) =>
     switchLanguage,
   });
 
-export function InEnglish({ children }: { children: ReactNode }) {
-  return (
-    <NextIntlClientProvider locale="en" messages={en}>
-      {children}
-    </NextIntlClientProvider>
-  );
-}
+export const inLocale = (locale: Locale) =>
+  function InLocale({ children }: { children: ReactNode }) {
+    return (
+      <NextIntlClientProvider locale={locale} messages={MESSAGES[locale]}>
+        {children}
+      </NextIntlClientProvider>
+    );
+  };
+
+export const InEnglish = inLocale('en');

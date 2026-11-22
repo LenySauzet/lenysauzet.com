@@ -40,7 +40,7 @@ describe('the island store', () => {
   });
 
   it('keeps an announcement up as long as asked', () => {
-    announce('Version française disponible', undefined, { ttl: 5000 });
+    announce('Version française disponible', { ttl: 5000 });
 
     vi.advanceTimersByTime(4999);
     expect(ids()).toEqual(['announcement']);

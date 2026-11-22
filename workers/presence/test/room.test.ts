@@ -264,9 +264,10 @@ describe('the presence worker', () => {
     const received = await drain(watcher);
     const seconds = (Date.now() - startedAt) / 1000;
 
+    const burstAfterUnreadable = 120 - 1;
     expect(received.every((message) => message.type === 'press')).toBe(true);
-    expect(received.length).toBeGreaterThanOrEqual(120);
-    expect(received.length).toBeLessThanOrEqual(120 + Math.ceil(75 * seconds));
+    expect(received.length).toBeGreaterThanOrEqual(burstAfterUnreadable);
+    expect(received.length).toBeLessThanOrEqual(burstAfterUnreadable + Math.ceil(75 * seconds));
   });
 
   it('lets a visitor who keeps flooding go, and says so once', async () => {

@@ -6,4 +6,4 @@ import type { Locale } from '@/i18n/routing';
 
 export const resumeRoute = (locale: Locale) => getPathname({ href: '/resume', locale });
 
-export const announceResume = (message: string) => announce(message, Download01Icon);
+export const announceResume = (message: string) => announce(message, { icon: Download01Icon });

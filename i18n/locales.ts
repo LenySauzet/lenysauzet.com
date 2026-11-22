@@ -1,5 +1,7 @@
 import { routing, type Locale } from './routing';
 
+export const OPEN_GRAPH_LOCALES: Record<Locale, string> = { en: 'en_US', fr: 'fr_FR' };
+
 export const otherLocale = (locale: Locale): Locale =>
   routing.locales.find((language) => language !== locale) ?? routing.defaultLocale;
 

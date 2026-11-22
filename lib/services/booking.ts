@@ -10,6 +10,6 @@ export async function openBooking(theme: string | undefined, unreachable: string
     cal('ui', { theme: theme === 'light' ? 'light' : 'dark' });
     cal('modal', { calLink: siteConfig.calHandle });
   } catch {
-    announce(unreachable, Calendar01Icon);
+    announce(unreachable, { icon: Calendar01Icon });
   }
 }

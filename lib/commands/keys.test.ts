@@ -28,13 +28,7 @@ describe('chordKey', () => {
   });
 
   it('ignores a key held down, another modifier, a composition and a key already handled', () => {
-    for (const disturbance of [
-      { repeat: true },
-      { altKey: true },
-      { shiftKey: true },
-      { isComposing: true },
-      { defaultPrevented: true },
-    ])
+    for (const disturbance of [{ repeat: true }, { altKey: true }, { shiftKey: true }, { isComposing: true }, { defaultPrevented: true }])
       expect(chordKey(chord(disturbance), 'apple')).toBeUndefined();
   });
 

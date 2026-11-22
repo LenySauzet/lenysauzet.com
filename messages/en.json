@@ -1,8 +1,7 @@
 {
   "Site": {
     "role": "AI & Software Engineer",
-    "description": "I'm Lény, an AI and software engineer in Montpellier, France, bridging complex engineering and seamless user experiences, from innovative startups to large-scale enterprise products.",
-    "openGraphLocale": "en_US"
+    "description": "I'm Lény, an AI and software engineer in Montpellier, France, bridging complex engineering and seamless user experiences, from innovative startups to large-scale enterprise products."
   },
   "Hero": {
     "headline": "Turning complex challenges into <em>delightful</em> & <em>fast</em> products.",
@@ -56,7 +55,7 @@
   "Palette": {
     "title": "Commands",
     "description": "Reach me, download my resume or change the theme.",
-    "placeholder": "Type a command...",
+    "placeholder": "Type a command…",
     "empty": "Nothing matches that.",
     "Contact": "Contact",
     "Tools": "Tools",

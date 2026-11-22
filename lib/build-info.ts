@@ -6,9 +6,7 @@ import siteConfig from '@/config/site';
 
 const localCommit = () => {
   try {
-    return execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
-      .toString()
-      .trim();
+    return execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
   } catch {
     return undefined;
   }

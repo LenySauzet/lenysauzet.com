@@ -1,8 +1,16 @@
 import type { IconSvgElement } from '@hugeicons/react';
 import { create } from 'zustand';
 
-export type Presence =
-  { id: 'hint' } | { id: 'announcement'; message: string; icon?: IconSvgElement; at: number; action?: () => void };
+interface Announcement {
+  id: 'announcement';
+  message: string;
+  at: number;
+  icon?: IconSvgElement;
+  lang?: string;
+  action?: () => void;
+}
+
+export type Presence = { id: 'hint' } | Announcement;
 
 interface IslandStore {
   presented: Presence[];
@@ -24,11 +32,7 @@ export const useIslandStore = create<IslandStore>((set, get) => ({
   present: (presence, { ttl } = {}) => {
     forget(presence.id);
     set({ presented: [...get().presented.filter(({ id }) => id !== presence.id), presence] });
-    if (ttl)
-      expiries.set(
-        presence.id,
-        window.setTimeout(() => get().dismiss(presence.id), ttl)
-      );
+    if (ttl) expiries.set(presence.id, window.setTimeout(() => get().dismiss(presence.id), ttl));
   },
 
   dismiss: (id) => {
@@ -38,13 +42,9 @@ export const useIslandStore = create<IslandStore>((set, get) => ({
   },
 }));
 
-interface AnnounceOptions {
-  action?: () => void;
+interface AnnounceOptions extends Pick<Announcement, 'icon' | 'lang' | 'action'> {
   ttl?: number;
 }
 
-export const announce = (
-  message: string,
-  icon?: IconSvgElement,
-  { action, ttl = ANNOUNCEMENT_TTL }: AnnounceOptions = {}
-) => useIslandStore.getState().present({ id: 'announcement', message, icon, at: Date.now(), action }, { ttl });
+export const announce = (message: string, { ttl = ANNOUNCEMENT_TTL, ...rest }: AnnounceOptions = {}) =>
+  useIslandStore.getState().present({ id: 'announcement', message, at: Date.now(), ...rest }, { ttl });

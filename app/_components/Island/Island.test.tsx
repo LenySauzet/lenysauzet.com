@@ -53,15 +53,17 @@ describe('Island', () => {
     expect(usePaletteStore.getState().isOpen).toBe(true);
   });
 
-  it('runs what an announcement offers on a click, in place of the palette', async () => {
+  it('runs what an announcement offers on a click, in place of the palette, named in its language', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup();
     const offered = vi.fn();
-    usePaletteStore.setState({ isOpen: false });
     render(<Island />, { wrapper: InEnglish });
-    await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
-    act(() => announce('Version française disponible', undefined, { action: offered }));
+    settle();
+    act(() => announce('Version française disponible', { lang: 'fr', action: offered }));
 
-    await user.click(screen.getByRole('button', { name: 'Version française disponible' }));
+    const button = screen.getByRole('button', { name: 'Version française disponible' });
+    expect(document.getElementById(button.getAttribute('aria-labelledby') ?? '')).toHaveAttribute('lang', 'fr');
+    await user.click(button);
 
     expect(offered).toHaveBeenCalledOnce();
     expect(usePaletteStore.getState().isOpen).toBe(false);

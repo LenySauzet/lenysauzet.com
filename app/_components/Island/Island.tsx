@@ -2,20 +2,18 @@
 
 import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 
 import { useIslandStore } from '@/hooks/use-island-store';
 import { usePaletteStore } from '@/hooks/use-palette-store';
 import { cn } from '@/lib/utils';
 
-import { MORPH } from './motion';
+import { MENTIONS_PALETTE_AFTER, MENTIONS_PALETTE_FOR, MORPH } from './motion';
 import { Presentation } from './Presentation';
 import { viewOf, type Shown } from './views';
 
 const AT_THE_HEAD = '(min-width: 40rem)';
 const RESTS_FOR = 180;
-const MENTIONS_PALETTE_AFTER = 1400;
-const MENTIONS_PALETTE_FOR = 2400;
 
 const onBreakpoint = (change: () => void) => {
   const query = window.matchMedia(AT_THE_HEAD);
@@ -28,7 +26,8 @@ export function Island({ className }: { className?: string }) {
   const [opened, setOpened] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [widthWhenPointed, setWidthWhenPointed] = useState<number>();
-  const [spoken, setSpoken] = useState('');
+  const [spoken, setSpoken] = useState<{ message: string; lang?: string }>();
+  const offerName = useId();
   const pill = useRef<HTMLDivElement>(null);
   const mention = useRef(0);
   const presented = useIslandStore((state) => state.presented);
@@ -59,16 +58,16 @@ export function Island({ className }: { className?: string }) {
 
   useEffect(() => {
     if (!announcement) return;
-    const speaking = window.setTimeout(() => setSpoken(announcement.message));
+    const speaking = window.setTimeout(() => setSpoken({ message: announcement.message, lang: announcement.lang }));
     return () => {
       window.clearTimeout(speaking);
-      setSpoken('');
+      setSpoken(undefined);
     };
   }, [announcement]);
 
   const shown: Shown = opened ? (presented.at(-1) ?? { id: hovered ? 'hint' : 'identity' }) : { id: 'resting' };
   const view = viewOf(shown);
-  const action = shown.id === 'announcement' ? shown.action : undefined;
+  const offer = shown.id === 'announcement' && shown.action ? { ...shown, action: shown.action } : undefined;
 
   const point = () => {
     window.clearTimeout(mention.current);
@@ -90,13 +89,14 @@ export function Island({ className }: { className?: string }) {
     >
       <button
         type="button"
-        aria-label={action && shown.id === 'announcement' ? shown.message : t('open')}
-        aria-haspopup={action ? undefined : 'dialog'}
-        aria-expanded={action ? undefined : paletteOpen}
+        aria-label={offer ? undefined : t('open')}
+        aria-labelledby={offer ? offerName : undefined}
+        aria-haspopup={offer ? undefined : 'dialog'}
+        aria-expanded={offer ? undefined : paletteOpen}
         onClick={() => {
-          if (!action) return usePaletteStore.getState().setIsOpen(true);
+          if (!offer) return usePaletteStore.getState().setIsOpen(true);
           useIslandStore.getState().dismiss('announcement');
-          action();
+          offer.action();
         }}
         onPointerEnter={point}
         onPointerLeave={() => setHovered(false)}
@@ -107,6 +107,11 @@ export function Island({ className }: { className?: string }) {
         onBlur={() => setHovered(false)}
         className="group inline-flex cursor-pointer outline-hidden transition-[scale] duration-200 hover:scale-[1.02] active:scale-[0.97] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       >
+        {offer && (
+          <span id={offerName} lang={offer.lang} className="sr-only">
+            {offer.message}
+          </span>
+        )}
         <motion.div
           ref={pill}
           layout
@@ -126,8 +131,8 @@ export function Island({ className }: { className?: string }) {
           </div>
         </motion.div>
       </button>
-      <p role="status" className="sr-only">
-        {spoken}
+      <p role="status" lang={spoken?.lang} className="sr-only">
+        {spoken?.message}
       </p>
     </motion.div>
   );

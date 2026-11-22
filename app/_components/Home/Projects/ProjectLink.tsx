@@ -26,7 +26,7 @@ export function ProjectLink({ action, project, className }: ProjectLinkProps) {
   return (
     <a
       href={external ? action.href : `${siteConfig.blogUrl}/posts/${action.slug}`}
-      {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
+      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : { hrefLang: 'en' })}
       {...trigger}
       aria-label={t(external ? 'externalLabel' : 'label', { action: label, project })}
       className={cn(

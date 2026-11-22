@@ -49,9 +49,9 @@ const visit = (url: string) => () => {
 const copy = async (text: string, message: string, icon: Command['icon']) => {
   try {
     await navigator.clipboard.writeText(text);
-    announce(message, icon);
+    announce(message, { icon });
   } catch {
-    announce(text, icon);
+    announce(text, { icon });
   }
 };
 
@@ -155,7 +155,8 @@ export function createCommands({ t, locale, switchLanguage }: CommandSetup): Com
       keywords: words(t('cursorsKeywords')),
       status: () => (usePresenceStore.getState().hidden ? t('cursorsOff') : t('cursorsOn')),
       available: presenceAvailable,
-      run: () => announce(usePresenceStore.getState().toggle() ? t('cursorsHidden') : t('cursorsShown'), Cursor01Icon),
+      run: () =>
+        announce(usePresenceStore.getState().toggle() ? t('cursorsHidden') : t('cursorsShown'), { icon: Cursor01Icon }),
     },
     {
       id: 'go-to-top',

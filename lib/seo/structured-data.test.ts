@@ -14,9 +14,7 @@ describe('structuredData', () => {
 
   it('names the person under every spelling a search may use and ties their profiles to them', () => {
     expect(person).toMatchObject({ name: 'Lény Sauzet', alternateName: expect.arrayContaining(['Leny Sauzet']) });
-    expect(person.sameAs).toEqual(
-      expect.arrayContaining(['https://github.com/LenySauzet', 'https://blog.lenysauzet.com'])
-    );
+    expect(person.sameAs).toEqual(expect.arrayContaining(['https://github.com/LenySauzet', 'https://blog.lenysauzet.com']));
   });
 
   it('makes the page a profile of that person, in its own language', () => {

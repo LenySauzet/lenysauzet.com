@@ -1,18 +1,17 @@
 {
   "Site": {
     "role": "Ingénieur IA & Software",
-    "description": "Je suis Lény, ingénieur IA et logiciel à Montpellier, en France. Je fais le lien entre une ingénierie complexe et des expériences utilisateur fluides, des startups innovantes aux produits d’entreprise à grande échelle.",
-    "openGraphLocale": "fr_FR"
+    "description": "Je suis Lény, ingénieur IA et logiciel à Montpellier, en France. Je fais le lien entre une ingénierie complexe et des expériences utilisateur fluides, des startups innovantes aux produits de grands groupes."
   },
   "Hero": {
     "headline": "Transformer la complexité en produits <em>élégants</em> & <em>rapides</em>.",
-    "intro": "Je suis Lény, ingénieur IA et logiciel. Je fais le lien entre une ingénierie complexe et des expériences utilisateur fluides. Des startups innovantes aux produits d’entreprise à grande échelle, j’apporte l’expertise transverse qui mène les produits ambitieux au succès. À l’aise en télétravail comme sur site.",
+    "intro": "Je suis Lény, ingénieur IA et logiciel. Je fais le lien entre une ingénierie complexe et des expériences utilisateur fluides. Des startups innovantes aux produits de grands groupes, j’apporte une expertise transverse qui fait réussir les produits ambitieux. À l’aise en télétravail comme sur site.",
     "bookCall": "Réserver un appel",
     "you": "Vous",
     "email": "E-mail",
     "resume": "CV",
-    "nextClient": "Votre entreprise, la prochaine ?",
-    "nextClientAction": "Votre entreprise, la prochaine ? Réserver un appel"
+    "nextClient": "Et votre entreprise ?",
+    "nextClientAction": "Et votre entreprise ? Réserver un appel"
   },
   "Projects": {
     "heading": "Réalisations",
@@ -29,7 +28,7 @@
     "browser": "Navigateur",
     "time": "Heure en France",
     "dimensions": "Dimensions",
-    "updated": "Mis à jour",
+    "updated": "Dernière mise à jour",
     "source": "Source",
     "links": "Liens",
     "blog": "Blog (en anglais)",
@@ -40,7 +39,7 @@
   "Status": {
     "notFoundTitle": "Page introuvable",
     "notFoundHeading": "Cette page n’existe pas",
-    "notFoundBody": "Elle a peut-être été déplacée, ou le lien contient une faute de frappe. Tout le reste part de la page d’accueil.",
+    "notFoundBody": "Elle a peut-être été déplacée, ou le lien contient une faute de frappe. Tout le reste est accessible depuis la page d’accueil.",
     "home": "Accueil",
     "errorHeading": "Une erreur est survenue",
     "pageFailed": "Cette page n’a pas pu se charger. Réessayer suffit généralement.",
@@ -50,13 +49,13 @@
   "Island": {
     "open": "Ouvrir la palette de commandes",
     "hint": "Cliquez ou {modifier}K pour les commandes",
-    "tap": "Touchez pour les commandes",
+    "tap": "Touchez pour afficher les commandes",
     "otherVersion": "English version available"
   },
   "Palette": {
     "title": "Commandes",
     "description": "Me contacter, télécharger mon CV ou changer de thème.",
-    "placeholder": "Tapez une commande...",
+    "placeholder": "Saisissez une commande…",
     "empty": "Rien ne correspond.",
     "Contact": "Contact",
     "Tools": "Outils",
@@ -84,7 +83,7 @@
     "cursorsOff": "Désactivés",
     "cursorsHidden": "Curseurs masqués",
     "cursorsShown": "Curseurs affichés",
-    "goToTop": "Remonter en haut",
+    "goToTop": "Revenir en haut",
     "goToTopKeywords": "défiler début haut scroll top",
     "otherLanguage": "Read in English",
     "otherLanguageKeywords": "anglais english langue language",
