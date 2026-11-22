@@ -6,7 +6,7 @@ import { CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
 const FADE_DISTANCE = 80;
-const VEIL = 'pointer-events-none absolute inset-x-0 opacity-0 backdrop-blur-xs';
+const VEIL = 'pointer-events-none absolute inset-x-(--rim-width) opacity-0 backdrop-blur-xs';
 
 function fadeMask(top: number, bottom: number) {
   const head = FADE_DISTANCE * top;
@@ -77,7 +77,7 @@ export function FadingList({ children, className }: { children: ReactNode; class
         ref={bottomVeil}
         aria-hidden
         style={{ height: FADE_DISTANCE }}
-        className={cn(VEIL, 'bottom-0 mask-[linear-gradient(to_top,black,transparent)]')}
+        className={cn(VEIL, 'bottom-(--rim-width) mask-[linear-gradient(to_top,black,transparent)]')}
       />
     </div>
   );

@@ -116,7 +116,7 @@ function CommandInput({ className, ...props }: React.ComponentProps<typeof Comma
   return (
     <div
       data-slot="command-input-wrapper"
-      className="flex h-13.75 items-center border-b-[1.5px] border-foreground/10 px-4.5"
+      className="mx-(--rim-width) flex h-13.75 items-center border-b-[1.5px] border-foreground/10 px-[calc(--spacing(4.5)-var(--rim-width))]"
     >
       <CommandPrimitive.Input
         data-slot="command-input"
