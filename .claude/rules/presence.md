@@ -30,7 +30,8 @@ anonymous, relayed by one Durable Object room per language.
   and `room-state.ts` regroups when either side crosses a breakpoint.
 - **A modal hides everyone and stops sharing** (`overlays.ts`): Radix's
   `data-scroll-locked` on `body`, or a `cal-modal-box` unless `state="closed"` or hidden
-  inline, as its close button leaves it `loaded`.
+  inline, as its close button leaves it `loaded`. A click made under it ripples
+  nothing; the one that opened it already has.
 
 ## The room
 
