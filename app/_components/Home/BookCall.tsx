@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 
 const TRANSITION = 'duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none';
 const OPEN = 'group-hover:w-13 group-focus-visible:w-13 pointer-coarse:w-13 max-sm:w-13';
+const IN_PLACE =
+  'sm:pointer-fine:hover:-ml-13 sm:pointer-fine:focus-visible:-ml-13 sm:pointer-fine:motion-safe:[transition:scale_200ms,margin-left_500ms_cubic-bezier(0.32,0.72,0,1)]';
 const GROWN =
   'group-hover:scale-100 group-hover:opacity-100 group-hover:filter-none group-focus-visible:scale-100 group-focus-visible:opacity-100 group-focus-visible:filter-none pointer-coarse:scale-100 pointer-coarse:opacity-100 pointer-coarse:filter-none max-sm:scale-100 max-sm:opacity-100 max-sm:filter-none';
 
@@ -20,7 +22,12 @@ export function BookCall({ className }: { className?: string }) {
     <button
       type="button"
       onClick={book}
-      className={cn(pillSurface, 'group shine shine-border cursor-pointer pr-5 pl-1.5 text-sm font-medium', className)}
+      className={cn(
+        pillSurface,
+        'group shine shine-border cursor-pointer pr-5 pl-1.5 text-sm font-medium',
+        IN_PLACE,
+        className
+      )}
     >
       <span className="grid size-8 shrink-0 place-items-center rounded-full bg-background ring-1 ring-border">
         <Logo className="size-4" />

@@ -136,12 +136,13 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
   the server cannot know: reduced motion only makes the entrance instant.
 - **The CTA pills share `pillSurface`**: `rounded-xl`, never full, so they do not echo
   the island; `glass-rim` for the top-lit border, `--shadow-pill` per theme, no
-  background change on hover. On a `1fr auto 1fr` grid, Email centred, "Book a call"
-  grows leftwards and the other two never move. Its "+ You" scales from 0 at its left
-  edge on the curve and duration of the space opening, unclipped, so it fills the gap
-  as it grows. The space is an explicit width (`w-13`, the pair's own), not a `0fr`
-  track: WebKit sizes a collapsed track from its unclipped content. Below `sm` or under
-  a coarse pointer it is shown grown and spans the row.
+  background change on hover. The three are centred on their resting widths, whatever
+  the language; "Book a call" grows leftwards by a margin it gives back as it widens, so
+  its box, and the other two, never move. Its "+ You" scales from 0 at its left edge on
+  the curve and duration of the space opening, unclipped, so it fills the gap as it
+  grows. The space is an explicit width (`w-13`, the pair's own, and the margin's), not
+  a `0fr` track: WebKit sizes a collapsed track from its unclipped content. Below `sm`
+  or under a coarse pointer it is shown grown and spans the row.
 - **Animated icons are Hugeicons Animated** (community, MIT), added with
   `bunx --bun shadcn@latest add @hugeicons-animated/<name>` and then rewritten into
   `components/icons/`: `ref` as a prop, one shared handle, no hover of their own. An
