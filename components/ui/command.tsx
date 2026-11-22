@@ -78,7 +78,7 @@ function CommandDialog({ open, onOpenChange, onClosed, title, description, child
             >
               <Panel
                 className={cn(
-                  'fixed top-1/5 left-1/2 z-50 w-150 max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-xl border border-muted-foreground/15 bg-card/75 text-sm text-foreground outline-hidden backdrop-blur-(--dialog-blur) backdrop-saturate-[115%]',
+                  'glass-rim fixed top-1/5 left-1/2 z-50 w-150 max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-xl border border-muted-foreground/15 supports-[color:oklch(from_red_l_c_h)]:border-0 bg-card/75 text-sm text-foreground outline-hidden backdrop-blur-(--dialog-blur) backdrop-saturate-[115%]',
                   className
                 )}
                 initial={away}
@@ -116,7 +116,7 @@ function CommandInput({ className, ...props }: React.ComponentProps<typeof Comma
   return (
     <div
       data-slot="command-input-wrapper"
-      className="flex h-13.75 items-center border-b-[1.5px] border-foreground/10 px-4.5"
+      className="mx-(--rim-width) flex h-13.75 items-center border-b-[1.5px] border-foreground/10 px-[calc(--spacing(4.5)-var(--rim-width))]"
     >
       <CommandPrimitive.Input
         data-slot="command-input"

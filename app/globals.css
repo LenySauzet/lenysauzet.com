@@ -32,6 +32,7 @@
 :root {
   --base-hue: 259.815;
   --radius: 0.45rem;
+  --rim-width: 1.5px;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 var(--base-hue));
@@ -110,7 +111,7 @@
     position: absolute;
     inset: 0;
     z-index: -1;
-    padding: 1.5px;
+    padding: var(--rim-width);
     border-radius: inherit;
     background:
       radial-gradient(
