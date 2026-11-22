@@ -107,9 +107,10 @@ anonymous, relayed by one Durable Object room.
   over an action (links, buttons, fields, the island, frame handles marked
   `data-presence-action`) or off the screen. Only hands already close are hit-tested.
   Any pair counts, so a visitor sees two others meet as well.
-- **The others' hands are drawn by `Cursor`**, one path like the arrow, over the arrow
-  so one turns into the other in place, through blur and scale; the arrow turns on its
-  tip, the hand on its centre. The own hand is the system's `grab` cursor, matching the
+- **The others' hands are drawn by `Cursor`**, one path like the arrow. It grows over
+  the arrow and slides to sit centred on the pointer, where the system draws the own
+  hand, so two hands on one spot meet on both screens; the arrow turns on its tip, the
+  hand on its centre. The own hand is the system's `grab` cursor, matching the
   visitor's own pointer. It is put away while a button is held, so a drag or a
   selection keeps its cursor.
 - **A clap is both hands of a pair pressing within 300 ms**, a remote press timed when

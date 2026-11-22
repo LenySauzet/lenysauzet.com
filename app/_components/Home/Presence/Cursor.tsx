@@ -29,6 +29,9 @@ const SHOWN = { opacity: 1 };
 const MARK_SIZE = 20;
 const PLACED = 'absolute top-0 left-0 origin-top-left will-change-transform';
 const POSED = 'absolute top-0 left-0 [rotate:var(--turn,0deg)] [scale:var(--press,1)]';
+const HAND_CENTRE = 'origin-[8px_8.5px]';
+const ON_POINTER =
+  'transition-[translate] duration-200 ease-out motion-reduce:transition-none group-data-hand/ink:-translate-x-[8px] group-data-hand/ink:-translate-y-[8.5px]';
 const SWAP =
   'origin-center drop-shadow-md transition-[opacity,scale,filter,visibility] duration-200 ease-out motion-reduce:transition-none';
 
@@ -103,28 +106,30 @@ export const Cursor = memo(function Cursor({ id, attach, className }: CursorProp
           transition={{ duration: 0.35, ease: EASE_OUT }}
           className="origin-top-left"
         >
-          <div className={cn(POSED, 'origin-top-left')}>
-            <Mark
-              shape={ARROW}
-              filter={filter}
-              rimmed
-              className={cn(
-                SWAP,
-                'blur-[0px] group-data-hand/ink:invisible group-data-hand/ink:scale-50 group-data-hand/ink:opacity-0 group-data-hand/ink:blur-[3px]'
-              )}
-            />
-          </div>
-          <div className={cn(POSED, 'origin-[8px_8.5px]')}>
-            <Mark
-              shape={HAND}
-              filter={filter}
-              rimmed
-              className={cn(
-                SWAP,
-                'invisible scale-50 opacity-0 blur-[3px]',
-                'group-data-hand/ink:visible group-data-hand/ink:scale-100 group-data-hand/ink:opacity-100 group-data-hand/ink:blur-[0px]'
-              )}
-            />
+          <div className={ON_POINTER}>
+            <div className={cn(POSED, 'origin-top-left')}>
+              <Mark
+                shape={ARROW}
+                filter={filter}
+                rimmed
+                className={cn(
+                  SWAP,
+                  'blur-[0px] group-data-hand/ink:invisible group-data-hand/ink:scale-50 group-data-hand/ink:opacity-0 group-data-hand/ink:blur-[3px]'
+                )}
+              />
+            </div>
+            <div className={cn(POSED, HAND_CENTRE)}>
+              <Mark
+                shape={HAND}
+                filter={filter}
+                rimmed
+                className={cn(
+                  SWAP,
+                  'invisible scale-50 opacity-0 blur-[3px]',
+                  'group-data-hand/ink:visible group-data-hand/ink:scale-100 group-data-hand/ink:opacity-100 group-data-hand/ink:blur-[0px]'
+                )}
+              />
+            </div>
           </div>
         </motion.div>
       </div>
