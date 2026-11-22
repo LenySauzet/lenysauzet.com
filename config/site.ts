@@ -9,7 +9,6 @@ const author = {
   firstName: 'Leny',
   handle,
   city,
-  country,
   location: `${city}, ${country}`,
   timeZone: 'Europe/Paris',
 };
