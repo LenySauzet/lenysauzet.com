@@ -1,12 +1,10 @@
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { SelectionFrame } from '@/components/shared/SelectionFrame';
 import { focusRing, pageGrid } from '@/components/shared/styles';
 import siteConfig from '@/config/site';
-import { getPathname } from '@/i18n/navigation';
-import { otherLocale } from '@/i18n/locales';
+import { otherLocale, otherVersionOf } from '@/i18n/locales';
 import { buildInfo } from '@/lib/build-info';
 import { cn } from '@/lib/utils';
 
@@ -111,9 +109,9 @@ export function Footer({ className }: { className?: string }) {
               </a>
             </li>
             <li>
-              <Link href={getPathname({ href: '/', locale: other })} hrefLang={other} className={LINK}>
+              <a href={otherVersionOf('/', locale)} hrefLang={other} className={LINK}>
                 {t('otherLanguage')}
-              </Link>
+              </a>
             </li>
           </LinkList>
           <LinkList>

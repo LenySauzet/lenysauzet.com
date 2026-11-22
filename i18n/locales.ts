@@ -1,3 +1,4 @@
+import { getPathname } from './navigation';
 import { routing, type Locale } from './routing';
 
 export const OPEN_GRAPH_LOCALES: Record<Locale, string> = { en: 'en_US', fr: 'fr_FR' };
@@ -10,3 +11,6 @@ export const versionToOffer = (current: Locale, preferred: readonly string[]): L
   const other = otherLocale(current);
   return primary === other ? other : undefined;
 };
+
+export const otherVersionOf = (pathname: string, locale: Locale) =>
+  getPathname({ href: pathname, locale: otherLocale(locale) });
