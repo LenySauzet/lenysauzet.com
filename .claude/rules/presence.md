@@ -9,7 +9,7 @@ paths:
 # Live cursors
 
 The other visitors' cursors, selections, frame pulls and clicks on the home page,
-anonymous, relayed by one Durable Object room.
+anonymous, relayed by one Durable Object room per language.
 
 ## Who sees whom
 
@@ -18,13 +18,18 @@ anonymous, relayed by one Durable Object room.
   `NEXT_PUBLIC_PRESENCE_URL` anywhere), and for production's URL the site's own origin,
   which the room alone accepts. "Live cursors" in the palette shows On or Off and closes
   the socket when off.
+- **Each language is its own room** (`roomUrl`): English at the worker's `/`
+  (`portfolio`), French at `/fr` (`portfolio-fr`), anything else refused. The pages
+  differ in every text a cursor is placed on and every frame it pulls, so nothing
+  crosses. The seats per address count per room.
 - **Only visitors on the same layout are shown** (`layout.ts`: the columns the projects
   take, 1 below 48rem, 2 below 64rem, 3 above). Between layouts no mapping keeps both
   the motion and what is pointed at. Paths and selections carry their owner's layout,
   and `room-state.ts` regroups when either side crosses a breakpoint.
 - **A modal hides everyone and stops sharing** (`overlays.ts`): Radix's
   `data-scroll-locked` on `body`, or a `cal-modal-box` unless `state="closed"` or hidden
-  inline, as its close button leaves it `loaded`.
+  inline, as its close button leaves it `loaded`. A click made under it ripples
+  nothing; the one that opened it already has.
 
 ## The room
 

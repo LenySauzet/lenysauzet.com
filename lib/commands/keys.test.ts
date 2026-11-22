@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import { englishCommands } from '@/test/intl';
+
 import { chordKey, commandFor, keyLabel, modifierLabel, platformOf, type Chord } from './keys';
-import { commands } from './registry';
+
+const commands = englishCommands();
 
 const chord = (fields: Partial<Chord>): Chord => ({
   key: 'd',

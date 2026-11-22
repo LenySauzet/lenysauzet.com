@@ -1,3 +1,4 @@
+import type { Viewport } from 'next';
 import { Geist, Instrument_Serif } from 'next/font/google';
 import localFont from 'next/font/local';
 
@@ -16,3 +17,5 @@ const departureMono = localFont({
 });
 
 export const bodyClassName = `${geist.variable} ${instrument.variable} ${departureMono.variable} overflow-x-clip font-display antialiased selection:bg-primary/10 selection:text-primary`;
+
+export const siteViewport: Viewport = { themeColor: '#080b0f' };

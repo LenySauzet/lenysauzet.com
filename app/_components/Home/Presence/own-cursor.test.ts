@@ -83,7 +83,7 @@ describe('the own cursor', () => {
     expect(types()).toEqual(['leave', 'move']);
   });
 
-  it('leaves and stays silent while a modal covers the page, its clicks still rippling here', () => {
+  it('leaves and stays silent while a modal covers the page, and ripples none of its clicks', () => {
     pointer('pointermove', 100);
     vi.advanceTimersByTime(40);
     sent = [];
@@ -95,7 +95,7 @@ describe('the own cursor', () => {
     vi.advanceTimersByTime(100);
 
     expect(types()).toEqual(['leave']);
-    expect(ripples).toBe(1);
+    expect(ripples).toBe(0);
   });
 
   it('shares nothing of a press on what moves with its content, as the island', () => {

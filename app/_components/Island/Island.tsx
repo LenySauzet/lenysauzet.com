@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { useIslandStore } from '@/hooks/use-island-store';
@@ -23,6 +24,7 @@ const onBreakpoint = (change: () => void) => {
 };
 
 export function Island({ className }: { className?: string }) {
+  const t = useTranslations('Island');
   const [opened, setOpened] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [widthWhenPointed, setWidthWhenPointed] = useState<number>();
@@ -66,13 +68,29 @@ export function Island({ className }: { className?: string }) {
 
   const shown: Shown = opened ? (presented.at(-1) ?? { id: hovered ? 'hint' : 'identity' }) : { id: 'resting' };
   const view = viewOf(shown);
+  const offered = shown.id === 'announcement' && shown.action ? shown : undefined;
 
   const point = () => {
     window.clearTimeout(mention.current);
-    useIslandStore.getState().dismiss('hint');
     usePaletteStore.getState().want();
+    useIslandStore.getState().dismiss('hint');
+    useIslandStore.getState().hold('announcement');
     setWidthWhenPointed(pill.current?.offsetWidth);
     setHovered(true);
+  };
+
+  const leave = () => {
+    useIslandStore.getState().release('announcement');
+    setHovered(false);
+  };
+
+  const press = () => {
+    if (!offered?.action) {
+      usePaletteStore.getState().setIsOpen(true);
+      return;
+    }
+    useIslandStore.getState().dismiss('announcement');
+    offered.action();
   };
 
   return (
@@ -87,17 +105,17 @@ export function Island({ className }: { className?: string }) {
     >
       <button
         type="button"
-        aria-label="Open the command palette"
-        aria-haspopup="dialog"
-        aria-expanded={paletteOpen}
-        onClick={() => usePaletteStore.getState().setIsOpen(true)}
+        aria-label={offered ? offered.message : t('open')}
+        aria-haspopup={offered ? undefined : 'dialog'}
+        aria-expanded={offered ? undefined : paletteOpen}
+        onClick={press}
         onPointerEnter={point}
-        onPointerLeave={() => setHovered(false)}
+        onPointerLeave={leave}
         onFocus={() => {
           if (usePaletteStore.getState().returningFocus) return;
           point();
         }}
-        onBlur={() => setHovered(false)}
+        onBlur={leave}
         className="group inline-flex cursor-pointer outline-hidden transition-[scale] duration-200 hover:scale-[1.02] active:scale-[0.97] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       >
         <motion.div

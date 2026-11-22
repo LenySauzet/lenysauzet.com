@@ -1,6 +1,6 @@
 import type { IconSvgElement } from '@hugeicons/react';
 
-export const GROUPS = ['Contact', 'Tools', 'Links'] as const;
+export const GROUPS = ['contact', 'tools', 'links'] as const;
 
 export type Group = (typeof GROUPS)[number];
 

@@ -4,9 +4,9 @@ import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
 
+import { useCommands } from '@/hooks/use-commands';
 import { usePaletteStore } from '@/hooks/use-palette-store';
 import { chordKey, commandFor, platformOf, TOGGLE_KEY } from '@/lib/commands/keys';
-import { commands } from '@/lib/commands/registry';
 
 const CommandPalette = dynamic(() => import('./CommandPalette').then((module) => module.CommandPalette), {
   ssr: false,
@@ -15,6 +15,7 @@ const CommandPalette = dynamic(() => import('./CommandPalette').then((module) =>
 export function PaletteLauncher() {
   const wanted = usePaletteStore((state) => state.wanted);
   const { resolvedTheme, setTheme } = useTheme();
+  const commands = useCommands();
 
   useEffect(() => {
     const platform = platformOf(navigator.userAgent);
@@ -40,7 +41,7 @@ export function PaletteLauncher() {
 
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [resolvedTheme, setTheme]);
+  }, [commands, resolvedTheme, setTheme]);
 
   return wanted ? <CommandPalette /> : null;
 }

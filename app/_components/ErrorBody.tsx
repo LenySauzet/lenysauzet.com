@@ -1,3 +1,5 @@
+import type { Messages } from 'next-intl';
+
 import { pillSurface } from '@/components/shared/styles';
 import { cn } from '@/lib/utils';
 
@@ -10,18 +12,20 @@ export interface ErrorProps {
 }
 
 interface ErrorBodyProps extends Pick<ErrorProps, 'retry'> {
-  subject: string;
+  status: Messages['Status'];
+  message: string;
+  homeHref: string;
   className?: string;
 }
 
-export function ErrorBody({ subject, retry, className }: ErrorBodyProps) {
+export function ErrorBody({ status, message, homeHref, retry, className }: ErrorBodyProps) {
   return (
-    <StatusPage status="Error" title="Something went wrong" className={className}>
-      <p>{subject} failed to load. Trying again usually fixes it.</p>
+    <StatusPage status="Error" title={status.errorHeading} className={className}>
+      <p>{message}</p>
       <div className="flex items-center gap-6">
-        <HomeLink />
+        <HomeLink href={homeHref} label={status.home} />
         <button type="button" onClick={retry} className={cn(pillSurface, 'cursor-pointer px-5 text-sm font-medium')}>
-          Try again
+          {status.retry}
         </button>
       </div>
     </StatusPage>

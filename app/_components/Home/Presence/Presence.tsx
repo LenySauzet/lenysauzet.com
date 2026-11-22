@@ -1,11 +1,12 @@
 'use client';
 
+import { useLocale } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { useSyncExternalStore } from 'react';
 
 import { usePresenceStore } from '@/hooks/use-presence-store';
 import { FINE_POINTER } from '@/lib/browser';
-import { presenceUrl } from '@/lib/presence/availability';
+import { presenceUrl, roomUrl } from '@/lib/presence/availability';
 
 const Room = dynamic(() => import('./Room').then((module) => module.Room), { ssr: false });
 
@@ -17,6 +18,7 @@ const onPointerChange = (change: () => void) => {
 
 export function Presence({ className }: { className?: string }) {
   const hidden = usePresenceStore((state) => state.hidden);
+  const locale = useLocale();
   const finePointer = useSyncExternalStore(
     onPointerChange,
     () => window.matchMedia(FINE_POINTER).matches,
@@ -24,5 +26,5 @@ export function Presence({ className }: { className?: string }) {
   );
   const url = finePointer && !hidden ? presenceUrl() : undefined;
 
-  return url ? <Room url={url} className={className} /> : null;
+  return url ? <Room url={roomUrl(url, locale)} className={className} /> : null;
 }

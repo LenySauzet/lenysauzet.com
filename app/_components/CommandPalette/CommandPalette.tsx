@@ -1,6 +1,7 @@
 'use client';
 
 import { HugeiconsIcon } from '@hugeicons/react';
+import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { useEffect, useRef } from 'react';
 
@@ -14,9 +15,10 @@ import {
   CommandItem,
   CommandShortcut,
 } from '@/components/ui/command';
+import { useCommands } from '@/hooks/use-commands';
 import { usePaletteStore } from '@/hooks/use-palette-store';
 import { keyLabel, modifierLabel, platformOf } from '@/lib/commands/keys';
-import { commands } from '@/lib/commands/registry';
+import { matchCommand } from '@/lib/commands/search';
 import { GROUPS, type Command } from '@/lib/commands/types';
 
 import { FadingList } from './FadingList';
@@ -25,6 +27,8 @@ export function CommandPalette({ className }: { className?: string }) {
   const isOpen = usePaletteStore((state) => state.isOpen);
   const setIsOpen = usePaletteStore((state) => state.setIsOpen);
   const { resolvedTheme, setTheme } = useTheme();
+  const t = useTranslations('Palette');
+  const commands = useCommands();
   const picked = useRef<Command | null>(null);
   const modifier = modifierLabel(platformOf(navigator.userAgent));
 
@@ -52,16 +56,16 @@ export function CommandPalette({ className }: { className?: string }) {
       open={isOpen}
       onOpenChange={setIsOpen}
       onClosed={closed}
-      title="Commands"
-      description="Reach me, download my resume or change the theme."
+      title={t('title')}
+      description={t('description')}
       className={className}
     >
-      <CommandRoot label="Commands">
-        <CommandInput placeholder="Type a command..." />
+      <CommandRoot label={t('title')} filter={matchCommand}>
+        <CommandInput placeholder={t('placeholder')} />
         <FadingList>
-          <CommandEmpty>Nothing matches that.</CommandEmpty>
+          <CommandEmpty>{t('empty')}</CommandEmpty>
           {GROUPS.map((group) => (
-            <CommandGroup key={group} heading={group}>
+            <CommandGroup key={group} heading={t(group)}>
               {commands
                 .filter((command) => command.group === group && (command.available?.() ?? true))
                 .map((command) => (

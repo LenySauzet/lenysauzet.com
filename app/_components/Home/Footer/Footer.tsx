@@ -1,8 +1,10 @@
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 import { SelectionFrame } from '@/components/shared/SelectionFrame';
 import { focusRing, pageGrid } from '@/components/shared/styles';
 import siteConfig from '@/config/site';
+import { CONTENT_LOCALE, otherLocale, otherVersionOf } from '@/i18n/locales';
 import { buildInfo } from '@/lib/build-info';
 import { cn } from '@/lib/utils';
 
@@ -38,7 +40,11 @@ function LinkList({ children }: { children: ReactNode }) {
 }
 
 export function Footer({ className }: { className?: string }) {
-  const { commit, built } = buildInfo;
+  const t = useTranslations('Footer');
+  const format = useFormatter();
+  const locale = useLocale();
+  const other = otherLocale(locale);
+  const { commit, builtAt } = buildInfo;
 
   return (
     <footer className={cn(pageGrid, className)}>
@@ -47,30 +53,32 @@ export function Footer({ className }: { className?: string }) {
       <div className="flex flex-col gap-8 pt-8 pb-32 sm:pb-16 lg:col-start-3">
         <section data-presence="metadata" aria-labelledby="metadata-heading" className="flex flex-col gap-4">
           <h2 id="metadata-heading" className={LABEL}>
-            Metadata
+            {t('metadata')}
           </h2>
           <SelectionFrame name="metadata" className="lg:-mx-6 lg:px-6">
             <dl className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
-              <Reading label="Commit">
+              <Reading label={t('commit')}>
                 {commit ? (
                   <a href={commit.url} className={cn(LINK, 'font-mono')}>
                     {commit.short}
                   </a>
                 ) : (
-                  'local'
+                  t('local')
                 )}
               </Reading>
-              <Reading label="Browser" live>
+              <Reading label={t('browser')} live>
                 <Browser />
               </Reading>
-              <Reading label={`Time in ${siteConfig.author.country}`} live>
+              <Reading label={t('time', { country: siteConfig.author.country })} live>
                 <Clock />
               </Reading>
-              <Reading label="Dimensions" live>
+              <Reading label={t('dimensions')} live>
                 <Dimensions />
               </Reading>
-              <Reading label="Last updated">{built}</Reading>
-              <Reading label="Source">
+              <Reading label={t('updated')}>
+                {format.dateTime(builtAt, { month: 'short', year: 'numeric', timeZone: siteConfig.author.timeZone })}
+              </Reading>
+              <Reading label={t('source')}>
                 <a
                   href={siteConfig.repository}
                   target="_blank"
@@ -84,20 +92,25 @@ export function Footer({ className }: { className?: string }) {
           </SelectionFrame>
         </section>
 
-        <nav data-presence="links" aria-label="Links" className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
-          <p className={cn(LABEL, 'col-span-2 sm:col-span-1')}>Links</p>
+        <nav data-presence="links" aria-label={t('links')} className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
+          <p className={cn(LABEL, 'col-span-2 sm:col-span-1')}>{t('links')}</p>
           <LinkList>
             <li>
-              <a href={siteConfig.blogUrl} className={LINK}>
-                Blog
+              <a href={siteConfig.blogUrl} hrefLang={CONTENT_LOCALE} className={LINK}>
+                {t('blog')}
               </a>
             </li>
             <li>
-              <ResumeAnchor className={LINK}>Resume</ResumeAnchor>
+              <ResumeAnchor className={LINK}>{t('resume')}</ResumeAnchor>
             </li>
             <li>
               <a href={`mailto:${siteConfig.email}`} className={LINK}>
-                Email
+                {t('email')}
+              </a>
+            </li>
+            <li>
+              <a href={otherVersionOf('/', locale)} hrefLang={other} className={LINK}>
+                {t('otherVersion')}
               </a>
             </li>
           </LinkList>

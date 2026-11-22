@@ -1,0 +1,102 @@
+{
+  "Site": {
+    "role": "AI & Software Engineer",
+    "description": "I'm Lény, an AI and software engineer in Montpellier, France, bridging complex engineering and seamless user experiences, from innovative startups to large-scale enterprise products."
+  },
+  "Hero": {
+    "headline": "Turning complex challenges into <em>delightful</em> & <em>fast</em> products.",
+    "intro": "I'm Lény, an AI and software engineer bridging the gap between complex engineering and seamless user experiences. From innovative startups to large-scale enterprise products, I bring the cross-disciplinary expertise that carries ambitious products to success. Familiar with both remote and in-office roles.",
+    "bookCall": "Book a call",
+    "you": "You",
+    "email": "Email",
+    "resume": "Resume",
+    "nextClient": "Your company next?",
+    "nextClientAction": "Your company next? Book a call"
+  },
+  "Projects": {
+    "heading": "Work",
+    "article": "Read article",
+    "app": "View app",
+    "source": "View code",
+    "label": "{action}: {project}",
+    "externalLabel": "{action}: {project}, in a new tab"
+  },
+  "Footer": {
+    "metadata": "Metadata",
+    "commit": "Commit",
+    "local": "local",
+    "browser": "Browser",
+    "time": "Time in {country}",
+    "dimensions": "Dimensions",
+    "updated": "Last updated",
+    "source": "Source",
+    "links": "Links",
+    "blog": "Blog",
+    "resume": "Resume",
+    "email": "Email",
+    "otherVersion": "French version"
+  },
+  "Status": {
+    "notFoundTitle": "Page not found",
+    "notFoundHeading": "This page does not exist",
+    "notFoundBody": "It may have moved, or the link was mistyped. Everything else starts from the home page.",
+    "home": "Home",
+    "errorHeading": "Something went wrong",
+    "pageFailed": "This page failed to load. Trying again usually fixes it.",
+    "siteFailed": "The site failed to load. Trying again usually fixes it.",
+    "retry": "Try again"
+  },
+  "Island": {
+    "open": "Open the command palette",
+    "hint": "Click or {modifier}K for commands",
+    "tap": "Tap for commands",
+    "otherVersion": "French version available"
+  },
+  "Palette": {
+    "title": "Commands",
+    "description": "Reach me, download my resume or change the theme.",
+    "placeholder": "Type a command…",
+    "empty": "Nothing matches that.",
+    "contact": "Contact",
+    "tools": "Tools",
+    "links": "Links"
+  },
+  "Commands": {
+    "bookCall": "Book a call",
+    "bookCallKeywords": "meeting cal hire talk",
+    "writeMe": "Write me",
+    "writeMeKeywords": "email mail contact",
+    "copyEmail": "Copy email",
+    "copyEmailKeywords": "email mail address",
+    "emailCopied": "Email copied",
+    "resume": "Download resume",
+    "resumeKeywords": "cv hire pdf",
+    "downloadingResume": "Downloading my resume",
+    "toggleTheme": "Toggle theme",
+    "toggleThemeKeywords": "dark light mode",
+    "copyLink": "Copy link",
+    "copyLinkKeywords": "url share",
+    "linkCopied": "Link copied",
+    "cursors": "Live cursors",
+    "cursorsKeywords": "toggle presence visitors others hide show",
+    "cursorsOn": "On",
+    "cursorsOff": "Off",
+    "cursorsHidden": "Cursors hidden",
+    "cursorsShown": "Cursors shown",
+    "goToTop": "Go to top",
+    "goToTopKeywords": "scroll beginning",
+    "blog": "Blog",
+    "blogKeywords": "articles writing posts",
+    "githubKeywords": "code source",
+    "xKeywords": "twitter social",
+    "blueskyKeywords": "social bsky",
+    "linkedinKeywords": "social work",
+    "roadmap": "Roadmap",
+    "roadmapKeywords": "figma plans next",
+    "support": "Support me",
+    "supportKeywords": "donate coffee sponsor",
+    "bookingUnreachable": "Booking is unreachable",
+    "otherVersion": "Read in French",
+    "otherVersionKeywords": "french français language langue version"
+  }
+}

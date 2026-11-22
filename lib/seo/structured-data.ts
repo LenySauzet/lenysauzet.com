@@ -1,11 +1,21 @@
+import type { Locale } from 'next-intl';
+
 import siteConfig from '@/config/site';
 import { clients } from '@/content/clients';
+import { routing } from '@/i18n/routing';
 
-const { url, blogUrl, author, description, profiles } = siteConfig;
+const { url, blogUrl, author, profiles } = siteConfig;
 
 export const PERSON_ID = `${url}/#person`;
 
-export function structuredData() {
+interface Page {
+  locale: Locale;
+  url: string;
+  role: string;
+  description: string;
+}
+
+export function structuredData(page: Page) {
   const employer = clients.find((client) => client.employer);
 
   return {
@@ -18,10 +28,10 @@ export function structuredData() {
         alternateName: ['Leny Sauzet', author.handle],
         givenName: 'Lény',
         familyName: 'Sauzet',
-        jobTitle: author.role,
-        description,
+        jobTitle: page.role,
+        description: page.description,
         url,
-        image: `${url}/opengraph-image`,
+        image: `${url}${siteConfig.shareImage.url}`,
         email: `mailto:${siteConfig.email}`,
         address: { '@type': 'PostalAddress', addressLocality: author.city, addressCountry: 'FR' },
         worksFor: employer && { '@type': 'Organization', name: employer.name, url: employer.href },
@@ -31,17 +41,18 @@ export function structuredData() {
       },
       {
         '@type': 'ProfilePage',
-        '@id': `${url}/#profile`,
-        url,
-        name: siteConfig.title,
+        '@id': `${page.url}/#profile`,
+        url: page.url,
+        name: siteConfig.titleOf(page.role),
         mainEntity: { '@id': PERSON_ID },
-        inLanguage: 'en',
+        inLanguage: page.locale,
       },
       {
         '@type': 'WebSite',
         '@id': `${url}/#website`,
         url,
         name: author.name,
+        inLanguage: [...routing.locales],
         publisher: { '@id': PERSON_ID },
       },
     ],

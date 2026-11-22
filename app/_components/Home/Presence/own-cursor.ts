@@ -148,7 +148,7 @@ export function shareOwnCursor(connection: Line, onClick: (point: Vector) => voi
       if (event.pointerType !== 'mouse') return;
       const unshared = event.target instanceof Element && event.target.closest(UNSHARED) !== null;
       pressed =
-        event.button === 0 && !unshared
+        event.button === 0 && !unshared && !covered
           ? { at: event.timeStamp, value: { x: event.clientX, y: event.clientY } }
           : undefined;
       sentPress = !covered && !unshared;
@@ -172,6 +172,7 @@ export function shareOwnCursor(connection: Line, onClick: (point: Vector) => voi
       sentPress = false;
       if (
         !press ||
+        covered ||
         !judge(press, { x: event.clientX, y: event.clientY }, document.getSelection()?.isCollapsed !== false)
       )
         return;

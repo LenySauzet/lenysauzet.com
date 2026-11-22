@@ -2,6 +2,7 @@ import { act, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { usePaletteStore } from '@/hooks/use-palette-store';
+import { InEnglish } from '@/test/intl';
 
 import { PaletteLauncher } from './PaletteLauncher';
 
@@ -24,7 +25,7 @@ describe('PaletteLauncher', () => {
   });
 
   it('mounts nothing until the palette is wanted', () => {
-    const { queryByTestId } = render(<PaletteLauncher />);
+    const { queryByTestId } = render(<PaletteLauncher />, { wrapper: InEnglish });
     expect(queryByTestId('palette')).not.toBeInTheDocument();
 
     act(() => usePaletteStore.getState().want());
@@ -32,7 +33,7 @@ describe('PaletteLauncher', () => {
   });
 
   it('opens and closes the palette on the modifier and K', () => {
-    render(<PaletteLauncher />);
+    render(<PaletteLauncher />, { wrapper: InEnglish });
 
     press('k');
     expect(usePaletteStore.getState().isOpen).toBe(true);
@@ -42,7 +43,7 @@ describe('PaletteLauncher', () => {
   });
 
   it('runs a shortcut without loading the palette', () => {
-    render(<PaletteLauncher />);
+    render(<PaletteLauncher />, { wrapper: InEnglish });
 
     press('d');
 
@@ -51,7 +52,7 @@ describe('PaletteLauncher', () => {
   });
 
   it('lets a held key or another modifier through untouched', () => {
-    render(<PaletteLauncher />);
+    render(<PaletteLauncher />, { wrapper: InEnglish });
 
     press('d', { repeat: true });
     press('d', { shiftKey: true });

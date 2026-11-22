@@ -1,9 +1,15 @@
+import { hasLocale } from 'next-intl';
+
 import siteConfig from '@/config/site';
+import { routing } from '@/i18n/routing';
+import { fileUrl } from '@/lib/media/cdn';
 
-const { file, url } = siteConfig.resume;
+export async function GET(_: Request, { params }: RouteContext<'/[locale]/resume'>) {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) return new Response('Not found', { status: 404 });
 
-export async function GET() {
-  const upstream = await fetch(url);
+  const file = siteConfig.resumes[locale];
+  const upstream = await fetch(fileUrl(file));
 
   if (!upstream.ok || !upstream.body) {
     return new Response('Resume unavailable', { status: 502, headers: { 'Cache-Control': 'no-store' } });

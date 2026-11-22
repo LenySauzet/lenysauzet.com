@@ -1,20 +1,13 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useLocale } from 'next-intl';
+import { useMemo, useSyncExternalStore } from 'react';
 
 import siteConfig from '@/config/site';
-import { browserName } from '@/lib/browser';
+import { browserName, unchanging } from '@/lib/browser';
 
 const PENDING = '-';
 
-const time = new Intl.DateTimeFormat('en-US', {
-  hour: 'numeric',
-  minute: '2-digit',
-  second: '2-digit',
-  timeZone: siteConfig.author.timeZone,
-});
-
-const unchanging = () => () => {};
 const pending = () => PENDING;
 
 const onEverySecond = (change: () => void) => {
@@ -33,6 +26,17 @@ const onResize = (change: () => void) => {
 };
 
 export function Clock() {
+  const locale = useLocale();
+  const time = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: siteConfig.author.timeZone,
+      }),
+    [locale]
+  );
   return useSyncExternalStore(onEverySecond, () => time.format(Date.now()), pending);
 }
 

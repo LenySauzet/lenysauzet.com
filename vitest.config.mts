@@ -14,6 +14,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest-setup.ts'],
-    include: ['{app,components,config,content,lib,hooks}/**/*.test.{ts,tsx}'],
+    include: ['{app,components,config,content,lib,hooks,i18n}/**/*.test.{ts,tsx}'],
+    server: { deps: { inline: ['next-intl'] } },
   },
 });

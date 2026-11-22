@@ -1,15 +1,14 @@
 const handle = 'LenySauzet';
 const url = 'https://lenysauzet.com';
 const cdnUrl = 'https://cdn.lenysauzet.com';
-const resumeFile = 'Leny-Sauzet-Resume.pdf';
 const city = 'Montpellier';
 const country = 'France';
 
 const author = {
   name: 'Lény Sauzet',
   firstName: 'Leny',
+  avatar: 'leny-sauzet.png',
   handle,
-  role: 'AI & Software Engineer',
   city,
   country,
   location: `${city}, ${country}`,
@@ -46,10 +45,10 @@ const siteConfig = {
   author,
   social,
   profiles,
-  title: `${author.name} · ${author.role}`,
-  description:
-    "I'm Lény, an AI and software engineer in Montpellier, France, bridging complex engineering and seamless user experiences, from innovative startups to large-scale enterprise products.",
-  resume: { file: resumeFile, url: `${cdnUrl}/files/${resumeFile}` },
+  resumes: { en: 'Leny-Sauzet-Resume.pdf', fr: 'Leny-Sauzet-CV-fr.pdf' },
+  titleOf: (role: string) => `${author.name} · ${role}`,
+  titleTemplate: `%s · ${author.name}`,
+  shareImage: { url: '/opengraph-image', width: 1200, height: 630, alt: author.name },
 };
 
 export default siteConfig;

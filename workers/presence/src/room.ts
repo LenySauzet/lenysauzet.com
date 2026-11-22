@@ -20,8 +20,8 @@ import { Budget } from './budget';
 
 const CAPACITY = 24;
 const PER_ADDRESS = 4;
-const BURST = 120;
-const PER_SECOND = 75;
+export const BURST = 120;
+export const PER_SECOND = 75;
 const MOST_OVERDRAWN = 150;
 const REMEMBER_PATH_EVERY = 250;
 const RESERVED_CODES = new Set([1004, 1005, 1006, 1015]);

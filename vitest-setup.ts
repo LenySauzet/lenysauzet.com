@@ -5,6 +5,11 @@ import { afterEach, vi } from 'vitest';
 
 import { matchMedia, resetMedia } from '@/test/media';
 
+vi.mock('next/navigation', async (original) => ({
+  ...(await original<typeof import('next/navigation')>()),
+  usePathname: () => '/',
+}));
+
 window.matchMedia = matchMedia;
 
 if (!window.PointerEvent) {

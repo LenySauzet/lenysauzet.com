@@ -1,42 +1,57 @@
 'use client';
 
-import { Logo } from '@/components/shared/Logo';
+import { useTranslations } from 'next-intl';
+import Image from 'next/image';
+
 import { pillSurface } from '@/components/shared/styles';
+import siteConfig from '@/config/site';
 import { useBooking } from '@/hooks/use-booking';
+import { resolveMedia } from '@/lib/media/cdn';
 import { cn } from '@/lib/utils';
 
-const TRANSITION = 'duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none';
-const OPEN = 'group-hover:w-13 group-focus-visible:w-13 pointer-coarse:w-13 max-sm:w-13';
-const GROWN =
-  'group-hover:scale-100 group-hover:opacity-100 group-hover:filter-none group-focus-visible:scale-100 group-focus-visible:opacity-100 group-focus-visible:filter-none pointer-coarse:scale-100 pointer-coarse:opacity-100 pointer-coarse:filter-none max-sm:scale-100 max-sm:opacity-100 max-sm:filter-none';
+const MEASURES = '[--you:--spacing(13)] [--opening:cubic-bezier(0.32,0.72,0,1)]';
+const TRANSITION = 'duration-500 ease-(--opening) motion-reduce:transition-none';
+const SPACE =
+  'w-(--you) sm:pointer-fine:w-0 sm:pointer-fine:group-hover:w-(--you) sm:pointer-fine:group-focus-visible:w-(--you)';
+const IN_PLACE =
+  'sm:pointer-fine:hover:-ms-(--you) sm:pointer-fine:focus-visible:-ms-(--you) sm:pointer-fine:motion-safe:[transition:scale_200ms,margin-inline-start_500ms_var(--opening)]';
+const FOLDED =
+  'sm:pointer-fine:scale-0 sm:pointer-fine:opacity-0 sm:pointer-fine:blur-[10px] sm:pointer-fine:group-hover:scale-100 sm:pointer-fine:group-hover:opacity-100 sm:pointer-fine:group-hover:filter-none sm:pointer-fine:group-focus-visible:scale-100 sm:pointer-fine:group-focus-visible:opacity-100 sm:pointer-fine:group-focus-visible:filter-none';
 
 export function BookCall({ className }: { className?: string }) {
+  const t = useTranslations('Hero');
   const book = useBooking();
 
   return (
     <button
       type="button"
       onClick={book}
-      className={cn(pillSurface, 'group shine shine-border cursor-pointer pr-5 pl-1.5 text-sm font-medium', className)}
+      className={cn(
+        pillSurface,
+        'group shine shine-border cursor-pointer pr-5 pl-1.5 text-sm font-medium',
+        MEASURES,
+        IN_PLACE,
+        className
+      )}
     >
-      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-background ring-1 ring-border">
-        <Logo className="size-4" />
+      <span className="relative size-8 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border">
+        <Image src={resolveMedia(siteConfig.author.avatar)} alt="" fill sizes="32px" className="object-cover" />
       </span>
-      <span aria-hidden className={cn('w-0 shrink-0 transition-[width]', TRANSITION, OPEN)}>
+      <span aria-hidden className={cn('shrink-0 transition-[width]', TRANSITION, SPACE)}>
         <span
           className={cn(
-            'flex w-max origin-left scale-0 items-center gap-1.5 pl-1.5 opacity-0 blur-[10px] transition-[scale,opacity,filter]',
+            'flex w-max origin-left items-center gap-1.5 pl-1.5 transition-[scale,opacity,filter]',
             TRANSITION,
-            GROWN
+            FOLDED
           )}
         >
           <span className="w-2 text-center text-subtle-foreground">+</span>
           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-[0.6875rem] ring-1 ring-border">
-            You
+            {t('you')}
           </span>
         </span>
       </span>
-      <span className="shine-text pl-2.5">Book a call</span>
+      <span className="shine-text pl-2.5">{t('bookCall')}</span>
     </button>
   );
 }
