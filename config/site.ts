@@ -7,7 +7,7 @@ const country = 'France';
 const author = {
   name: 'Lény Sauzet',
   firstName: 'Leny',
-  avatar: 'avatar.png',
+  avatar: 'leny-sauzet.png',
   handle,
   city,
   location: `${city}, ${country}`,
