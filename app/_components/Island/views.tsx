@@ -57,9 +57,7 @@ export function viewOf(shown: Shown): View {
         content: (
           <div className="flex w-full items-center justify-center gap-2 px-3">
             <HugeiconsIcon icon={shown.icon ?? Tick02Icon} strokeWidth={2} className="size-4 shrink-0 text-primary" />
-            <span lang={shown.lang} className="truncate text-sm">
-              {shown.message}
-            </span>
+            <span className="truncate text-sm">{shown.message}</span>
           </div>
         ),
       };

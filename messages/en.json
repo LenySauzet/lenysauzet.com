@@ -34,7 +34,7 @@
     "blog": "Blog",
     "resume": "Resume",
     "email": "Email",
-    "otherLanguage": "Français"
+    "otherLanguage": "French version"
   },
   "Status": {
     "notFoundTitle": "Page not found",
@@ -50,7 +50,7 @@
     "open": "Open the command palette",
     "hint": "Click or {modifier}K for commands",
     "tap": "Tap for commands",
-    "otherVersion": "Version française disponible"
+    "otherVersion": "French version available"
   },
   "Palette": {
     "title": "Commands",
@@ -85,8 +85,8 @@
     "cursorsShown": "Cursors shown",
     "goToTop": "Go to top",
     "goToTopKeywords": "scroll beginning",
-    "otherLanguage": "Lire en français",
-    "otherLanguageKeywords": "french français language langue",
+    "otherLanguage": "Read in French",
+    "otherLanguageKeywords": "french français language langue version",
     "blog": "Blog",
     "blogKeywords": "articles writing posts",
     "githubKeywords": "code source",

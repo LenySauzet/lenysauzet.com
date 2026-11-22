@@ -34,7 +34,7 @@
     "blog": "Blog (en anglais)",
     "resume": "CV",
     "email": "E-mail",
-    "otherLanguage": "English"
+    "otherLanguage": "Version anglaise"
   },
   "Status": {
     "notFoundTitle": "Page introuvable",
@@ -50,7 +50,7 @@
     "open": "Ouvrir la palette de commandes",
     "hint": "Cliquez ou {modifier}K pour les commandes",
     "tap": "Touchez pour afficher les commandes",
-    "otherVersion": "English version available"
+    "otherVersion": "Version anglaise disponible"
   },
   "Palette": {
     "title": "Commandes",
@@ -85,8 +85,8 @@
     "cursorsShown": "Curseurs affichés",
     "goToTop": "Revenir en haut",
     "goToTopKeywords": "défiler début haut scroll top",
-    "otherLanguage": "Read in English",
-    "otherLanguageKeywords": "anglais english langue language",
+    "otherLanguage": "Lire en anglais",
+    "otherLanguageKeywords": "anglais english langue language version",
     "blog": "Blog (en anglais)",
     "blogKeywords": "articles écrits billets writing posts",
     "githubKeywords": "code source",

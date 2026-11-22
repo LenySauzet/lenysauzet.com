@@ -111,7 +111,7 @@ export function Footer({ className }: { className?: string }) {
               </a>
             </li>
             <li>
-              <Link href={getPathname({ href: '/', locale: other })} hrefLang={other} lang={other} className={LINK}>
+              <Link href={getPathname({ href: '/', locale: other })} hrefLang={other} className={LINK}>
                 {t('otherLanguage')}
               </Link>
             </li>

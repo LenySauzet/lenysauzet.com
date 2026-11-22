@@ -20,37 +20,36 @@ const visit = (languages: string[]) => {
 describe('OtherVersion', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    localStorage.clear();
+    sessionStorage.clear();
     useIslandStore.setState({ presented: [] });
     usePaletteStore.setState({ isOpen: false });
   });
 
-  afterEach(() => localStorage.clear());
+  afterEach(() => sessionStorage.clear());
 
-  it('offers the French page once, in French, to a reader whose first language it is', () => {
+  it('offers the French page once a visit, in the page language, to a reader whose first language it is', () => {
     visit(['fr-FR', 'en']);
 
     expect(offer()).toMatchObject({
-      message: 'Version française disponible',
-      lang: 'fr',
+      message: 'French version available',
       action: expect.any(Function),
     });
-    expect(localStorage.getItem(OFFERED)).not.toBeNull();
+    expect(sessionStorage.getItem(OFFERED)).not.toBeNull();
   });
 
-  it('stays quiet once offered, for other readers, or while it could not be seen', () => {
-    localStorage.setItem(OFFERED, '1');
+  it('stays quiet once offered this visit, for other readers, or while it could not be seen', () => {
+    sessionStorage.setItem(OFFERED, '1');
     visit(['fr-FR']);
     expect(offer()).toBeUndefined();
 
-    localStorage.clear();
+    sessionStorage.clear();
     visit(['en-US', 'fr']);
     expect(offer()).toBeUndefined();
 
     usePaletteStore.setState({ isOpen: true });
     visit(['fr-FR']);
     expect(offer()).toBeUndefined();
-    expect(localStorage.getItem(OFFERED)).toBeNull();
+    expect(sessionStorage.getItem(OFFERED)).toBeNull();
   });
 
   it('never offers when the browser refuses its storage, rather than offering on every visit', () => {

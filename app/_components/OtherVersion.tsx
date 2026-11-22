@@ -17,7 +17,7 @@ const OFFERED = 'other-version-offered';
 
 const alreadyOffered = () => {
   try {
-    return localStorage.getItem(OFFERED) !== null;
+    return sessionStorage.getItem(OFFERED) !== null;
   } catch {
     return true;
   }
@@ -25,7 +25,7 @@ const alreadyOffered = () => {
 
 const rememberOffered = () => {
   try {
-    localStorage.setItem(OFFERED, '1');
+    sessionStorage.setItem(OFFERED, '1');
   } catch {}
 };
 
@@ -41,7 +41,7 @@ export function OtherVersion() {
     const offering = window.setTimeout(() => {
       if (document.visibilityState !== 'visible' || usePaletteStore.getState().isOpen) return;
       rememberOffered();
-      announce(t('otherVersion'), { icon: LanguageCircleIcon, lang: other, ttl: OFFERED_FOR, action: switchLanguage });
+      announce(t('otherVersion'), { icon: LanguageCircleIcon, ttl: OFFERED_FOR, action: switchLanguage });
     }, OFFERED_AFTER);
     return () => window.clearTimeout(offering);
   }, [locale, switchLanguage, t]);

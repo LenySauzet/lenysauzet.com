@@ -1,12 +1,20 @@
 'use client';
 
-import { useCallback, useRef, type ReactNode } from 'react';
+import { useCallback, useRef, type CSSProperties, type ReactNode } from 'react';
 
 import { CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
 const FADE_DISTANCE = 80;
+const CLEAR_OF_EDGES = 12;
+const ACROSS = `linear-gradient(to right, transparent, black ${CLEAR_OF_EDGES}px, black calc(100% - ${CLEAR_OF_EDGES}px), transparent)`;
 const VEIL = 'pointer-events-none absolute inset-x-(--rim-width) opacity-0 backdrop-blur-xs';
+
+const veil = (toward: 'top' | 'bottom'): CSSProperties => ({
+  height: FADE_DISTANCE,
+  maskImage: `linear-gradient(to ${toward}, transparent, black ${CLEAR_OF_EDGES}px, transparent), ${ACROSS}`,
+  maskComposite: 'intersect',
+});
 
 function fadeMask(top: number, bottom: number) {
   const head = FADE_DISTANCE * top;
@@ -67,18 +75,8 @@ export function FadingList({ children, className }: { children: ReactNode; class
   return (
     <div ref={watchFrame} className={cn('relative', className)}>
       <CommandList onScroll={draw}>{children}</CommandList>
-      <div
-        ref={topVeil}
-        aria-hidden
-        style={{ height: FADE_DISTANCE }}
-        className={cn(VEIL, 'top-0 mask-[linear-gradient(to_bottom,black,transparent)]')}
-      />
-      <div
-        ref={bottomVeil}
-        aria-hidden
-        style={{ height: FADE_DISTANCE }}
-        className={cn(VEIL, 'bottom-(--rim-width) mask-[linear-gradient(to_top,black,transparent)]')}
-      />
+      <div ref={topVeil} aria-hidden style={veil('bottom')} className={cn(VEIL, 'top-0')} />
+      <div ref={bottomVeil} aria-hidden style={veil('top')} className={cn(VEIL, 'bottom-(--rim-width)')} />
     </div>
   );
 }

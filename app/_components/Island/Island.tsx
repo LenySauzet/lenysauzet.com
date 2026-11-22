@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { useIslandStore } from '@/hooks/use-island-store';
 import { usePaletteStore } from '@/hooks/use-palette-store';
@@ -26,8 +26,7 @@ export function Island({ className }: { className?: string }) {
   const [opened, setOpened] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [widthWhenPointed, setWidthWhenPointed] = useState<number>();
-  const [spoken, setSpoken] = useState<{ message: string; lang?: string }>();
-  const offerName = useId();
+  const [spoken, setSpoken] = useState('');
   const pill = useRef<HTMLDivElement>(null);
   const mention = useRef(0);
   const presented = useIslandStore((state) => state.presented);
@@ -58,10 +57,10 @@ export function Island({ className }: { className?: string }) {
 
   useEffect(() => {
     if (!announcement) return;
-    const speaking = window.setTimeout(() => setSpoken({ message: announcement.message, lang: announcement.lang }));
+    const speaking = window.setTimeout(() => setSpoken(announcement.message));
     return () => {
       window.clearTimeout(speaking);
-      setSpoken(undefined);
+      setSpoken('');
     };
   }, [announcement]);
 
@@ -89,8 +88,7 @@ export function Island({ className }: { className?: string }) {
     >
       <button
         type="button"
-        aria-label={offer ? undefined : t('open')}
-        aria-labelledby={offer ? offerName : undefined}
+        aria-label={offer ? offer.message : t('open')}
         aria-haspopup={offer ? undefined : 'dialog'}
         aria-expanded={offer ? undefined : paletteOpen}
         onClick={() => {
@@ -107,11 +105,6 @@ export function Island({ className }: { className?: string }) {
         onBlur={() => setHovered(false)}
         className="group inline-flex cursor-pointer outline-hidden transition-[scale] duration-200 hover:scale-[1.02] active:scale-[0.97] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       >
-        {offer && (
-          <span id={offerName} lang={offer.lang} className="sr-only">
-            {offer.message}
-          </span>
-        )}
         <motion.div
           ref={pill}
           layout
@@ -131,8 +124,8 @@ export function Island({ className }: { className?: string }) {
           </div>
         </motion.div>
       </button>
-      <p role="status" lang={spoken?.lang} className="sr-only">
-        {spoken?.message}
+      <p role="status" className="sr-only">
+        {spoken}
       </p>
     </motion.div>
   );

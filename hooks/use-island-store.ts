@@ -6,7 +6,6 @@ interface Announcement {
   message: string;
   at: number;
   icon?: IconSvgElement;
-  lang?: string;
   action?: () => void;
 }
 
@@ -42,7 +41,7 @@ export const useIslandStore = create<IslandStore>((set, get) => ({
   },
 }));
 
-interface AnnounceOptions extends Pick<Announcement, 'icon' | 'lang' | 'action'> {
+interface AnnounceOptions extends Pick<Announcement, 'icon' | 'action'> {
   ttl?: number;
 }
 

@@ -74,7 +74,7 @@ export function CommandPalette({ className }: { className?: string }) {
                     onSelect={() => pick(command)}
                   >
                     <HugeiconsIcon icon={command.icon} strokeWidth={2} />
-                    <span lang={command.lang}>{command.label}</span>
+                    {command.label}
                     {command.hint && <CommandHint>{command.hint}</CommandHint>}
                     {command.status && <CommandHint>{command.status()}</CommandHint>}
                     {command.shortcut && (

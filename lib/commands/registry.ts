@@ -21,7 +21,6 @@ import type { Messages } from 'next-intl';
 import siteConfig from '@/config/site';
 import { announce } from '@/hooks/use-island-store';
 import { usePresenceStore } from '@/hooks/use-presence-store';
-import { otherLocale } from '@/i18n/locales';
 import { getPathname } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 import { prefersReducedMotion } from '@/lib/motion';
@@ -132,7 +131,6 @@ export function createCommands({ t, locale, switchLanguage }: CommandSetup): Com
     {
       id: 'other-language',
       label: t('otherLanguage'),
-      lang: otherLocale(locale),
       icon: LanguageCircleIcon,
       group: 'Tools',
       keywords: words(t('otherLanguageKeywords')),
