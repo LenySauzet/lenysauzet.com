@@ -10,6 +10,7 @@ const author = {
   avatar: 'leny-sauzet.png',
   handle,
   city,
+  country,
   location: `${city}, ${country}`,
   timeZone: 'Europe/Paris',
 };
@@ -45,6 +46,9 @@ const siteConfig = {
   social,
   profiles,
   resumes: { en: 'Leny-Sauzet-Resume.pdf', fr: 'Leny-Sauzet-CV-fr.pdf' },
+  titleOf: (role: string) => `${author.name} · ${role}`,
+  titleTemplate: `%s · ${author.name}`,
+  shareImage: { url: '/opengraph-image', width: 1200, height: 630, alt: author.name },
 };
 
 export default siteConfig;
