@@ -63,7 +63,7 @@ export function Footer({ className }: { className?: string }) {
               <Reading label="Browser" live>
                 <Browser />
               </Reading>
-              <Reading label={`Time in ${siteConfig.author.location}`} live>
+              <Reading label={`Time in ${siteConfig.author.country}`} live>
                 <Clock />
               </Reading>
               <Reading label="Dimensions" live>

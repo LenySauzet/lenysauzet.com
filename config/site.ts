@@ -2,13 +2,17 @@ const handle = 'LenySauzet';
 const url = 'https://lenysauzet.com';
 const cdnUrl = 'https://cdn.lenysauzet.com';
 const resumeFile = 'Leny-Sauzet-Resume.pdf';
+const city = 'Montpellier';
+const country = 'France';
 
 const author = {
   name: 'Lény Sauzet',
   firstName: 'Leny',
   handle,
   role: 'AI & Software Engineer',
-  location: 'Montpellier',
+  city,
+  country,
+  location: `${city}, ${country}`,
   timeZone: 'Europe/Paris',
 };
 
@@ -44,7 +48,7 @@ const siteConfig = {
   profiles,
   title: `${author.name} · ${author.role}`,
   description:
-    "I'm Lény, an AI and software engineer in Montpellier, bridging complex engineering and seamless user experiences, from innovative startups to large-scale enterprise products.",
+    "I'm Lény, an AI and software engineer in Montpellier, France, bridging complex engineering and seamless user experiences, from innovative startups to large-scale enterprise products.",
   resume: { file: resumeFile, url: `${cdnUrl}/files/${resumeFile}` },
 };
 

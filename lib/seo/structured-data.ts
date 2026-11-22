@@ -23,7 +23,7 @@ export function structuredData() {
         url,
         image: `${url}/opengraph-image`,
         email: `mailto:${siteConfig.email}`,
-        address: { '@type': 'PostalAddress', addressLocality: author.location, addressCountry: 'FR' },
+        address: { '@type': 'PostalAddress', addressLocality: author.city, addressCountry: 'FR' },
         worksFor: employer && { '@type': 'Organization', name: employer.name, url: employer.href },
         alumniOf: { '@type': 'EducationalOrganization', name: 'Epitech', url: 'https://www.epitech.eu' },
         knowsAbout: ['Artificial intelligence', 'Conversational AI', 'Software architecture', 'Web development'],
