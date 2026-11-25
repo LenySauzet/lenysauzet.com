@@ -3,7 +3,6 @@
 import {
   AiBrain01Icon,
   ArrowUp02Icon,
-  AudioWave01Icon,
   Briefcase01Icon,
   Calendar03Icon,
   Cancel01Icon,
@@ -16,6 +15,8 @@ import { animate, AnimatePresence, motion, useMotionValue, useReducedMotion } fr
 import { useLocale } from 'next-intl';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type SubmitEvent } from 'react';
 
+import { AnimatedMicIcon } from '@/components/icons/AnimatedMicIcon';
+import { useAnimatedIcon } from '@/hooks/use-animated-icon';
 import { useBooking } from '@/hooks/use-booking';
 import { useResumeAnchor } from '@/hooks/use-resume-anchor';
 import { EASE_SNAP } from '@/lib/motion';
@@ -62,6 +63,7 @@ export function Ask({ className }: { className?: string }) {
   const book = useBooking();
   const resume = useResumeAnchor();
   const still = useReducedMotion();
+  const { icon: mic, trigger: micTrigger } = useAnimatedIcon();
   const [phase, setPhase] = useState<Phase>('tiny');
   const [full, setFull] = useState(0);
   const [entered, setEntered] = useState(false);
@@ -355,30 +357,38 @@ export function Ask({ className }: { className?: string }) {
                       type="button"
                       aria-label={text.voice}
                       title={text.voice}
-                      className="grid size-8 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                      {...micTrigger}
+                      className="grid size-8 cursor-pointer place-items-center text-subtle-foreground/70 transition-[color,scale] duration-200 hover:scale-110 hover:text-foreground active:scale-95 motion-reduce:hover:scale-100"
                     >
-                      <HugeiconsIcon icon={AudioWave01Icon} size={17} strokeWidth={2} />
+                      <AnimatedMicIcon ref={mic} className="size-[18px]" />
                     </button>
                     <AnimatePresence initial={false}>
                       {typed && (
                         <motion.span
                           key="send"
-                          className="flex items-center overflow-hidden"
-                          initial={{ width: 0, opacity: 0 }}
-                          animate={{ width: 'auto', opacity: 1 }}
-                          exit={{ width: 0, opacity: 0 }}
-                          transition={{ width: SNAPPY, opacity: { duration: 0.2 } }}
+                          className="flex items-center"
+                          initial={{ width: 0 }}
+                          animate={{ width: 'auto' }}
+                          exit={{ width: 0, transition: { ...SNAPPY, delay: 0.08 } }}
+                          transition={SNAPPY}
                         >
-                          <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-foreground/15" />
+                          <motion.span
+                            aria-hidden
+                            className="mx-1.5 h-4 w-px shrink-0 bg-foreground/25"
+                            initial={{ scaleY: 0, opacity: 0 }}
+                            animate={{ scaleY: 1, opacity: 1 }}
+                            exit={{ scaleY: 0, opacity: 0 }}
+                            transition={{ ...SNAPPY, delay: 0.04 }}
+                          />
                           <motion.button
                             type="submit"
                             aria-label={text.send}
                             disabled={busy}
-                            initial={{ scale: 0.5, filter: 'blur(4px)' }}
-                            animate={{ scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
-                            exit={{ scale: 0.5 }}
-                            transition={{ ...SNAPPY, filter: { duration: 0.25 } }}
-                            className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full bg-foreground text-background active:scale-95 disabled:cursor-default disabled:opacity-40"
+                            initial={{ scale: 0, opacity: 0, filter: 'blur(6px)' }}
+                            animate={{ scale: 1, opacity: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
+                            exit={{ scale: 0, opacity: 0, filter: 'blur(6px)' }}
+                            transition={{ ...SNAPPY, delay: 0.08, filter: { duration: 0.3, delay: 0.08 } }}
+                            className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full bg-foreground/[0.06] text-foreground/80 shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.08)] ring-1 ring-foreground/15 transition-[background-color,color] ring-inset hover:bg-foreground/10 hover:text-foreground disabled:cursor-default disabled:opacity-40"
                           >
                             <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} />
                           </motion.button>
