@@ -21,6 +21,8 @@ import { useResumeAnchor } from '@/hooks/use-resume-anchor';
 import { EASE_SNAP } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
+import { MORPH } from '../Island/motion';
+
 import { Letters, TwoPassLetters, twoPassDuration } from './Letters';
 import { Orb } from './Orb';
 import { Rim } from './Rim';
@@ -31,12 +33,12 @@ type Phase = 'tiny' | 'wide' | 'lit';
 
 const BAR = 44;
 const TINY = { width: 52, height: 10 };
-const SOFT = { type: 'spring', stiffness: 120, damping: 17, mass: 1 } as const;
 const SNAPPY = { type: 'spring', stiffness: 260, damping: 22, mass: 0.8 } as const;
-const PLACEHOLDER_STEP = 0.035;
-const TEXT_DELAY = 0.25;
-const EXPAND_AT = 900;
-const LIT_AT = 1750;
+const PLACEHOLDER_STEP = 0.025;
+const TEXT_DELAY = 0.05;
+const EXPAND_AT = 180;
+const LIT_AT = EXPAND_AT + 260;
+const SIZED_AT = EXPAND_AT + 900;
 const THINKING_MS = 1800;
 const WORD_MS = 38;
 const SUGGESTION_ICONS = [Briefcase01Icon, Calendar03Icon, AiBrain01Icon];
@@ -63,6 +65,7 @@ export function Ask({ className }: { className?: string }) {
   const [phase, setPhase] = useState<Phase>('tiny');
   const [full, setFull] = useState(0);
   const [entered, setEntered] = useState(false);
+  const [sized, setSized] = useState(false);
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
   const [open, setOpen] = useState(false);
@@ -96,12 +99,14 @@ export function Ask({ className }: { className?: string }) {
       glow.set(0.7);
       at(0, () => {
         setPhase('lit');
+        setSized(true);
         setEntered(true);
       });
       return;
     }
     const sweep = twoPassDuration(text.placeholder, PLACEHOLDER_STEP);
     at(EXPAND_AT, () => setPhase('wide'));
+    at(SIZED_AT, () => setSized(true));
     at(LIT_AT, () => {
       setPhase('lit');
       animate(glow, [0, 1, 0.7], { duration: sweep, delay: TEXT_DELAY, times: [0, 0.2, 1] });
@@ -214,10 +219,10 @@ export function Ask({ className }: { className?: string }) {
             initial={{ width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2, '--glass-blur': '20px' }}
             animate={{
               width: wide ? full : TINY.width,
-              height: lit ? 'auto' : wide ? BAR : TINY.height,
+              height: sized ? 'auto' : wide ? BAR : TINY.height,
               borderRadius: expanded ? 26 : wide ? BAR / 2 : TINY.height / 2,
             }}
-            transition={{ width: SOFT, height: lit ? { duration: 0 } : SOFT, borderRadius: SOFT }}
+            transition={{ width: MORPH, height: sized ? { duration: 0 } : MORPH, borderRadius: MORPH }}
             style={GLASS_BLUR}
             className="relative flex shrink-0 flex-col justify-end overflow-hidden bg-card/85 shadow-pill"
           >
@@ -247,7 +252,7 @@ export function Ask({ className }: { className?: string }) {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ height: SOFT, opacity: { duration: 0.25 } }}
+                  transition={{ height: MORPH, opacity: { duration: 0.25 } }}
                 >
                   <header className="flex items-center justify-between py-2.5 pr-2.5 pl-5">
                     <span className="text-[0.8125rem] text-subtle-foreground">{text.title}</span>
@@ -397,7 +402,7 @@ interface SuggestionProps {
 }
 
 function Suggestion({ index, label, icon, onPick }: SuggestionProps) {
-  const delay = index * 0.08;
+  const delay = index * 0.05;
 
   return (
     <motion.button
@@ -407,7 +412,7 @@ function Suggestion({ index, label, icon, onPick }: SuggestionProps) {
       initial={{ opacity: 0, scale: 0.7, '--glass-blur': '0px' }}
       animate={{ opacity: 1, scale: 1, '--glass-blur': '16px' }}
       exit={{ opacity: 0, scale: 0.85, '--glass-blur': '0px', transition: { duration: 0.18 } }}
-      transition={{ ...SOFT, delay, opacity: { duration: 0.25, delay } }}
+      transition={{ ...MORPH, delay, opacity: { duration: 0.25, delay } }}
       style={GLASS_BLUR}
       className="relative flex h-7 shrink-0 cursor-pointer items-center gap-1.5 overflow-hidden rounded-full border border-foreground/12 bg-card/85 px-2.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
     >
@@ -415,7 +420,7 @@ function Suggestion({ index, label, icon, onPick }: SuggestionProps) {
         className="flex items-center gap-1.5"
         initial={{ x: 28 }}
         animate={{ x: 0 }}
-        transition={{ ...SOFT, delay }}
+        transition={{ ...MORPH, delay }}
       >
         <HugeiconsIcon icon={icon} size={13} strokeWidth={2} />
         <span>

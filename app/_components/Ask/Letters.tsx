@@ -29,7 +29,7 @@ export function Letters({ text, delay = 0, step = 0.022 }: LettersProps) {
   );
 }
 
-const PASS = 1.8;
+const PASS = 1.3;
 const REST = 0.5;
 
 export const twoPassDuration = (text: string, step: number) => text.length * step + PASS;
