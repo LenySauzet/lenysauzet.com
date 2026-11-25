@@ -37,6 +37,7 @@ const BAR = 44;
 const FIELD_MAX = 168;
 const INLINE_RESERVED = 20 + 6 + 4 + 80;
 const TINY = { width: 52, height: 10 };
+const NUDGE = { type: 'spring', stiffness: 420, damping: 30 } as const;
 const SNAPPY = { type: 'spring', stiffness: 260, damping: 22, mass: 0.8 } as const;
 const PLACEHOLDER_STEP = 0.025;
 const TEXT_DELAY = 0.05;
@@ -73,6 +74,8 @@ export function Ask({ className }: { className?: string }) {
   const [sized, setSized] = useState(false);
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const root = useRef<HTMLDivElement>(null);
@@ -200,6 +203,7 @@ export function Ask({ className }: { className?: string }) {
   const wide = phase !== 'tiny';
   const lit = phase === 'lit';
   const typed = draft.trim().length > 0;
+  const nudge = expanded || stacked || still ? 0 : pressed ? -4 : hovered ? 4 : 0;
 
   return (
     <div
@@ -238,16 +242,24 @@ export function Ask({ className }: { className?: string }) {
           <motion.div
             initial={{ width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2 }}
             animate={{
-              width: wide ? full : TINY.width,
+              width: wide ? full + nudge : TINY.width,
               height: sized ? 'auto' : wide ? BAR : TINY.height,
               borderRadius: expanded ? 26 : wide ? BAR / 2 : TINY.height / 2,
             }}
-            transition={{ width: MORPH, height: sized ? { duration: 0 } : MORPH, borderRadius: MORPH }}
-            className={cn(
-              'relative flex shrink-0 flex-col shadow-pill transition-[scale] duration-200 motion-reduce:transition-none',
-              !expanded &&
-                'hover:scale-[1.005] has-[:active]:scale-[0.993] motion-reduce:hover:scale-100 motion-reduce:has-[:active]:scale-100'
-            )}
+            transition={{
+              width: entered ? NUDGE : MORPH,
+              height: sized ? { duration: 0 } : MORPH,
+              borderRadius: MORPH,
+            }}
+            onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(true)}
+            onPointerLeave={() => {
+              setHovered(false);
+              setPressed(false);
+            }}
+            onPointerDown={() => setPressed(true)}
+            onPointerUp={() => setPressed(false)}
+            onPointerCancel={() => setPressed(false)}
+            className="relative flex shrink-0 flex-col shadow-pill"
           >
             <div
               style={{ ...GLASS_BLUR, '--glass-blur': '20px' } as CSSProperties}
