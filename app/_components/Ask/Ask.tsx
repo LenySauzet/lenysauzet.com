@@ -180,7 +180,7 @@ export function Ask({ className }: { className?: string }) {
       >
         <AnimatePresence>
           {offering && (
-            <div className="absolute bottom-full left-1/2 mb-2.5 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 gap-2 overflow-x-auto [scrollbar-width:none] max-sm:[mask-image:linear-gradient(to_right,black_80%,transparent)]">
+            <div className="absolute inset-x-0 bottom-full mb-2 flex justify-center gap-1.5 overflow-x-auto [scrollbar-width:none] max-sm:justify-start max-sm:[mask-image:linear-gradient(to_right,black_80%,transparent)]">
               {text.suggestions.map((suggestion, index) => (
                 <motion.button
                   key={suggestion}
@@ -192,9 +192,9 @@ export function Ask({ className }: { className?: string }) {
                   exit={{ opacity: 0, y: 6, '--glass-blur': '0px', transition: { duration: 0.2 } }}
                   transition={{ duration: 0.45, delay: index * 0.06, ease: EASE_SNAP }}
                   style={GLASS_BLUR}
-                  className="glass-rim relative flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-card/85 px-3 text-[0.8125rem] whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+                  className="glass-rim relative flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-card/85 px-2.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <HugeiconsIcon icon={SUGGESTION_ICONS[index] ?? AiBrain01Icon} size={14} strokeWidth={2} />
+                  <HugeiconsIcon icon={SUGGESTION_ICONS[index] ?? AiBrain01Icon} size={13} strokeWidth={2} />
                   <span>
                     <Letters text={suggestion} delay={0.1 + index * 0.06} step={0.016} />
                   </span>

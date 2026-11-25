@@ -38,7 +38,7 @@ export const copy = (locale: Locale): Copy =>
         send: 'Envoyer',
         book: 'Réserver un appel',
         resume: 'Télécharger le CV',
-        suggestions: ['Ton travail chez Tolk.ai\u202f?', 'Es-tu disponible\u202f?', 'Ton meilleur projet IA\u202f?'],
+        suggestions: ['Ton rôle chez Tolk.ai\u202f?', 'Es-tu disponible\u202f?', 'Ton projet IA phare\u202f?'],
         replies: [
           {
             match: /dispo|libre|poste|cdi|freelance/i,
@@ -67,7 +67,7 @@ export const copy = (locale: Locale): Copy =>
         send: 'Send',
         book: 'Book a call',
         resume: 'Download resume',
-        suggestions: ['Your work at Tolk.ai?', 'Are you available?', 'Your best AI project?'],
+        suggestions: ['Your role at Tolk.ai?', 'Are you available?', 'Best AI project?'],
         replies: [
           {
             match: /availab|open to|hire|full-time|freelance|role/i,
