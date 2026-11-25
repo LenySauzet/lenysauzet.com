@@ -50,7 +50,7 @@ export function Footer({ className }: { className?: string }) {
     <footer className={cn(pageGrid, className)}>
       <RisingBand lane="first" />
 
-      <div className="flex flex-col gap-8 pt-8 pb-32 sm:pb-16 lg:col-start-3">
+      <div className="flex flex-col gap-8 pt-8 pb-36 sm:pb-36 lg:col-start-3">
         <section data-presence="metadata" aria-labelledby="metadata-heading" className="flex flex-col gap-4">
           <h2 id="metadata-heading" className={LABEL}>
             {t('metadata')}
