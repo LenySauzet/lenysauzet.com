@@ -29,6 +29,7 @@ type Message = { id: number; role: 'user'; text: string } | { id: number; role: 
 type Phase = 'hidden' | 'pill' | 'wide' | 'lit';
 
 const BAR = 44;
+const TINY = { width: 52, height: 10 };
 const THINKING_MS = 1800;
 const WORD_MS = 38;
 const SUGGESTION_ICONS = [Briefcase01Icon, Calendar03Icon, AiBrain01Icon];
@@ -53,7 +54,7 @@ export function Ask({ className }: { className?: string }) {
   const resume = useResumeAnchor();
   const still = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('hidden');
-  const [inset, setInset] = useState(0);
+  const [full, setFull] = useState(0);
   const [placeholderSettled, setPlaceholderSettled] = useState(false);
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
@@ -73,7 +74,7 @@ export function Ask({ className }: { className?: string }) {
 
   useLayoutEffect(() => {
     const width = root.current?.offsetWidth ?? 0;
-    setInset(Math.max(0, (width - BAR) / 2));
+    setFull(width);
   }, []);
 
   useEffect(() => {
@@ -88,13 +89,13 @@ export function Ask({ className }: { className?: string }) {
       return;
     }
     at(1200, () => setPhase('pill'));
-    at(1700, () => setPhase('wide'));
-    at(2250, () => {
+    at(1900, () => setPhase('wide'));
+    at(2650, () => {
       setPhase('lit');
       animate(rim, 1, { duration: 0.5 });
       animate(spotX, 30, { duration: 1.7, ease: [0.65, 0, 0.35, 1] });
     });
-    at(2250 + lettersDuration(text.placeholder) * 1000 + 100, () => setPlaceholderSettled(true));
+    at(2650 + lettersDuration(text.placeholder) * 1000 + 100, () => setPlaceholderSettled(true));
   }, [still, spotX, rim, text.placeholder]);
 
   useEffect(() => {
@@ -206,27 +207,26 @@ export function Ask({ className }: { className?: string }) {
 
         <div className="relative">
           <motion.div
-            initial={{
-              opacity: 0,
-              y: 28,
-              '--glass-blur': '0px',
-              clipPath: `inset(0px ${inset}px round ${BAR / 2}px)`,
-            }}
+            initial={{ opacity: 0, y: 10, '--glass-blur': '0px', width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2 }}
             animate={{
               opacity: shown ? 1 : 0,
-              y: shown ? 0 : 28,
+              y: shown ? 0 : 10,
               '--glass-blur': shown ? '20px' : '0px',
-              clipPath: wide ? `inset(0px 0px round ${BAR / 2}px)` : `inset(0px ${inset}px round ${BAR / 2}px)`,
-              borderRadius: expanded ? 26 : BAR / 2,
-              transitionEnd: phase === 'lit' ? { clipPath: 'none' } : {},
+              width: phase === 'lit' ? '100%' : wide ? full : TINY.width,
+              height: phase === 'lit' ? 'auto' : wide ? BAR : TINY.height,
+              borderRadius: expanded ? 26 : wide ? BAR / 2 : TINY.height / 2,
             }}
             transition={{
-              default: { duration: 0.6, ease: EASE_SNAP },
-              clipPath: { duration: 0.65, ease: [0.65, 0, 0.35, 1] },
+              default: { duration: 0.5, ease: EASE_SNAP },
+              width: { duration: 0.7, ease: [0.65, 0, 0.35, 1] },
+              height: { duration: 0.55, delay: phase === 'wide' ? 0.12 : 0, ease: [0.65, 0, 0.35, 1] },
               borderRadius: { duration: 0.45, ease: EASE_SNAP },
             }}
             style={GLASS_BLUR}
-            className="glass-rim relative overflow-hidden bg-card/85 shadow-pill"
+            className={cn(
+              'glass-rim relative mx-auto overflow-hidden bg-card/85 shadow-pill ring-inset transition-[box-shadow] duration-500',
+              wide ? 'ring-0' : 'ring-[1.5px] ring-foreground/35'
+            )}
           >
             <AnimatePresence>
               {expanded && thinking && (
