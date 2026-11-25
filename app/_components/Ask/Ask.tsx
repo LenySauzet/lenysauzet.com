@@ -66,7 +66,6 @@ export function Ask({ className }: { className?: string }) {
   const count = useRef(0);
   const spotX = useMotionValue(92);
   const rim = useMotionValue(0);
-  const flare = useMotionValue(0);
 
   const last = messages.at(-1);
   const busy = last?.role === 'assistant' && last.shown < last.reply.text.split(' ').length;
@@ -82,7 +81,6 @@ export function Ask({ className }: { className?: string }) {
     if (still) {
       spotX.set(30);
       rim.set(1);
-      flare.set(0.3);
       at(0, () => {
         setPhase('lit');
         setPlaceholderSettled(true);
@@ -95,10 +93,9 @@ export function Ask({ className }: { className?: string }) {
       setPhase('lit');
       animate(rim, 1, { duration: 0.5 });
       animate(spotX, 30, { duration: 1.7, ease: [0.65, 0, 0.35, 1] });
-      animate(flare, [0, 1, 0.3], { duration: 1.9, times: [0, 0.45, 1] });
     });
     at(2250 + lettersDuration(text.placeholder) * 1000 + 100, () => setPlaceholderSettled(true));
-  }, [still, spotX, rim, flare, text.placeholder]);
+  }, [still, spotX, rim, text.placeholder]);
 
   useEffect(() => {
     const onPointer = (event: PointerEvent) => {
@@ -118,9 +115,8 @@ export function Ask({ className }: { className?: string }) {
 
   useEffect(() => {
     if (phase !== 'lit') return;
-    animate(flare, focused ? 0.6 : 0.3, { duration: 0.6 });
     animate(spotX, focused ? 24 : 30, { duration: 0.8, ease: EASE_SNAP });
-  }, [focused, phase, flare, spotX]);
+  }, [focused, phase, spotX]);
 
   const ask = (question: string) => {
     const trimmed = question.trim();
@@ -345,7 +341,7 @@ export function Ask({ className }: { className?: string }) {
               </motion.button>
             </form>
           </motion.div>
-          <Spotlight x={spotX} rim={rim} flare={flare} />
+          <Spotlight x={spotX} rim={rim} />
         </div>
       </div>
     </div>

@@ -7,10 +7,9 @@ const SHINE = (alpha: number) => `oklch(from var(--glare) l c h / ${alpha})`;
 interface SpotlightProps {
   x: MotionValue<number>;
   rim: MotionValue<number>;
-  flare: MotionValue<number>;
 }
 
-export function Spotlight({ x, rim, flare }: SpotlightProps) {
+export function Spotlight({ x, rim }: SpotlightProps) {
   const left = useTransform(x, (value) => `${value}%`);
 
   return (
@@ -26,14 +25,6 @@ export function Spotlight({ x, rim, flare }: SpotlightProps) {
           opacity: rim,
           background: `radial-gradient(ellipse 50% 100% at 50% 0%, ${SHINE(0.16)}, transparent)`,
         }}
-      />
-      <motion.span
-        className="absolute top-0 h-6 w-52 -translate-1/2 rounded-full blur-md"
-        style={{ left, opacity: flare, background: `radial-gradient(closest-side, ${SHINE(0.5)}, transparent)` }}
-      />
-      <motion.span
-        className="absolute top-0 h-1 w-20 -translate-1/2 rounded-full blur-[1.5px]"
-        style={{ left, opacity: flare, background: `radial-gradient(closest-side, ${SHINE(1)}, transparent)` }}
       />
     </div>
   );
