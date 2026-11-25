@@ -408,20 +408,12 @@ export function Ask({ className }: { className?: string }) {
                       {typed && (
                         <motion.span
                           key="send"
-                          className="flex items-center"
+                          className="flex items-center pl-1"
                           initial={{ width: 0 }}
                           animate={{ width: 'auto' }}
                           exit={{ width: 0, transition: { ...SNAPPY, delay: 0.08 } }}
                           transition={SNAPPY}
                         >
-                          <motion.span
-                            aria-hidden
-                            className="mx-1.5 h-4 w-px shrink-0 bg-foreground/25"
-                            initial={{ scaleY: 0, opacity: 0 }}
-                            animate={{ scaleY: 1, opacity: 1 }}
-                            exit={{ scaleY: 0, opacity: 0 }}
-                            transition={{ ...SNAPPY, delay: 0.04 }}
-                          />
                           <motion.button
                             type="submit"
                             aria-label={text.send}
