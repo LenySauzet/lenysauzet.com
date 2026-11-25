@@ -33,6 +33,8 @@ type Message = { id: number; role: 'user'; text: string } | { id: number; role: 
 type Phase = 'tiny' | 'wide' | 'lit';
 
 const BAR = 44;
+const FIELD_MAX = 168;
+const INLINE_RESERVED = 20 + 6 + 4 + 80;
 const TINY = { width: 52, height: 10 };
 const SNAPPY = { type: 'spring', stiffness: 260, damping: 22, mass: 0.8 } as const;
 const PLACEHOLDER_STEP = 0.025;
@@ -73,7 +75,10 @@ export function Ask({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const root = useRef<HTMLDivElement>(null);
-  const input = useRef<HTMLInputElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+  const mirror = useRef<HTMLSpanElement>(null);
+  const [stacked, setStacked] = useState(false);
+  const [fieldHeight, setFieldHeight] = useState(BAR);
   const log = useRef<HTMLDivElement>(null);
   const timers = useRef<number[]>([]);
   const count = useRef(0);
@@ -133,6 +138,18 @@ export function Ask({ className }: { className?: string }) {
     log.current?.scrollTo({ top: log.current.scrollHeight });
   }, [messages]);
 
+  useLayoutEffect(() => {
+    const field = input.current;
+    const measure = mirror.current;
+    if (!field || !measure) return;
+    const next = draft.includes('\n') || measure.offsetWidth > full - INLINE_RESERVED;
+    setStacked(next);
+    field.style.height = 'auto';
+    const content = field.scrollHeight;
+    field.style.height = '';
+    setFieldHeight(next ? Math.min(content, FIELD_MAX) : BAR);
+  }, [draft, full, stacked]);
+
   useEffect(() => {
     if (!entered) return;
     animate(glow, focused ? 1 : 0.7, { duration: 0.6 });
@@ -178,7 +195,7 @@ export function Ask({ className }: { className?: string }) {
   };
 
   const expanded = open && messages.length > 0;
-  const offering = focused && !expanded && messages.length === 0;
+  const offering = focused && !expanded && messages.length === 0 && !draft;
   const wide = phase !== 'tiny';
   const lit = phase === 'lit';
   const typed = draft.trim().length > 0;
@@ -303,8 +320,11 @@ export function Ask({ className }: { className?: string }) {
             <form
               onSubmit={submit}
               className={cn(
-                'relative flex h-11 shrink-0 items-center gap-1 pr-1.5 pl-5 transition-[margin,background-color,box-shadow] duration-300',
-                expanded && 'mx-1.5 mb-1.5 rounded-full bg-foreground/[0.04] ring-1 ring-foreground/10 ring-inset'
+                'relative flex shrink-0 flex-wrap items-center justify-end gap-x-1 pr-1.5 pl-5 transition-[margin,background-color,box-shadow,border-radius] duration-300',
+                stacked && 'pb-1.5',
+                expanded &&
+                  'mx-1.5 mb-1.5 bg-foreground/[0.04] ring-1 ring-foreground/10 ring-inset',
+                expanded && (stacked ? 'rounded-[18px]' : 'rounded-full')
               )}
             >
               <AnimatePresence>
@@ -312,7 +332,7 @@ export function Ask({ className }: { className?: string }) {
                   <motion.span
                     key="placeholder"
                     aria-hidden
-                    className="pointer-events-none absolute inset-y-0 left-5 flex items-center text-sm text-foreground"
+                    className="pointer-events-none absolute top-0 left-5 flex h-11 items-center text-sm text-foreground"
                     initial={entered ? { opacity: 0 } : false}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0, transition: { duration: 0.18 } }}
@@ -328,27 +348,49 @@ export function Ask({ className }: { className?: string }) {
                   </motion.span>
                 )}
               </AnimatePresence>
-              <input
-                ref={input}
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onFocus={() => {
-                  setFocused(true);
-                  if (messages.length) setOpen(true);
-                }}
-                onBlur={() => setFocused(false)}
-                aria-label={text.title}
-                enterKeyHint="send"
-                className={cn(
-                  'h-full min-w-0 flex-1 bg-transparent text-sm caret-foreground outline-hidden transition-colors duration-300',
-                  draft ? 'text-foreground' : 'text-transparent'
-                )}
-              />
+              <span
+                ref={mirror}
+                aria-hidden
+                className="pointer-events-none invisible absolute top-0 left-0 text-sm whitespace-pre"
+              >
+                {draft}
+              </span>
+              <motion.div
+                className={cn('relative min-w-0', stacked ? 'basis-full pr-3.5' : 'flex-1')}
+                initial={false}
+                animate={{ height: fieldHeight }}
+                transition={MORPH}
+              >
+                <textarea
+                  ref={input}
+                  rows={1}
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+                    event.preventDefault();
+                    ask(draft);
+                  }}
+                  onFocus={() => {
+                    setFocused(true);
+                    if (messages.length) setOpen(true);
+                  }}
+                  onBlur={() => setFocused(false)}
+                  aria-label={text.title}
+                  enterKeyHint="send"
+                  className={cn(
+                    'block size-full resize-none bg-transparent py-3 text-sm leading-5 caret-foreground outline-hidden transition-colors duration-300 [scrollbar-width:none]',
+                    draft ? 'text-foreground' : 'text-transparent',
+                    stacked ? 'overflow-y-auto pb-1' : 'overflow-hidden'
+                  )}
+                />
+              </motion.div>
               <AnimatePresence>
                 {lit && (
                   <motion.span
                     key="actions"
-                    className="flex items-center"
+                    layout="position"
+                    className="flex h-8 items-center"
                     initial={{ opacity: 0, scale: 0.4, filter: 'blur(6px)' }}
                     animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
                     transition={{ ...SNAPPY, filter: { duration: 0.3 } }}
