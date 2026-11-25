@@ -8,6 +8,7 @@ import {
   Cancel01Icon,
   Download01Icon,
   File01Icon,
+  Mic02Icon,
   PlusSignIcon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -15,8 +16,6 @@ import { animate, AnimatePresence, motion, useMotionValue, useReducedMotion } fr
 import { useLocale } from 'next-intl';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type SubmitEvent } from 'react';
 
-import { AnimatedMicIcon } from '@/components/icons/AnimatedMicIcon';
-import { useAnimatedIcon } from '@/hooks/use-animated-icon';
 import { useBooking } from '@/hooks/use-booking';
 import { useResumeAnchor } from '@/hooks/use-resume-anchor';
 import { EASE_SNAP } from '@/lib/motion';
@@ -67,7 +66,6 @@ export function Ask({ className }: { className?: string }) {
   const book = useBooking();
   const resume = useResumeAnchor();
   const still = useReducedMotion();
-  const { icon: mic, trigger: micTrigger } = useAnimatedIcon();
   const [phase, setPhase] = useState<Phase>('tiny');
   const [full, setFull] = useState(0);
   const [entered, setEntered] = useState(false);
@@ -415,10 +413,9 @@ export function Ask({ className }: { className?: string }) {
                         type="button"
                         aria-label={text.voice}
                         title={text.voice}
-                        {...micTrigger}
-                        className="grid size-8 cursor-pointer place-items-center text-subtle-foreground/70 transition-[color,scale] duration-200 hover:scale-110 hover:text-foreground active:scale-95 motion-reduce:hover:scale-100"
+                          className="grid size-8 cursor-pointer place-items-center text-subtle-foreground/70 transition-[color,scale] duration-200 hover:scale-110 hover:text-foreground active:scale-95 motion-reduce:hover:scale-100"
                       >
-                        <AnimatedMicIcon ref={mic} className="size-[18px]" />
+                        <HugeiconsIcon icon={Mic02Icon} size={18} strokeWidth={1.5} />
                       </button>
                       <AnimatePresence initial={false}>
                         {typed && (
