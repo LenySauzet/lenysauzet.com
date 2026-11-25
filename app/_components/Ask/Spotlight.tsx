@@ -15,16 +15,8 @@ export function Spotlight({ x, rim }: SpotlightProps) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-0">
       <motion.span
-        className="absolute -top-px h-[2px] w-[42%] -translate-x-1/2"
+        className="absolute top-0 h-px w-[42%] -translate-x-1/2"
         style={{ left, opacity: rim, background: `radial-gradient(closest-side, ${SHINE(0.95)}, transparent)` }}
-      />
-      <motion.span
-        className="absolute top-0 h-7 w-[46%] -translate-x-1/2"
-        style={{
-          left,
-          opacity: rim,
-          background: `radial-gradient(ellipse 50% 100% at 50% 0%, ${SHINE(0.16)}, transparent)`,
-        }}
       />
     </div>
   );
