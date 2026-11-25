@@ -311,7 +311,9 @@ export function Ask({ className }: { className?: string }) {
                     {entered ? (
                       <span style={{ opacity: 0.5 }}>{text.placeholder}</span>
                     ) : (
-                      <TwoPassLetters text={text.placeholder} step={PLACEHOLDER_STEP} delay={TEXT_DELAY} />
+                      <span>
+                        <TwoPassLetters text={text.placeholder} step={PLACEHOLDER_STEP} delay={TEXT_DELAY} />
+                      </span>
                     )}
                   </motion.span>
                 )}
