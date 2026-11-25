@@ -29,7 +29,8 @@ import { Orb } from './Orb';
 import { Rim } from './Rim';
 import { copy, replyTo, type Reply } from './script';
 
-type Message = { id: number; role: 'user'; text: string } | { id: number; role: 'assistant'; reply: Reply; shown: number };
+type Message =
+  { id: number; role: 'user'; text: string } | { id: number; role: 'assistant'; reply: Reply; shown: number };
 type Phase = 'tiny' | 'wide' | 'lit';
 
 const BAR = 44;
@@ -235,204 +236,208 @@ export function Ask({ className }: { className?: string }) {
 
         <div className="flex min-h-11 items-center justify-center">
           <motion.div
-            initial={{ width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2, '--glass-blur': '20px' }}
+            initial={{ width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2 }}
             animate={{
               width: wide ? full : TINY.width,
               height: sized ? 'auto' : wide ? BAR : TINY.height,
               borderRadius: expanded ? 26 : wide ? BAR / 2 : TINY.height / 2,
             }}
             transition={{ width: MORPH, height: sized ? { duration: 0 } : MORPH, borderRadius: MORPH }}
-            style={GLASS_BLUR}
             className={cn(
-              'relative flex shrink-0 flex-col justify-end overflow-hidden bg-card/85 shadow-pill transition-[scale] duration-200 motion-reduce:transition-none',
-              !expanded && 'hover:scale-[1.005] has-[:active]:scale-[0.993] motion-reduce:hover:scale-100 motion-reduce:has-[:active]:scale-100'
+              'relative flex shrink-0 flex-col shadow-pill transition-[scale] duration-200 motion-reduce:transition-none',
+              !expanded &&
+                'hover:scale-[1.005] has-[:active]:scale-[0.993] motion-reduce:hover:scale-100 motion-reduce:has-[:active]:scale-100'
             )}
           >
-            <AnimatePresence>
-              {expanded && thinking && (
-                <motion.span
-                  key="glow"
-                  aria-hidden
-                  className="pointer-events-none absolute bottom-6 left-0 h-56 w-40"
-                  style={{
-                    background:
-                      'radial-gradient(ellipse 100% 50% at 0% 50%, oklch(from var(--shine-rim) l c h / 0.22), oklch(from var(--primary) calc(l + 0.2) 0.05 calc(h + 40) / 0.08) 45%, transparent 75%)',
-                  }}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0.55, 1, 0.55] }}
-                  exit={{ opacity: 0, transition: { duration: 0.6 } }}
-                  transition={{ duration: 2.4, ease: 'easeInOut', repeat: Infinity }}
-                />
-              )}
-            </AnimatePresence>
-            <AnimatePresence initial={false}>
-              {expanded && (
-                <motion.section
-                  key="conversation"
-                  aria-label={text.title}
-                  className="overflow-hidden"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ height: MORPH, opacity: { duration: 0.25 } }}
-                >
-                  <header className="flex items-center justify-between py-2.5 pr-2.5 pl-5">
-                    <span className="text-[0.8125rem] text-subtle-foreground">{text.title}</span>
-                    <span className="flex items-center gap-0.5">
-                      <IconButton label={text.newChat} icon={PlusSignIcon} onClick={restart} />
-                      <IconButton label={text.close} icon={Cancel01Icon} onClick={() => setOpen(false)} />
-                    </span>
-                  </header>
-                  <div
-                    ref={log}
-                    role="log"
-                    aria-live="polite"
-                    className="flex max-h-[min(55vh,28rem)] flex-col gap-5 overflow-y-auto px-5 pt-3 pb-4 [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
-                  >
-                    {messages.map((message) =>
-                      message.role === 'user' ? (
-                        <motion.p
-                          key={message.id}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.3, ease: EASE_SNAP }}
-                          className="max-w-[85%] self-end rounded-2xl rounded-br-md bg-foreground/[0.07] px-3.5 py-2 text-sm text-foreground"
-                        >
-                          {message.text}
-                        </motion.p>
-                      ) : (
-                        <Answer
-                          key={message.id}
-                          reply={message.reply}
-                          shown={message.shown}
-                          thinkingLabel={text.thinking}
-                          actionLabel={message.reply.action === 'book' ? text.book : text.resume}
-                          onAction={message.reply.action === 'book' ? book : undefined}
-                          resume={resume}
-                        />
-                      )
-                    )}
-                  </div>
-                </motion.section>
-              )}
-            </AnimatePresence>
-
-            <form
-              onSubmit={submit}
-              className={cn(
-                'relative flex shrink-0 flex-wrap items-center justify-end gap-x-1 pr-1.5 pl-5 transition-[margin,background-color,box-shadow,border-radius] duration-300',
-                stacked && 'pb-1.5',
-                expanded &&
-                  'mx-1.5 mb-1.5 bg-foreground/[0.04] ring-1 ring-foreground/10 ring-inset',
-                expanded && (stacked ? 'rounded-[18px]' : 'rounded-full')
-              )}
+            <div
+              style={{ ...GLASS_BLUR, '--glass-blur': '20px' } as CSSProperties}
+              className="relative flex flex-1 flex-col justify-end overflow-hidden rounded-[inherit] bg-card/85"
             >
               <AnimatePresence>
-                {!draft && lit && (
+                {expanded && thinking && (
                   <motion.span
-                    key="placeholder"
+                    key="glow"
                     aria-hidden
-                    className="pointer-events-none absolute top-0 left-5 flex h-11 items-center text-sm text-foreground"
-                    initial={entered ? { opacity: 0 } : false}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0, transition: { duration: 0.18 } }}
-                    transition={{ duration: 0.25 }}
+                    className="pointer-events-none absolute bottom-6 left-0 h-56 w-40"
+                    style={{
+                      background:
+                        'radial-gradient(ellipse 100% 50% at 0% 50%, oklch(from var(--shine-rim) l c h / 0.22), oklch(from var(--primary) calc(l + 0.2) 0.05 calc(h + 40) / 0.08) 45%, transparent 75%)',
+                    }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0.55, 1, 0.55] }}
+                    exit={{ opacity: 0, transition: { duration: 0.6 } }}
+                    transition={{ duration: 2.4, ease: 'easeInOut', repeat: Infinity }}
+                  />
+                )}
+              </AnimatePresence>
+              <AnimatePresence initial={false}>
+                {expanded && (
+                  <motion.section
+                    key="conversation"
+                    aria-label={text.title}
+                    className="overflow-hidden"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ height: MORPH, opacity: { duration: 0.25 } }}
                   >
-                    {entered ? (
-                      <span style={{ opacity: 0.5 }}>{text.placeholder}</span>
-                    ) : (
-                      <span>
-                        <TwoPassLetters text={text.placeholder} step={PLACEHOLDER_STEP} delay={TEXT_DELAY} />
+                    <header className="flex items-center justify-between py-2.5 pr-2.5 pl-5">
+                      <span className="text-[0.8125rem] text-subtle-foreground">{text.title}</span>
+                      <span className="flex items-center gap-0.5">
+                        <IconButton label={text.newChat} icon={PlusSignIcon} onClick={restart} />
+                        <IconButton label={text.close} icon={Cancel01Icon} onClick={() => setOpen(false)} />
                       </span>
-                    )}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-              <span
-                ref={mirror}
-                aria-hidden
-                className="pointer-events-none invisible absolute top-0 left-0 text-sm whitespace-pre"
-              >
-                {draft}
-              </span>
-              <motion.div
-                className={cn('relative min-w-0', stacked ? 'basis-full pr-3.5' : 'flex-1')}
-                initial={false}
-                animate={{ height: fieldHeight }}
-                transition={MORPH}
-              >
-                <textarea
-                  ref={input}
-                  rows={1}
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
-                    event.preventDefault();
-                    ask(draft);
-                  }}
-                  onFocus={() => {
-                    setFocused(true);
-                    if (messages.length) setOpen(true);
-                  }}
-                  onBlur={() => setFocused(false)}
-                  aria-label={text.title}
-                  enterKeyHint="send"
-                  className={cn(
-                    'block size-full resize-none bg-transparent py-3 text-sm leading-5 caret-foreground outline-hidden transition-colors duration-300 [scrollbar-width:none]',
-                    draft ? 'text-foreground' : 'text-transparent',
-                    stacked ? 'overflow-y-auto pb-1' : 'overflow-hidden'
-                  )}
-                />
-              </motion.div>
-              <AnimatePresence>
-                {lit && (
-                  <motion.span
-                    key="actions"
-                    layout="position"
-                    className="flex h-8 items-center"
-                    initial={{ opacity: 0, scale: 0.4, filter: 'blur(6px)' }}
-                    animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
-                    transition={{ ...SNAPPY, filter: { duration: 0.3 } }}
-                  >
-                    <button
-                      type="button"
-                      aria-label={text.voice}
-                      title={text.voice}
-                      {...micTrigger}
-                      className="grid size-8 cursor-pointer place-items-center text-subtle-foreground/70 transition-[color,scale] duration-200 hover:scale-110 hover:text-foreground active:scale-95 motion-reduce:hover:scale-100"
+                    </header>
+                    <div
+                      ref={log}
+                      role="log"
+                      aria-live="polite"
+                      className="flex max-h-[min(55vh,28rem)] flex-col gap-5 overflow-y-auto px-5 pt-3 pb-4 [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
                     >
-                      <AnimatedMicIcon ref={mic} className="size-[18px]" />
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {typed && (
-                        <motion.span
-                          key="send"
-                          className="flex items-center pl-1"
-                          initial={{ width: 0 }}
-                          animate={{ width: 'auto' }}
-                          exit={{ width: 0, transition: { ...SNAPPY, delay: 0.08 } }}
-                          transition={SNAPPY}
-                        >
-                          <motion.button
-                            type="submit"
-                            aria-label={text.send}
-                            disabled={busy}
-                            initial={{ scale: 0, opacity: 0, filter: 'blur(6px)' }}
-                            animate={{ scale: 1, opacity: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
-                            exit={{ scale: 0, opacity: 0, filter: 'blur(6px)' }}
-                            transition={{ ...SNAPPY, delay: 0.08, filter: { duration: 0.3, delay: 0.08 } }}
-                            className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full bg-foreground/[0.06] text-foreground/80 shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.08)] ring-1 ring-foreground/15 transition-[background-color,color] ring-inset hover:bg-foreground/10 hover:text-foreground disabled:cursor-default disabled:opacity-40"
+                      {messages.map((message) =>
+                        message.role === 'user' ? (
+                          <motion.p
+                            key={message.id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, ease: EASE_SNAP }}
+                            className="max-w-[85%] self-end rounded-2xl rounded-br-md bg-foreground/[0.07] px-3.5 py-2 text-sm text-foreground"
                           >
-                            <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} />
-                          </motion.button>
-                        </motion.span>
+                            {message.text}
+                          </motion.p>
+                        ) : (
+                          <Answer
+                            key={message.id}
+                            reply={message.reply}
+                            shown={message.shown}
+                            thinkingLabel={text.thinking}
+                            actionLabel={message.reply.action === 'book' ? text.book : text.resume}
+                            onAction={message.reply.action === 'book' ? book : undefined}
+                            resume={resume}
+                          />
+                        )
                       )}
-                    </AnimatePresence>
-                  </motion.span>
+                    </div>
+                  </motion.section>
                 )}
               </AnimatePresence>
-            </form>
+
+              <form
+                onSubmit={submit}
+                className={cn(
+                  'relative flex shrink-0 flex-wrap items-center justify-end gap-x-1 pr-1.5 pl-5 transition-[margin,background-color,box-shadow,border-radius] duration-300',
+                  stacked && 'pb-1.5',
+                  expanded && 'mx-1.5 mb-1.5 bg-foreground/[0.04] ring-1 ring-foreground/10 ring-inset',
+                  expanded && (stacked ? 'rounded-[18px]' : 'rounded-full')
+                )}
+              >
+                <AnimatePresence>
+                  {!draft && lit && (
+                    <motion.span
+                      key="placeholder"
+                      aria-hidden
+                      className="pointer-events-none absolute top-0 left-5 flex h-11 items-center text-sm text-foreground"
+                      initial={entered ? { opacity: 0 } : false}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0, transition: { duration: 0.18 } }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      {entered ? (
+                        <span style={{ opacity: 0.5 }}>{text.placeholder}</span>
+                      ) : (
+                        <span>
+                          <TwoPassLetters text={text.placeholder} step={PLACEHOLDER_STEP} delay={TEXT_DELAY} />
+                        </span>
+                      )}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                <span
+                  ref={mirror}
+                  aria-hidden
+                  className="pointer-events-none invisible absolute top-0 left-0 text-sm whitespace-pre"
+                >
+                  {draft}
+                </span>
+                <motion.div
+                  className={cn('relative min-w-0', stacked ? 'basis-full pr-3.5' : 'flex-1')}
+                  initial={false}
+                  animate={{ height: fieldHeight }}
+                  transition={MORPH}
+                >
+                  <textarea
+                    ref={input}
+                    rows={1}
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+                      event.preventDefault();
+                      ask(draft);
+                    }}
+                    onFocus={() => {
+                      setFocused(true);
+                      if (messages.length) setOpen(true);
+                    }}
+                    onBlur={() => setFocused(false)}
+                    aria-label={text.title}
+                    enterKeyHint="send"
+                    className={cn(
+                      'block size-full resize-none bg-transparent py-3 text-sm leading-5 caret-foreground outline-hidden transition-colors duration-300 [scrollbar-width:none]',
+                      draft ? 'text-foreground' : 'text-transparent',
+                      stacked ? 'overflow-y-auto pb-1' : 'overflow-hidden'
+                    )}
+                  />
+                </motion.div>
+                <AnimatePresence>
+                  {lit && (
+                    <motion.span
+                      key="actions"
+                      layout="position"
+                      className="flex h-8 items-center"
+                      initial={{ opacity: 0, scale: 0.4, filter: 'blur(6px)' }}
+                      animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
+                      transition={{ ...SNAPPY, filter: { duration: 0.3 } }}
+                    >
+                      <button
+                        type="button"
+                        aria-label={text.voice}
+                        title={text.voice}
+                        {...micTrigger}
+                        className="grid size-8 cursor-pointer place-items-center text-subtle-foreground/70 transition-[color,scale] duration-200 hover:scale-110 hover:text-foreground active:scale-95 motion-reduce:hover:scale-100"
+                      >
+                        <AnimatedMicIcon ref={mic} className="size-[18px]" />
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {typed && (
+                          <motion.span
+                            key="send"
+                            className="flex items-center pl-1"
+                            initial={{ width: 0 }}
+                            animate={{ width: 'auto' }}
+                            exit={{ width: 0, transition: { ...SNAPPY, delay: 0.08 } }}
+                            transition={SNAPPY}
+                          >
+                            <motion.button
+                              type="submit"
+                              aria-label={text.send}
+                              disabled={busy}
+                              initial={{ scale: 0, opacity: 0, filter: 'blur(6px)' }}
+                              animate={{ scale: 1, opacity: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
+                              exit={{ scale: 0, opacity: 0, filter: 'blur(6px)' }}
+                              transition={{ ...SNAPPY, delay: 0.08, filter: { duration: 0.3, delay: 0.08 } }}
+                              className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full bg-foreground/[0.06] text-foreground/80 shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.08)] ring-1 ring-foreground/15 transition-[background-color,color] ring-inset hover:bg-foreground/10 hover:text-foreground disabled:cursor-default disabled:opacity-40"
+                            >
+                              <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} />
+                            </motion.button>
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </form>
+            </div>
             <Rim x={shineX} glow={glow} />
           </motion.div>
         </div>
