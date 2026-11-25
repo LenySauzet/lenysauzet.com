@@ -224,7 +224,10 @@ export function Ask({ className }: { className?: string }) {
             }}
             transition={{ width: MORPH, height: sized ? { duration: 0 } : MORPH, borderRadius: MORPH }}
             style={GLASS_BLUR}
-            className="relative flex shrink-0 flex-col justify-end overflow-hidden bg-card/85 shadow-pill"
+            className={cn(
+              'relative flex shrink-0 flex-col justify-end overflow-hidden bg-card/85 shadow-pill transition-[scale] duration-200 motion-reduce:transition-none',
+              !expanded && 'hover:scale-[1.01] has-[:active]:scale-[0.985] motion-reduce:hover:scale-100 motion-reduce:has-[:active]:scale-100'
+            )}
           >
             <AnimatePresence>
               {expanded && thinking && (
@@ -414,7 +417,7 @@ function Suggestion({ index, label, icon, onPick }: SuggestionProps) {
       exit={{ opacity: 0, scale: 0.85, '--glass-blur': '0px', transition: { duration: 0.18 } }}
       transition={{ ...MORPH, delay, opacity: { duration: 0.25, delay } }}
       style={GLASS_BLUR}
-      className="relative flex h-7 shrink-0 cursor-pointer items-center gap-1.5 overflow-hidden rounded-full border border-foreground/12 bg-card/85 px-2.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+      className="relative flex h-7 shrink-0 cursor-pointer items-center gap-1.5 overflow-hidden rounded-full border border-foreground/12 bg-card/85 px-2.5 text-xs whitespace-nowrap text-muted-foreground transition-[color,scale] duration-200 hover:scale-[1.04] hover:text-foreground active:scale-[0.96] motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
     >
       <motion.span
         className="flex items-center gap-1.5"
