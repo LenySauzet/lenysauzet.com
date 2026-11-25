@@ -18,6 +18,7 @@ interface Copy {
   newChat: string;
   close: string;
   send: string;
+  voice: string;
   book: string;
   resume: string;
   suggestions: string[];
@@ -36,6 +37,7 @@ export const copy = (locale: Locale): Copy =>
         newChat: 'Nouvelle conversation',
         close: 'Fermer',
         send: 'Envoyer',
+        voice: 'Dicter',
         book: 'Réserver un appel',
         resume: 'Télécharger le CV',
         suggestions: ['Ton rôle chez Tolk.ai\u202f?', 'Es-tu disponible\u202f?', 'Ton projet IA phare\u202f?'],
@@ -65,6 +67,7 @@ export const copy = (locale: Locale): Copy =>
         newChat: 'New chat',
         close: 'Close',
         send: 'Send',
+        voice: 'Dictate',
         book: 'Book a call',
         resume: 'Download resume',
         suggestions: ['Your role at Tolk.ai?', 'Are you available?', 'Best AI project?'],

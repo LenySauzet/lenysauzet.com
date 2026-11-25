@@ -3,6 +3,7 @@
 import {
   AiBrain01Icon,
   ArrowUp02Icon,
+  AudioWave01Icon,
   Briefcase01Icon,
   Calendar03Icon,
   Cancel01Icon,
@@ -20,19 +21,22 @@ import { useResumeAnchor } from '@/hooks/use-resume-anchor';
 import { EASE_SNAP } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
-import { MORPH } from '../Island/motion';
-
-import { Letters, lettersDuration } from './Letters';
+import { Letters, TwoPassLetters, twoPassDuration } from './Letters';
 import { Orb } from './Orb';
+import { Rim } from './Rim';
 import { copy, replyTo, type Reply } from './script';
-import { Spotlight } from './Spotlight';
 
 type Message = { id: number; role: 'user'; text: string } | { id: number; role: 'assistant'; reply: Reply; shown: number };
-type Phase = 'hidden' | 'pill' | 'wide' | 'lit';
+type Phase = 'tiny' | 'wide' | 'lit';
 
 const BAR = 44;
 const TINY = { width: 52, height: 10 };
-const PLACEHOLDER_STEP = 0.04;
+const SOFT = { type: 'spring', stiffness: 120, damping: 17, mass: 1 } as const;
+const SNAPPY = { type: 'spring', stiffness: 260, damping: 22, mass: 0.8 } as const;
+const PLACEHOLDER_STEP = 0.035;
+const TEXT_DELAY = 0.25;
+const EXPAND_AT = 900;
+const LIT_AT = 1750;
 const THINKING_MS = 1800;
 const WORD_MS = 38;
 const SUGGESTION_ICONS = [Briefcase01Icon, Calendar03Icon, AiBrain01Icon];
@@ -56,9 +60,9 @@ export function Ask({ className }: { className?: string }) {
   const book = useBooking();
   const resume = useResumeAnchor();
   const still = useReducedMotion();
-  const [phase, setPhase] = useState<Phase>('hidden');
+  const [phase, setPhase] = useState<Phase>('tiny');
   const [full, setFull] = useState(0);
-  const [placeholderSettled, setPlaceholderSettled] = useState(false);
+  const [entered, setEntered] = useState(false);
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
   const [open, setOpen] = useState(false);
@@ -68,40 +72,43 @@ export function Ask({ className }: { className?: string }) {
   const log = useRef<HTMLDivElement>(null);
   const timers = useRef<number[]>([]);
   const count = useRef(0);
-  const spotX = useMotionValue(92);
-  const rim = useMotionValue(0);
+  const shineX = useMotionValue(100);
+  const glow = useMotionValue(0);
 
   const last = messages.at(-1);
   const busy = last?.role === 'assistant' && last.shown < last.reply.text.split(' ').length;
   const thinking = last?.role === 'assistant' && last.shown === 0;
 
   useLayoutEffect(() => {
-    const width = root.current?.offsetWidth ?? 0;
-    setFull(width);
+    const element = root.current;
+    if (!element) return;
+    const measure = () => setFull(element.offsetWidth);
+    measure();
+    const resized = new ResizeObserver(measure);
+    resized.observe(element);
+    return () => resized.disconnect();
   }, []);
 
   useEffect(() => {
     const at = (ms: number, run: () => void) => timers.current.push(window.setTimeout(run, ms));
     if (still) {
-      spotX.set(30);
-      rim.set(1);
+      shineX.set(30);
+      glow.set(0.7);
       at(0, () => {
         setPhase('lit');
-        setPlaceholderSettled(true);
+        setEntered(true);
       });
       return;
     }
-    const reveal = lettersDuration(text.placeholder, PLACEHOLDER_STEP);
-    at(1000, () => setPhase('pill'));
-    at(1300, () => setPhase('wide'));
-    at(1900, () => {
+    const sweep = twoPassDuration(text.placeholder, PLACEHOLDER_STEP);
+    at(EXPAND_AT, () => setPhase('wide'));
+    at(LIT_AT, () => {
       setPhase('lit');
-      spotX.set(90);
-      animate(rim, 1, { duration: 0.2 });
-      animate(spotX, 30, { duration: reveal + 0.3, ease: [0.33, 0, 0.3, 1] });
+      animate(glow, [0, 1, 0.7], { duration: sweep, delay: TEXT_DELAY, times: [0, 0.2, 1] });
+      animate(shineX, 30, { duration: sweep, delay: TEXT_DELAY, ease: [0.4, 0, 0.2, 1] });
     });
-    at(1900 + reveal * 1000 + 100, () => setPlaceholderSettled(true));
-  }, [still, spotX, rim, text.placeholder]);
+    at(LIT_AT + (TEXT_DELAY + sweep) * 1000, () => setEntered(true));
+  }, [still, shineX, glow, text.placeholder]);
 
   useEffect(() => {
     const onPointer = (event: PointerEvent) => {
@@ -120,9 +127,10 @@ export function Ask({ className }: { className?: string }) {
   }, [messages]);
 
   useEffect(() => {
-    if (!placeholderSettled) return;
-    animate(spotX, focused ? 24 : 30, { duration: 0.8, ease: EASE_SNAP });
-  }, [focused, placeholderSettled, spotX]);
+    if (!entered) return;
+    animate(glow, focused ? 1 : 0.7, { duration: 0.6 });
+    animate(shineX, focused ? 24 : 30, { duration: 0.8, ease: EASE_SNAP });
+  }, [focused, entered, glow, shineX]);
 
   const ask = (question: string) => {
     const trimmed = question.trim();
@@ -164,8 +172,9 @@ export function Ask({ className }: { className?: string }) {
 
   const expanded = open && messages.length > 0;
   const offering = focused && !expanded && messages.length === 0;
-  const shown = phase !== 'hidden';
-  const wide = phase === 'wide' || phase === 'lit';
+  const wide = phase !== 'tiny';
+  const lit = phase === 'lit';
+  const typed = draft.trim().length > 0;
 
   return (
     <div
@@ -188,46 +197,29 @@ export function Ask({ className }: { className?: string }) {
           {offering && (
             <div className="absolute inset-x-0 bottom-full mb-2 flex justify-center gap-1.5 overflow-x-auto [scrollbar-width:none] max-sm:justify-start max-sm:[mask-image:linear-gradient(to_right,black_80%,transparent)]">
               {text.suggestions.map((suggestion, index) => (
-                <motion.button
+                <Suggestion
                   key={suggestion}
-                  type="button"
-                  onPointerDown={(event) => event.preventDefault()}
-                  onClick={() => ask(suggestion)}
-                  initial={{ opacity: 0, y: 8, '--glass-blur': '0px' }}
-                  animate={{ opacity: 1, y: 0, '--glass-blur': '16px' }}
-                  exit={{ opacity: 0, y: 6, '--glass-blur': '0px', transition: { duration: 0.2 } }}
-                  transition={{ duration: 0.45, delay: index * 0.06, ease: EASE_SNAP }}
-                  style={GLASS_BLUR}
-                  className="glass-rim relative flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-card/85 px-2.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <HugeiconsIcon icon={SUGGESTION_ICONS[index] ?? AiBrain01Icon} size={13} strokeWidth={2} />
-                  <span>
-                    <Letters text={suggestion} delay={0.1 + index * 0.06} step={0.016} />
-                  </span>
-                </motion.button>
+                  index={index}
+                  label={suggestion}
+                  icon={SUGGESTION_ICONS[index] ?? AiBrain01Icon}
+                  onPick={() => ask(suggestion)}
+                />
               ))}
             </div>
           )}
         </AnimatePresence>
 
-        <div className="relative">
+        <div className="flex min-h-11 items-center justify-center">
           <motion.div
-            initial={{ opacity: 0, '--glass-blur': '0px', width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2 }}
+            initial={{ width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2, '--glass-blur': '20px' }}
             animate={{
-              opacity: shown ? 1 : 0,
-              '--glass-blur': shown ? '20px' : '0px',
-              width: phase === 'lit' ? '100%' : wide ? full : TINY.width,
-              height: phase === 'lit' ? 'auto' : wide ? BAR : TINY.height,
+              width: wide ? full : TINY.width,
+              height: lit ? 'auto' : wide ? BAR : TINY.height,
               borderRadius: expanded ? 26 : wide ? BAR / 2 : TINY.height / 2,
             }}
-            transition={{
-              default: { duration: 0.3, ease: EASE_SNAP },
-              width: MORPH,
-              height: MORPH,
-              borderRadius: MORPH,
-            }}
+            transition={{ width: SOFT, height: lit ? { duration: 0 } : SOFT, borderRadius: SOFT }}
             style={GLASS_BLUR}
-            className="glass-rim relative mx-auto flex flex-col justify-end overflow-hidden bg-card/85 shadow-pill"
+            className="relative flex shrink-0 flex-col justify-end overflow-hidden bg-card/85 shadow-pill"
           >
             <AnimatePresence>
               {expanded && thinking && (
@@ -251,12 +243,13 @@ export function Ask({ className }: { className?: string }) {
                 <motion.section
                   key="conversation"
                   aria-label={text.title}
+                  className="overflow-hidden"
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.45, ease: EASE_SNAP }}
+                  transition={{ height: SOFT, opacity: { duration: 0.25 } }}
                 >
-                  <header className="flex items-center justify-between py-2.5 pr-2.5 pl-4">
+                  <header className="flex items-center justify-between py-2.5 pr-2.5 pl-5">
                     <span className="text-[0.8125rem] text-subtle-foreground">{text.title}</span>
                     <span className="flex items-center gap-0.5">
                       <IconButton label={text.newChat} icon={PlusSignIcon} onClick={restart} />
@@ -267,7 +260,7 @@ export function Ask({ className }: { className?: string }) {
                     ref={log}
                     role="log"
                     aria-live="polite"
-                    className="flex max-h-[min(55vh,28rem)] flex-col gap-5 overflow-y-auto px-4 pt-3 pb-4 [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
+                    className="flex max-h-[min(55vh,28rem)] flex-col gap-5 overflow-y-auto px-5 pt-3 pb-4 [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
                   >
                     {messages.map((message) =>
                       message.role === 'user' ? (
@@ -300,20 +293,29 @@ export function Ask({ className }: { className?: string }) {
             <form
               onSubmit={submit}
               className={cn(
-                'relative flex h-11 items-center gap-2 pr-1.5 pl-4 transition-[margin,background-color,box-shadow] duration-300',
+                'relative flex h-11 shrink-0 items-center gap-1 pr-1.5 pl-5 transition-[margin,background-color,box-shadow] duration-300',
                 expanded && 'mx-1.5 mb-1.5 rounded-full bg-foreground/[0.04] ring-1 ring-foreground/10 ring-inset'
               )}
             >
-              {!draft && phase === 'lit' && (
-                <span aria-hidden className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm">
-                  <span
-                    className={placeholderSettled ? 'shine' : 'text-subtle-foreground'}
-                    style={placeholderSettled ? SHINE_PLACEHOLDER : undefined}
+              <AnimatePresence>
+                {!draft && lit && (
+                  <motion.span
+                    key="placeholder"
+                    aria-hidden
+                    className="pointer-events-none absolute inset-y-0 left-5 flex items-center text-sm text-foreground"
+                    initial={entered ? { opacity: 0 } : false}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.18 } }}
+                    transition={{ duration: 0.25 }}
                   >
-                    <Letters text={text.placeholder} step={PLACEHOLDER_STEP} />
-                  </span>
-                </span>
-              )}
+                    {entered ? (
+                      <span style={{ opacity: 0.5 }}>{text.placeholder}</span>
+                    ) : (
+                      <TwoPassLetters text={text.placeholder} step={PLACEHOLDER_STEP} delay={TEXT_DELAY} />
+                    )}
+                  </motion.span>
+                )}
+              </AnimatePresence>
               <input
                 ref={input}
                 value={draft}
@@ -325,29 +327,100 @@ export function Ask({ className }: { className?: string }) {
                 onBlur={() => setFocused(false)}
                 aria-label={text.title}
                 enterKeyHint="send"
-                className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-hidden"
+                className={cn(
+                  'h-full min-w-0 flex-1 bg-transparent text-sm caret-foreground outline-hidden transition-colors duration-300',
+                  draft ? 'text-foreground' : 'text-transparent'
+                )}
               />
-              <motion.button
-                type="submit"
-                aria-label={text.send}
-                disabled={!draft.trim() || busy}
-                initial={{ opacity: 0, scale: 0.4, filter: 'blur(6px)' }}
-                animate={
-                  phase === 'lit'
-                    ? { opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }
-                    : { opacity: 0, scale: 0.4, filter: 'blur(6px)' }
-                }
-                transition={{ ...MORPH, delay: phase === 'lit' ? 0.12 : 0, filter: { duration: 0.35, delay: 0.12 } }}
-                className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full bg-foreground text-background shadow-[inset_0_1px_0_oklch(from_var(--shine-rim)_l_c_h/0.3)] transition-[background-color,color] active:scale-95 disabled:cursor-default disabled:bg-foreground/[0.06] disabled:text-subtle-foreground disabled:ring-1 disabled:ring-foreground/10 disabled:ring-inset"
-              >
-                <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} />
-              </motion.button>
+              <AnimatePresence>
+                {lit && (
+                  <motion.span
+                    key="actions"
+                    className="flex items-center"
+                    initial={{ opacity: 0, scale: 0.4, filter: 'blur(6px)' }}
+                    animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
+                    transition={{ ...SNAPPY, filter: { duration: 0.3 } }}
+                  >
+                    <button
+                      type="button"
+                      aria-label={text.voice}
+                      title={text.voice}
+                      className="grid size-8 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+                    >
+                      <HugeiconsIcon icon={AudioWave01Icon} size={17} strokeWidth={2} />
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {typed && (
+                        <motion.span
+                          key="send"
+                          className="flex items-center overflow-hidden"
+                          initial={{ width: 0, opacity: 0 }}
+                          animate={{ width: 'auto', opacity: 1 }}
+                          exit={{ width: 0, opacity: 0 }}
+                          transition={{ width: SNAPPY, opacity: { duration: 0.2 } }}
+                        >
+                          <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-foreground/15" />
+                          <motion.button
+                            type="submit"
+                            aria-label={text.send}
+                            disabled={busy}
+                            initial={{ scale: 0.5, filter: 'blur(4px)' }}
+                            animate={{ scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
+                            exit={{ scale: 0.5 }}
+                            transition={{ ...SNAPPY, filter: { duration: 0.25 } }}
+                            className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full bg-foreground text-background active:scale-95 disabled:cursor-default disabled:opacity-40"
+                          >
+                            <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} />
+                          </motion.button>
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </form>
+            <Rim x={shineX} glow={glow} />
           </motion.div>
-          <Spotlight x={spotX} rim={rim} />
         </div>
       </div>
     </div>
+  );
+}
+
+interface SuggestionProps {
+  index: number;
+  label: string;
+  icon: typeof PlusSignIcon;
+  onPick: () => void;
+}
+
+function Suggestion({ index, label, icon, onPick }: SuggestionProps) {
+  const delay = index * 0.08;
+
+  return (
+    <motion.button
+      type="button"
+      onPointerDown={(event) => event.preventDefault()}
+      onClick={onPick}
+      initial={{ opacity: 0, scale: 0.7, '--glass-blur': '0px' }}
+      animate={{ opacity: 1, scale: 1, '--glass-blur': '16px' }}
+      exit={{ opacity: 0, scale: 0.85, '--glass-blur': '0px', transition: { duration: 0.18 } }}
+      transition={{ ...SOFT, delay, opacity: { duration: 0.25, delay } }}
+      style={GLASS_BLUR}
+      className="relative flex h-7 shrink-0 cursor-pointer items-center gap-1.5 overflow-hidden rounded-full border border-foreground/12 bg-card/85 px-2.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+    >
+      <motion.span
+        className="flex items-center gap-1.5"
+        initial={{ x: 28 }}
+        animate={{ x: 0 }}
+        transition={{ ...SOFT, delay }}
+      >
+        <HugeiconsIcon icon={icon} size={13} strokeWidth={2} />
+        <span>
+          <Letters text={label} delay={delay + 0.05} step={0.018} />
+        </span>
+      </motion.span>
+    </motion.button>
   );
 }
 
