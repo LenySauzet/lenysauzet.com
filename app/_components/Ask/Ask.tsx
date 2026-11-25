@@ -41,8 +41,10 @@ const SNAPPY = { type: 'spring', stiffness: 260, damping: 22, mass: 0.8 } as con
 const PLACEHOLDER_STEP = 0.025;
 const TEXT_DELAY = 0.05;
 const EXPAND_AT = 180;
-const LIT_AT = EXPAND_AT + 260;
-const SIZED_AT = EXPAND_AT + 900;
+const LIT_AFTER = 260;
+const REACH = 90;
+const LETS_GO = 140;
+const COLLAPSE_AFTER = 300;
 const THINKING_MS = 1800;
 const WORD_MS = 38;
 const SUGGESTION_ICONS = [Briefcase01Icon, Calendar03Icon, AiBrain01Icon];
@@ -69,7 +71,9 @@ export function Ask({ className }: { className?: string }) {
   const [phase, setPhase] = useState<Phase>('tiny');
   const [full, setFull] = useState(0);
   const [entered, setEntered] = useState(false);
-  const [sized, setSized] = useState(false);
+  const [near, setNear] = useState(false);
+  const [touch, setTouch] = useState(false);
+  const firstWake = useRef(true);
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -102,27 +106,77 @@ export function Ask({ className }: { className?: string }) {
   }, []);
 
   useEffect(() => {
-    const at = (ms: number, run: () => void) => timers.current.push(window.setTimeout(run, ms));
-    if (still) {
-      shineX.set(30);
-      glow.set(0.7);
-      at(0, () => {
-        setPhase('lit');
-        setSized(true);
-        setEntered(true);
+    const query = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const update = () => setTouch(!query.matches);
+    const initial = window.setTimeout(update);
+    query.addEventListener('change', update);
+    return () => {
+      window.clearTimeout(initial);
+      query.removeEventListener('change', update);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onMove = (event: PointerEvent) => {
+      const slot = root.current;
+      if (event.pointerType !== 'mouse' || !slot) return;
+      const bounds = slot.getBoundingClientRect();
+      setNear((was) => {
+        const reach = was ? LETS_GO : REACH;
+        return (
+          event.clientY >= bounds.top - reach &&
+          event.clientX >= bounds.left - reach &&
+          event.clientX <= bounds.right + reach
+        );
       });
-      return;
+    };
+    const onLeave = () => setNear(false);
+    window.addEventListener('pointermove', onMove, { passive: true });
+    document.documentElement.addEventListener('pointerleave', onLeave);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      document.documentElement.removeEventListener('pointerleave', onLeave);
+    };
+  }, []);
+
+  const expanded = open && messages.length > 0;
+  const awake = Boolean(still) || touch || near || focused || draft.length > 0 || expanded;
+
+  useEffect(() => {
+    const local: number[] = [];
+    const at = (ms: number, run: () => void) => local.push(window.setTimeout(run, ms));
+
+    if (!awake) {
+      at(COLLAPSE_AFTER, () => {
+        setPhase((current) => (current === 'lit' ? 'wide' : current));
+        animate(glow, 0, { duration: 0.2 });
+      });
+      at(COLLAPSE_AFTER + 120, () => setPhase('tiny'));
+      return () => local.forEach(window.clearTimeout);
     }
-    const sweep = twoPassDuration(text.placeholder, PLACEHOLDER_STEP);
-    at(EXPAND_AT, () => setPhase('wide'));
-    at(SIZED_AT, () => setSized(true));
-    at(LIT_AT, () => {
+
+    const start = firstWake.current && touch && !still ? EXPAND_AT : 0;
+    at(start, () => setPhase((current) => (current === 'tiny' ? 'wide' : current)));
+    at(start + (still ? 0 : LIT_AFTER), () => {
       setPhase('lit');
+      if (!firstWake.current) {
+        animate(glow, 0.7, { duration: 0.4 });
+        return;
+      }
+      firstWake.current = false;
+      if (still) {
+        shineX.set(30);
+        glow.set(0.7);
+        setEntered(true);
+        return;
+      }
+      const sweep = twoPassDuration(text.placeholder, PLACEHOLDER_STEP);
       animate(glow, [0, 1, 0.7], { duration: sweep, delay: TEXT_DELAY, times: [0, 0.2, 1] });
       animate(shineX, 30, { duration: sweep, delay: TEXT_DELAY, ease: [0.4, 0, 0.2, 1] });
+      timers.current.push(window.setTimeout(() => setEntered(true), (TEXT_DELAY + sweep) * 1000));
     });
-    at(LIT_AT + (TEXT_DELAY + sweep) * 1000, () => setEntered(true));
-  }, [still, shineX, glow, text.placeholder]);
+    return () => local.forEach(window.clearTimeout);
+  }, [awake, touch, still, glow, shineX, text.placeholder]);
 
   useEffect(() => {
     const onPointer = (event: PointerEvent) => {
@@ -196,12 +250,11 @@ export function Ask({ className }: { className?: string }) {
     input.current?.focus();
   };
 
-  const expanded = open && messages.length > 0;
   const offering = focused && !expanded && messages.length === 0 && !draft;
   const wide = phase !== 'tiny';
   const lit = phase === 'lit';
   const typed = draft.trim().length > 0;
-  const nudge = expanded || stacked || still ? 0 : pressed ? -4 : hovered ? 4 : 0;
+  const nudge = !lit || expanded || stacked || still ? 0 : pressed ? -4 : hovered ? 4 : 0;
 
   return (
     <div
@@ -241,12 +294,12 @@ export function Ask({ className }: { className?: string }) {
             initial={{ width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2 }}
             animate={{
               width: wide ? full + nudge : TINY.width,
-              height: sized ? 'auto' : wide ? BAR : TINY.height,
+              height: lit ? 'auto' : wide ? BAR : TINY.height,
               borderRadius: expanded ? 26 : wide ? BAR / 2 : TINY.height / 2,
             }}
             transition={{
               width: entered ? NUDGE : MORPH,
-              height: sized ? { duration: 0 } : MORPH,
+              height: lit ? { duration: 0 } : MORPH,
               borderRadius: MORPH,
             }}
             onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(true)}
@@ -407,6 +460,7 @@ export function Ask({ className }: { className?: string }) {
                       className="flex h-8 items-center"
                       initial={{ opacity: 0, scale: 0.4, filter: 'blur(6px)' }}
                       animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
+                      exit={{ opacity: 0, scale: 0.6, filter: 'blur(4px)', transition: { duration: 0.12 } }}
                       transition={{ ...SNAPPY, filter: { duration: 0.3 } }}
                     >
                       <button
