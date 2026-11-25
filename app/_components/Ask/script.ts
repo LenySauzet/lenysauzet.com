@@ -30,7 +30,7 @@ const resume = (locale: Locale) => (locale === 'fr' ? '/fr/resume' : '/resume');
 export const copy = (locale: Locale): Copy =>
   locale === 'fr'
     ? {
-        placeholder: 'Pose-moi une question sur mon travail…',
+        placeholder: 'Demande-moi n’importe quoi…',
         title: 'Demander à Lény',
         thinking: 'Réflexion…',
         newChat: 'Nouvelle conversation',
@@ -38,11 +38,7 @@ export const copy = (locale: Locale): Copy =>
         send: 'Envoyer',
         book: 'Réserver un appel',
         resume: 'Télécharger le CV',
-        suggestions: [
-          'Qu’as-tu construit chez Tolk.ai ?',
-          'Es-tu disponible ?',
-          'Quel projet montre ton travail en IA ?',
-        ],
+        suggestions: ['Ton travail chez Tolk.ai\u202f?', 'Es-tu disponible\u202f?', 'Ton meilleur projet IA\u202f?'],
         replies: [
           {
             match: /dispo|libre|poste|cdi|freelance/i,
@@ -63,7 +59,7 @@ export const copy = (locale: Locale): Copy =>
         },
       }
     : {
-        placeholder: 'Ask me anything about my work…',
+        placeholder: 'Ask me anything…',
         title: 'Ask Lény',
         thinking: 'Thinking…',
         newChat: 'New chat',
@@ -71,7 +67,7 @@ export const copy = (locale: Locale): Copy =>
         send: 'Send',
         book: 'Book a call',
         resume: 'Download resume',
-        suggestions: ['What did you build at Tolk.ai?', 'Are you available?', 'Which project shows your AI work best?'],
+        suggestions: ['Your work at Tolk.ai?', 'Are you available?', 'Your best AI project?'],
         replies: [
           {
             match: /availab|open to|hire|full-time|freelance|role/i,
