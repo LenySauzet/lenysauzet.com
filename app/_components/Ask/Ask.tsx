@@ -20,6 +20,8 @@ import { useResumeAnchor } from '@/hooks/use-resume-anchor';
 import { EASE_SNAP } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
+import { MORPH } from '../Island/motion';
+
 import { Letters, lettersDuration } from './Letters';
 import { Orb } from './Orb';
 import { copy, replyTo, type Reply } from './script';
@@ -30,6 +32,7 @@ type Phase = 'hidden' | 'pill' | 'wide' | 'lit';
 
 const BAR = 44;
 const TINY = { width: 52, height: 10 };
+const PLACEHOLDER_STEP = 0.04;
 const THINKING_MS = 1800;
 const WORD_MS = 38;
 const SUGGESTION_ICONS = [Briefcase01Icon, Calendar03Icon, AiBrain01Icon];
@@ -88,14 +91,16 @@ export function Ask({ className }: { className?: string }) {
       });
       return;
     }
-    at(1200, () => setPhase('pill'));
-    at(1900, () => setPhase('wide'));
-    at(2650, () => {
+    const reveal = lettersDuration(text.placeholder, PLACEHOLDER_STEP);
+    at(1000, () => setPhase('pill'));
+    at(1300, () => setPhase('wide'));
+    at(1900, () => {
       setPhase('lit');
-      animate(rim, 1, { duration: 0.5 });
-      animate(spotX, 30, { duration: 1.7, ease: [0.65, 0, 0.35, 1] });
+      spotX.set(90);
+      animate(rim, 1, { duration: 0.2 });
+      animate(spotX, 30, { duration: reveal + 0.3, ease: [0.33, 0, 0.3, 1] });
     });
-    at(2650 + lettersDuration(text.placeholder) * 1000 + 100, () => setPlaceholderSettled(true));
+    at(1900 + reveal * 1000 + 100, () => setPlaceholderSettled(true));
   }, [still, spotX, rim, text.placeholder]);
 
   useEffect(() => {
@@ -115,9 +120,9 @@ export function Ask({ className }: { className?: string }) {
   }, [messages]);
 
   useEffect(() => {
-    if (phase !== 'lit') return;
+    if (!placeholderSettled) return;
     animate(spotX, focused ? 24 : 30, { duration: 0.8, ease: EASE_SNAP });
-  }, [focused, phase, spotX]);
+  }, [focused, placeholderSettled, spotX]);
 
   const ask = (question: string) => {
     const trimmed = question.trim();
@@ -207,26 +212,22 @@ export function Ask({ className }: { className?: string }) {
 
         <div className="relative">
           <motion.div
-            initial={{ opacity: 0, y: 10, '--glass-blur': '0px', width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2 }}
+            initial={{ opacity: 0, '--glass-blur': '0px', width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2 }}
             animate={{
               opacity: shown ? 1 : 0,
-              y: shown ? 0 : 10,
               '--glass-blur': shown ? '20px' : '0px',
               width: phase === 'lit' ? '100%' : wide ? full : TINY.width,
               height: phase === 'lit' ? 'auto' : wide ? BAR : TINY.height,
               borderRadius: expanded ? 26 : wide ? BAR / 2 : TINY.height / 2,
             }}
             transition={{
-              default: { duration: 0.5, ease: EASE_SNAP },
-              width: { duration: 0.7, ease: [0.65, 0, 0.35, 1] },
-              height: { duration: 0.55, delay: phase === 'wide' ? 0.12 : 0, ease: [0.65, 0, 0.35, 1] },
-              borderRadius: { duration: 0.45, ease: EASE_SNAP },
+              default: { duration: 0.3, ease: EASE_SNAP },
+              width: MORPH,
+              height: MORPH,
+              borderRadius: MORPH,
             }}
             style={GLASS_BLUR}
-            className={cn(
-              'glass-rim relative mx-auto overflow-hidden bg-card/85 shadow-pill ring-inset transition-[box-shadow] duration-500',
-              wide ? 'ring-0' : 'ring-[1.5px] ring-foreground/35'
-            )}
+            className="glass-rim relative mx-auto flex flex-col justify-end overflow-hidden bg-card/85 shadow-pill"
           >
             <AnimatePresence>
               {expanded && thinking && (
@@ -303,17 +304,14 @@ export function Ask({ className }: { className?: string }) {
                 expanded && 'mx-1.5 mb-1.5 rounded-full bg-foreground/[0.04] ring-1 ring-foreground/10 ring-inset'
               )}
             >
-              {!draft && wide && (
+              {!draft && phase === 'lit' && (
                 <span aria-hidden className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm">
-                  {placeholderSettled ? (
-                    <span className="shine" style={SHINE_PLACEHOLDER}>
-                      {text.placeholder}
-                    </span>
-                  ) : (
-                    <span className="text-subtle-foreground">
-                      <Letters text={text.placeholder} delay={0.55} />
-                    </span>
-                  )}
+                  <span
+                    className={placeholderSettled ? 'shine' : 'text-subtle-foreground'}
+                    style={placeholderSettled ? SHINE_PLACEHOLDER : undefined}
+                  >
+                    <Letters text={text.placeholder} step={PLACEHOLDER_STEP} />
+                  </span>
                 </span>
               )}
               <input
@@ -333,8 +331,13 @@ export function Ask({ className }: { className?: string }) {
                 type="submit"
                 aria-label={text.send}
                 disabled={!draft.trim() || busy}
-                animate={{ opacity: wide ? 1 : 0, scale: wide ? 1 : 0.6 }}
-                transition={{ duration: 0.4, delay: wide ? 0.35 : 0, ease: EASE_SNAP }}
+                initial={{ opacity: 0, scale: 0.4, filter: 'blur(6px)' }}
+                animate={
+                  phase === 'lit'
+                    ? { opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }
+                    : { opacity: 0, scale: 0.4, filter: 'blur(6px)' }
+                }
+                transition={{ ...MORPH, delay: phase === 'lit' ? 0.12 : 0, filter: { duration: 0.35, delay: 0.12 } }}
                 className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full bg-foreground text-background shadow-[inset_0_1px_0_oklch(from_var(--shine-rim)_l_c_h/0.3)] transition-[background-color,color] active:scale-95 disabled:cursor-default disabled:bg-foreground/[0.06] disabled:text-subtle-foreground disabled:ring-1 disabled:ring-foreground/10 disabled:ring-inset"
               >
                 <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} />
