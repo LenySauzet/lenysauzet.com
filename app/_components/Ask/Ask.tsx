@@ -42,8 +42,10 @@ const PLACEHOLDER_STEP = 0.025;
 const TEXT_DELAY = 0.05;
 const EXPAND_AT = 180;
 const LIT_AFTER = 260;
-const REACH = 90;
-const LETS_GO = 140;
+const WAKE_HEIGHT = 24;
+const WAKE_HALF_WIDTH = 140;
+const STAY_REACH = 64;
+const TINY_DROP = 30;
 const COLLAPSE_AFTER = 300;
 const THINKING_MS = 1800;
 const WORD_MS = 38;
@@ -121,14 +123,14 @@ export function Ask({ className }: { className?: string }) {
       const slot = root.current;
       if (event.pointerType !== 'mouse' || !slot) return;
       const bounds = slot.getBoundingClientRect();
-      setNear((was) => {
-        const reach = was ? LETS_GO : REACH;
-        return (
-          event.clientY >= bounds.top - reach &&
-          event.clientX >= bounds.left - reach &&
-          event.clientX <= bounds.right + reach
-        );
-      });
+      const middle = (bounds.left + bounds.right) / 2;
+      setNear((was) =>
+        was
+          ? event.clientY >= bounds.top - STAY_REACH &&
+            event.clientX >= bounds.left - STAY_REACH &&
+            event.clientX <= bounds.right + STAY_REACH
+          : event.clientY >= bounds.top - WAKE_HEIGHT && Math.abs(event.clientX - middle) <= WAKE_HALF_WIDTH
+      );
     };
     const onLeave = () => setNear(false);
     window.addEventListener('pointermove', onMove, { passive: true });
@@ -291,9 +293,10 @@ export function Ask({ className }: { className?: string }) {
 
         <div className="flex min-h-11 items-center justify-center">
           <motion.div
-            initial={{ width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2 }}
+            initial={{ width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2, y: TINY_DROP }}
             animate={{
               width: wide ? full + nudge : TINY.width,
+              y: wide ? 0 : TINY_DROP,
               height: lit ? 'auto' : wide ? BAR : TINY.height,
               borderRadius: expanded ? 26 : wide ? BAR / 2 : TINY.height / 2,
             }}
@@ -301,6 +304,7 @@ export function Ask({ className }: { className?: string }) {
               width: entered ? NUDGE : MORPH,
               height: lit ? { duration: 0 } : MORPH,
               borderRadius: MORPH,
+              y: MORPH,
             }}
             onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(true)}
             onPointerLeave={() => {
