@@ -61,6 +61,7 @@ const FIELD_MAX = 200;
 const ACTIONS_ROOM = 84;
 const ACTIONS_ROW = 44;
 const TINY = { width: 52, height: 10 };
+const SETTLE = { type: 'spring', stiffness: 260, damping: 34 } as const;
 const NUDGE = { type: 'spring', stiffness: 420, damping: 30 } as const;
 const SNAPPY = { type: 'spring', stiffness: 260, damping: 22, mass: 0.8 } as const;
 const PLACEHOLDER_STEP = 0.025;
@@ -371,10 +372,10 @@ export function Ask({ className }: { className?: string }) {
               borderRadius: expanded ? 26 : wide ? BAR / 2 : TINY.height / 2,
             }}
             transition={{
-              width: entered ? NUDGE : MORPH,
-              height: lit ? { duration: 0 } : MORPH,
-              borderRadius: MORPH,
-              y: MORPH,
+              width: !wide ? SETTLE : entered ? NUDGE : MORPH,
+              height: lit ? { duration: 0 } : wide ? MORPH : SETTLE,
+              borderRadius: wide ? MORPH : SETTLE,
+              y: wide ? MORPH : SETTLE,
             }}
             onPointerEnter={(event) => event.pointerType === 'mouse' && setHovered(true)}
             onPointerLeave={() => {
