@@ -19,6 +19,8 @@ interface Copy {
   newChat: string;
   close: string;
   send: string;
+  copy: string;
+  copied: string;
   voice: string;
   book: string;
   resume: string;
@@ -39,6 +41,8 @@ export const copy = (locale: Locale): Copy =>
         newChat: 'Nouvelle conversation',
         close: 'Fermer',
         send: 'Envoyer',
+        copy: 'Copier la réponse',
+        copied: 'Copiée',
         voice: 'Dicter',
         book: 'Réserver un appel',
         resume: 'Télécharger le CV',
@@ -70,6 +74,8 @@ export const copy = (locale: Locale): Copy =>
         newChat: 'New chat',
         close: 'Close',
         send: 'Send',
+        copy: 'Copy answer',
+        copied: 'Copied',
         voice: 'Dictate',
         book: 'Book a call',
         resume: 'Download resume',

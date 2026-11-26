@@ -5,10 +5,12 @@ import {
   ArrowUp02Icon,
   Briefcase01Icon,
   Calendar03Icon,
+  Copy01Icon,
   Download01Icon,
   File01Icon,
   Mic02Icon,
   PlusSignIcon,
+  Tick02Icon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -465,6 +467,7 @@ export function Ask({ className }: { className?: string }) {
                                 actionLabel={message.reply.action === 'book' ? text.book : text.resume}
                                 onAction={message.reply.action === 'book' ? book : undefined}
                                 resume={resume}
+                                copyLabels={{ copy: text.copy, copied: text.copied }}
                               />
                             </Arrival>
                           )
@@ -785,6 +788,7 @@ function EdgeLight({ frame, orb }: Omit<LightProps, 'thinking'>) {
 }
 
 interface AnswerProps {
+  copyLabels: { copy: string; copied: string };
   reply: Reply;
   shown: number;
   thinkingLabel: string;
@@ -794,7 +798,7 @@ interface AnswerProps {
   orbRef?: Ref<HTMLSpanElement>;
 }
 
-function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume, orbRef }: AnswerProps) {
+function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume, orbRef, copyLabels }: AnswerProps) {
   const words = reply.text.split(' ');
   const done = shown >= words.length;
   const thinking = shown === 0;
@@ -844,6 +848,7 @@ function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume, or
             actionLabel={actionLabel}
             onAction={onAction}
             resume={resume}
+            copyLabels={copyLabels}
           />
         )}
       </AnimatePresence>
@@ -941,6 +946,7 @@ function Arrival({ children, delay = 0, className }: { children: ReactNode; dela
 }
 
 interface AnswerBodyProps {
+  copyLabels: { copy: string; copied: string };
   words: string[];
   shown: number;
   done: boolean;
@@ -950,7 +956,7 @@ interface AnswerBodyProps {
   resume: ReturnType<typeof useResumeAnchor>;
 }
 
-function AnswerBody({ words, shown, done, reply, actionLabel, onAction, resume }: AnswerBodyProps) {
+function AnswerBody({ words, shown, done, reply, actionLabel, onAction, resume, copyLabels }: AnswerBodyProps) {
   return (
     <div className="flex min-w-0 flex-col pt-0.5">
       <p className="text-sm leading-relaxed text-foreground/90">
@@ -997,9 +1003,48 @@ function AnswerBody({ words, shown, done, reply, actionLabel, onAction, resume }
                 {actionLabel}
               </a>
             )}
+            <CopyAnswer text={reply.text} labels={copyLabels} />
           </motion.div>
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function CopyAnswer({ text, labels }: { text: string; labels: { copy: string; copied: string } }) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const reset = window.setTimeout(() => setCopied(false), 1600);
+    return () => window.clearTimeout(reset);
+  }, [copied]);
+
+  return (
+    <button
+      type="button"
+      aria-label={copied ? labels.copied : labels.copy}
+      title={copied ? labels.copied : labels.copy}
+      onClick={() => {
+        void navigator.clipboard?.writeText(text).then(() => setCopied(true));
+      }}
+      className="ml-auto grid size-7 cursor-pointer place-items-center rounded-full text-subtle-foreground transition-[color,background-color,scale] hover:bg-foreground/[0.06] hover:text-foreground active:scale-95"
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={copied ? 'copied' : 'copy'}
+          initial={{ opacity: 0, scale: 0.6, filter: 'blur(3px)' }}
+          animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, scale: 0.6, filter: 'blur(3px)' }}
+          transition={{ duration: 0.16 }}
+          className="grid place-items-center"
+        >
+          <HugeiconsIcon icon={copied ? Tick02Icon : Copy01Icon} size={14} strokeWidth={2} />
+        </motion.span>
+      </AnimatePresence>
+      <span aria-live="polite" className="sr-only">
+        {copied ? labels.copied : ''}
+      </span>
+    </button>
   );
 }
