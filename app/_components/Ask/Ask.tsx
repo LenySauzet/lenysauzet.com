@@ -862,7 +862,7 @@ function Fit({ children, className, contentClassName, delay = 0, fade = false, e
       initial={{ height: 0, opacity: fade ? 0 : 1 }}
       animate={{ height, opacity: 1 }}
       exit={exit}
-      transition={{ height: { ...MORPH, delay: arrived ? 0 : delay }, opacity: { duration: 0.25 } }}
+      transition={{ height: { duration: 0.42, ease: EASE_SNAP, delay: arrived ? 0 : delay }, opacity: { duration: 0.25 } }}
       onAnimationComplete={() => setArrived(true)}
     >
       <div ref={content} className={contentClassName}>
