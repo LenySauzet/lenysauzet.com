@@ -61,6 +61,7 @@ const TINY_DROP = 30;
 const TOP_ZONE = 64;
 const COLLAPSE_AFTER = 80;
 const THINKING_MS = 1800;
+const HELD = 1e9;
 const WORD_MS = 38;
 const SUGGESTION_ICONS = [Briefcase01Icon, Calendar03Icon, AiBrain01Icon];
 const GLASS_BLUR: CSSProperties = {
@@ -76,6 +77,8 @@ const SHIMMER_TEXT: CSSProperties = {
   WebkitBackgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
 };
+
+const holdThinking = () => new URLSearchParams(window.location.search).has('debugGlow');
 
 export function Ask({ className }: { className?: string }) {
   const locale = useLocale();
@@ -263,7 +266,7 @@ export function Ask({ className }: { className?: string }) {
             setMessages((current) =>
               current.map((message) => (message.id === id + 1 ? { ...message, shown: word } : message))
             ),
-          THINKING_MS + word * WORD_MS
+          (holdThinking() ? HELD : THINKING_MS) + word * WORD_MS
         )
       );
     }
@@ -620,6 +623,7 @@ const BUBBLE_RIM: CSSProperties = {
 function useAvatarPoint(frame: RefObject<HTMLDivElement | null>, orb: RefObject<HTMLSpanElement | null>) {
   const x = useMotionValue(36);
   const y = useMotionValue(0);
+  const size = useMotionValue(30);
   const height = useMotionValue(0);
   const width = useMotionValue(0);
 
@@ -627,20 +631,21 @@ function useAvatarPoint(frame: RefObject<HTMLDivElement | null>, orb: RefObject<
     let raf = 0;
     const follow = () => {
       const box = frame.current?.getBoundingClientRect();
-      const mark = orb.current?.getBoundingClientRect();
+      const mark = (orb.current?.querySelector('canvas') ?? orb.current)?.getBoundingClientRect();
       if (box) {
         height.set(box.height);
         width.set(box.width);
         x.set(mark ? mark.left + mark.width / 2 - box.left : 36);
         y.set(mark ? mark.top + mark.height / 2 - box.top : box.height - 72);
+        if (mark) size.set(mark.width * SPHERE_SHARE);
       }
       raf = requestAnimationFrame(follow);
     };
     raf = requestAnimationFrame(follow);
     return () => cancelAnimationFrame(raf);
-  }, [frame, orb, x, y, height, width]);
+  }, [frame, orb, x, y, height, width, size]);
 
-  return { x, y, height, width };
+  return { x, y, height, width, size };
 }
 
 const MILK = (alpha: number) => `oklch(from var(--glare) l c h / ${alpha})`;
@@ -652,10 +657,11 @@ interface LightProps {
   thinking: boolean;
 }
 
-const GLOW_SCALE = 4;
+const GLOW_SCALE = 2;
+const SPHERE_SHARE = 0.47;
 
 function Aura({ frame, orb, thinking }: LightProps) {
-  const { x, y, height, width } = useAvatarPoint(frame, orb);
+  const { x, y, height, width, size } = useAvatarPoint(frame, orb);
   const canvas = useRef<HTMLCanvasElement>(null);
   const curve = useRef<SVGPathElement>(null);
   const [debug, setDebug] = useState(false);
@@ -674,15 +680,15 @@ function Aura({ frame, orb, thinking }: LightProps) {
     const draw = () => {
       const columns = Math.ceil(width.get() / GLOW_SCALE);
       const rows = Math.ceil(height.get() / GLOW_SCALE);
-      const key = `${columns}x${rows}@${Math.round(x.get())},${Math.round(y.get())}`;
+      const key = `${columns}x${rows}@${Math.round(x.get())},${Math.round(y.get())},${Math.round(size.get())}`;
       if (columns > 0 && rows > 0 && key !== drawn) {
         drawn = key;
         element.width = columns;
         element.height = rows;
         const image = context.createImageData(columns, rows);
-        const avatar = { x: x.get(), y: y.get() };
+        const avatar = { x: x.get(), y: y.get(), size: size.get() };
         const box = { width: width.get(), height: height.get() };
-        paintGlow(image, GLOW_SCALE, avatar, box);
+        paintGlow(image, GLOW_SCALE, avatar);
         context.putImageData(image, 0, 0);
         curve.current?.setAttribute('d', boundaryPath(avatar, box));
       }
@@ -690,7 +696,7 @@ function Aura({ frame, orb, thinking }: LightProps) {
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [x, y, height, width, debug]);
+  }, [x, y, height, width, size, debug]);
 
   return (
     <>
@@ -705,7 +711,7 @@ function Aura({ frame, orb, thinking }: LightProps) {
         }
         style={{ transformOrigin: '0% 85%' }}
       >
-        <canvas ref={canvas} className="absolute inset-0 size-full blur-[8px]" />
+        <canvas ref={canvas} className="absolute inset-0 size-full blur-[4px]" />
       </motion.div>
       {debug && (
         <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible">
@@ -766,14 +772,14 @@ function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume, or
         <motion.span
           className="absolute top-1/2 left-1/2 -translate-1/2"
           initial={false}
-          animate={{ scale: thinking ? 1 : 0.75 }}
+          animate={{ scale: thinking ? 1 : 0.75, x: thinking ? 12 : 0 }}
           transition={MORPH}
         >
           <Orb count={thinking ? (cluster ? 4 : 2) : 1} spin={thinking} size={64} />
         </motion.span>
       </span>
       {thinking ? (
-        <span className="shimmer pt-1 pl-3.5 text-sm" style={SHIMMER_TEXT}>
+        <span className="shimmer pt-1 pl-7 text-sm" style={SHIMMER_TEXT}>
           {thinkingLabel}
         </span>
       ) : (
