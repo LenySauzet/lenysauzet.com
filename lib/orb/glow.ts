@@ -4,11 +4,6 @@ export interface Avatar {
   size: number;
 }
 
-export interface Box {
-  width: number;
-  height: number;
-}
-
 type Color = readonly [number, number, number];
 
 const SILVER: Color = [0.86, 0.88, 0.92];
@@ -33,12 +28,6 @@ export function glowAt(x: number, y: number, avatar: Avatar) {
   const light = STRENGTH * curve * Math.exp(-Math.max(x, 0) / depthAt(y, avatar));
   const color = LAVENDER.map((channel, index) => channel + (SILVER[index]! - channel) * curve) as unknown as Color;
   return { light, color };
-}
-
-export function guidePath(avatar: Avatar, box: Box, step = 4) {
-  const points: string[] = [];
-  for (let y = 0; y <= box.height; y += step) points.push(`${depthAt(y, avatar).toFixed(1)},${y}`);
-  return `M${points.join('L')}`;
 }
 
 export function paintGlow(image: ImageData, scale: number, avatar: Avatar) {

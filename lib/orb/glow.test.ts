@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { depthAt, glowAt, guidePath } from './glow';
+import { depthAt, glowAt } from './glow';
 
 const D = 30;
 const avatar = { x: 50, y: 330, size: D };
@@ -35,9 +35,5 @@ describe('the edge glow', () => {
     const [, hg, hb] = glowAt(0, avatar.y, avatar).color;
     const [, eg, eb] = glowAt(0, avatar.y - 3 * D, avatar).color;
     expect(eb - eg).toBeGreaterThan(hb - hg);
-  });
-
-  it('traces its curve for debugging', () => {
-    expect(guidePath(avatar, { width: 480, height: 420 }, 20).split('L')).toHaveLength(22);
   });
 });

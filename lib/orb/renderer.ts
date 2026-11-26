@@ -177,7 +177,10 @@ class Renderer {
         gl.viewport(0, 0, target.width, target.height);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.uniform4fv(program.spheres, spheres.flatMap((sphere) => [sphere.x, sphere.y, sphere.r, sphere.a]));
+        gl.uniform4fv(
+          program.spheres,
+          spheres.flatMap((sphere) => [sphere.x, sphere.y, sphere.r, sphere.a])
+        );
         gl.uniform1f(program.pixel, pixel);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         target.context.clearRect(0, 0, target.width, target.height);

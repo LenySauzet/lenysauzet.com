@@ -3,10 +3,9 @@
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 
+import { breathe, LAYOUTS, rest, step, type Count } from '@/lib/orb/layout';
+import { orbRenderer } from '@/lib/orb/renderer';
 import { cn } from '@/lib/utils';
-
-import { breathe, LAYOUTS, rest, step, type Count } from './orb/layout';
-import { orbRenderer } from './orb/renderer';
 
 interface OrbProps {
   count?: Count;
@@ -63,11 +62,6 @@ export function Orb({ count = 1, size = 28, spin = false, className }: OrbProps)
   }, [size, still]);
 
   return (
-    <canvas
-      ref={canvas}
-      aria-hidden
-      className={cn('shrink-0', className)}
-      style={{ width: size, height: size }}
-    />
+    <canvas ref={canvas} aria-hidden className={cn('shrink-0', className)} style={{ width: size, height: size }} />
   );
 }

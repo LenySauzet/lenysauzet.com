@@ -2,11 +2,7 @@
 
 import { motion, useMotionTemplate, type MotionValue } from 'motion/react';
 
-export const RING = {
-  mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-  maskComposite: 'exclude',
-  WebkitMaskComposite: 'xor',
-} as const;
+import { RING } from './styles';
 
 interface RimProps {
   x: MotionValue<number>;
