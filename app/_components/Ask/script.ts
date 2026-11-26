@@ -24,7 +24,7 @@ interface Copy {
   voice: string;
   book: string;
   resume: string;
-  suggestions: string[];
+  topics: string[];
   replies: { match: RegExp; reply: Reply }[];
   fallback: Reply;
 }
@@ -46,7 +46,7 @@ export const copy = (locale: Locale): Copy =>
         voice: 'Dicter',
         book: 'Réserver un appel',
         resume: 'Télécharger le CV',
-        suggestions: ['Ton rôle chez Tolk.ai\u202f?', 'Es-tu disponible\u202f?', 'Ton projet IA phare\u202f?'],
+        topics: ['Ton rôle chez Tolk.ai\u202f?', 'Es-tu disponible\u202f?', 'Ton projet IA phare\u202f?'],
         replies: [
           {
             match: /dispo|libre|poste|cdi|freelance/i,
@@ -79,7 +79,7 @@ export const copy = (locale: Locale): Copy =>
         voice: 'Dictate',
         book: 'Book a call',
         resume: 'Download resume',
-        suggestions: ['Your role at Tolk.ai?', 'Are you available?', 'Best AI project?'],
+        topics: ['Your role at Tolk.ai?', 'Are you available?', 'Best AI project?'],
         replies: [
           {
             match: /availab|open to|hire|full-time|freelance|role/i,

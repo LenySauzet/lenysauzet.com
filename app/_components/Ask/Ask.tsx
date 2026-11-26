@@ -78,7 +78,7 @@ const COLLAPSE_AFTER = 80;
 const THINKING_MS = 1800;
 const HELD = 1e9;
 const WORD_MS = 38;
-const SUGGESTION_ICONS = [Briefcase01Icon, Calendar03Icon, AiBrain01Icon];
+const TOPIC_ICONS = [Briefcase01Icon, Calendar03Icon, AiBrain01Icon];
 const GLASS_BLUR: CSSProperties = {
   backdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
   WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
@@ -364,13 +364,13 @@ export function Ask({ className }: { className?: string }) {
         <AnimatePresence>
           {offering && (
             <div className="absolute inset-x-0 bottom-full mb-2 flex justify-center gap-1.5 overflow-x-auto [scrollbar-width:none] max-sm:justify-start max-sm:[mask-image:linear-gradient(to_right,black_80%,transparent)]">
-              {text.suggestions.map((suggestion, index) => (
-                <Suggestion
-                  key={suggestion}
+              {text.topics.map((topic, index) => (
+                <Topic
+                  key={topic}
                   index={index}
-                  label={suggestion}
-                  icon={SUGGESTION_ICONS[index] ?? AiBrain01Icon}
-                  onPick={() => ask(suggestion)}
+                  label={topic}
+                  icon={TOPIC_ICONS[index] ?? AiBrain01Icon}
+                  onPick={() => ask(topic)}
                 />
               ))}
             </div>
@@ -619,14 +619,14 @@ export function Ask({ className }: { className?: string }) {
   );
 }
 
-interface SuggestionProps {
+interface TopicProps {
   index: number;
   label: string;
   icon: typeof PlusSignIcon;
   onPick: () => void;
 }
 
-function Suggestion({ index, label, icon, onPick }: SuggestionProps) {
+function Topic({ index, label, icon, onPick }: TopicProps) {
   const delay = index * 0.05;
 
   return (
