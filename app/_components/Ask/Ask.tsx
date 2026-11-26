@@ -704,14 +704,18 @@ function Aura({ frame, orb, thinking }: LightProps) {
         aria-hidden
         className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
         initial={{ opacity: 0 }}
-        animate={thinking ? { opacity: [0.82, 1, 0.82], scale: [1, 1.025, 1] } : { opacity: 0.1, scale: 1 }}
+        animate={{ opacity: thinking ? 1 : 0 }}
         exit={{ opacity: 0, transition: { duration: 0.4 } }}
-        transition={
-          thinking ? { duration: 3.2, ease: 'easeInOut', repeat: Infinity } : { duration: 0.9, ease: 'easeOut' }
-        }
-        style={{ transformOrigin: '0% 85%' }}
+        transition={{ duration: thinking ? 0.7 : 0.9, ease: 'easeInOut' }}
       >
-        <canvas ref={canvas} className="absolute inset-0 size-full" />
+        <motion.div
+          className="absolute inset-0"
+          animate={{ opacity: [0.82, 1, 0.82], scale: [1, 1.025, 1] }}
+          transition={{ duration: 3.2, ease: 'easeInOut', repeat: Infinity }}
+          style={{ transformOrigin: '0% 85%' }}
+        >
+          <canvas ref={canvas} className="absolute inset-0 size-full" />
+        </motion.div>
       </motion.div>
       {debug && (
         <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible">
