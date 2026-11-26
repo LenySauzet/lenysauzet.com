@@ -66,7 +66,7 @@ export function Orb({ count = 1, size = 28, spin = false, className }: OrbProps)
     <canvas
       ref={canvas}
       aria-hidden
-      className={cn('shrink-0 dark:mix-blend-plus-lighter', className)}
+      className={cn('shrink-0', className)}
       style={{ width: size, height: size }}
     />
   );
