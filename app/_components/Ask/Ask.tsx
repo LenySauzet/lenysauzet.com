@@ -48,7 +48,7 @@ const WAKE_HALF_WIDTH = 140;
 const STAY_REACH = 64;
 const TINY_DROP = 30;
 const TOP_ZONE = 64;
-const COLLAPSE_AFTER = 300;
+const COLLAPSE_AFTER = 80;
 const THINKING_MS = 1800;
 const WORD_MS = 38;
 const SUGGESTION_ICONS = [Briefcase01Icon, Calendar03Icon, AiBrain01Icon];
@@ -166,7 +166,7 @@ export function Ask({ className }: { className?: string }) {
         setPhase((current) => (current === 'lit' ? 'wide' : current));
         animate(glow, 0, { duration: 0.2 });
       });
-      at(COLLAPSE_AFTER + 120, () => setPhase('tiny'));
+      at(COLLAPSE_AFTER + 90, () => setPhase('tiny'));
       return () => local.forEach(window.clearTimeout);
     }
 
