@@ -2,7 +2,7 @@
 
 import { motion, useMotionTemplate, type MotionValue } from 'motion/react';
 
-const RING = {
+export const RING = {
   mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
   maskComposite: 'exclude',
   WebkitMaskComposite: 'xor',

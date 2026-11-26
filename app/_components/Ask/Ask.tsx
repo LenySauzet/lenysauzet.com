@@ -5,17 +5,34 @@ import {
   ArrowUp02Icon,
   Briefcase01Icon,
   Calendar03Icon,
-  Cancel01Icon,
   Download01Icon,
   File01Icon,
   Mic02Icon,
   PlusSignIcon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { animate, AnimatePresence, motion, useMotionValue, useReducedMotion } from 'motion/react';
+import {
+  animate,
+  AnimatePresence,
+  motion,
+  useMotionTemplate,
+  useMotionValue,
+  useReducedMotion,
+} from 'motion/react';
 import { useLocale } from 'next-intl';
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type SubmitEvent } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type Ref,
+  type RefObject,
+  type SubmitEvent,
+} from 'react';
 
+import { CircleXIcon, type CircleXIconHandle } from '@/components/ui/circle-x';
+import { RefreshIcon, type RefreshIconHandle } from '@/components/ui/refresh';
 import { useBooking } from '@/hooks/use-booking';
 import { useResumeAnchor } from '@/hooks/use-resume-anchor';
 import { EASE_SNAP } from '@/lib/motion';
@@ -25,7 +42,7 @@ import { MORPH } from '../Island/motion';
 
 import { Letters, TwoPassLetters, twoPassDuration } from './Letters';
 import { Orb } from './Orb';
-import { Rim } from './Rim';
+import { RING, Rim } from './Rim';
 import { copy, replyTo, type Reply } from './script';
 
 type Message =
@@ -58,9 +75,9 @@ const GLASS_BLUR: CSSProperties = {
 };
 const CHIP =
   'inline-flex items-center gap-1.5 rounded-full border border-foreground/10 bg-foreground/[0.04] px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.08] hover:text-foreground';
-const SHINE_PLACEHOLDER: CSSProperties = {
+const SHIMMER_TEXT: CSSProperties = {
   backgroundImage:
-    'linear-gradient(105deg, transparent calc(var(--sweep) - 14%), var(--foreground) var(--sweep), transparent calc(var(--sweep) + 14%)), linear-gradient(var(--subtle-foreground), var(--subtle-foreground))',
+    'linear-gradient(100deg, transparent calc(var(--sweep) - 18%), var(--foreground) var(--sweep), transparent calc(var(--sweep) + 18%)), linear-gradient(var(--subtle-foreground), var(--subtle-foreground))',
   backgroundClip: 'text',
   WebkitBackgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
@@ -91,6 +108,9 @@ export function Ask({ className }: { className?: string }) {
   const [stacked, setStacked] = useState(false);
   const [fieldHeight, setFieldHeight] = useState(BAR);
   const log = useRef<HTMLDivElement>(null);
+  const frame = useRef<HTMLDivElement>(null);
+  const thinkingOrb = useRef<HTMLSpanElement>(null);
+  const lastPointer = useRef<{ x: number; y: number } | null>(null);
   const timers = useRef<number[]>([]);
   const count = useRef(0);
   const shineX = useMotionValue(100);
@@ -135,6 +155,7 @@ export function Ask({ className }: { className?: string }) {
     const onMove = (event: PointerEvent) => {
       const slot = root.current;
       if (event.pointerType !== 'mouse' || !slot) return;
+      lastPointer.current = { x: event.clientX, y: event.clientY };
       const bounds = slot.getBoundingClientRect();
       const middle = (bounds.left + bounds.right) / 2;
       setNear((was) =>
@@ -265,6 +286,21 @@ export function Ask({ className }: { className?: string }) {
     input.current?.focus();
   };
 
+  useEffect(() => {
+    if (expanded) return;
+    const settle = window.setTimeout(() => {
+      const slot = root.current;
+      const pointer = lastPointer.current;
+      if (!slot || !pointer) return setNear(false);
+      const bounds = slot.getBoundingClientRect();
+      setNear(
+        pointer.y >= bounds.top - WAKE_HEIGHT &&
+          Math.abs(pointer.x - (bounds.left + bounds.right) / 2) <= WAKE_HALF_WIDTH
+      );
+    }, 360);
+    return () => window.clearTimeout(settle);
+  }, [expanded]);
+
   const offering = focused && !expanded && messages.length === 0 && !draft;
   const wide = phase !== 'tiny';
   const lit = phase === 'lit';
@@ -306,6 +342,7 @@ export function Ask({ className }: { className?: string }) {
 
         <div className="flex min-h-11 items-center justify-center">
           <motion.div
+            ref={frame}
             initial={{ width: TINY.width, height: TINY.height, borderRadius: TINY.height / 2, y: TINY_DROP }}
             animate={{
               width: wide ? full + nudge : TINY.width,
@@ -333,23 +370,6 @@ export function Ask({ className }: { className?: string }) {
               style={{ ...GLASS_BLUR, '--glass-blur': '20px' } as CSSProperties}
               className="relative flex flex-1 flex-col justify-end overflow-hidden rounded-[inherit] bg-card/85"
             >
-              <AnimatePresence>
-                {expanded && thinking && (
-                  <motion.span
-                    key="glow"
-                    aria-hidden
-                    className="pointer-events-none absolute bottom-6 left-0 h-56 w-40"
-                    style={{
-                      background:
-                        'radial-gradient(ellipse 100% 50% at 0% 50%, oklch(from var(--shine-rim) l c h / 0.22), oklch(from var(--primary) calc(l + 0.2) 0.05 calc(h + 40) / 0.08) 45%, transparent 75%)',
-                    }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: [0.55, 1, 0.55] }}
-                    exit={{ opacity: 0, transition: { duration: 0.6 } }}
-                    transition={{ duration: 2.4, ease: 'easeInOut', repeat: Infinity }}
-                  />
-                )}
-              </AnimatePresence>
               <AnimatePresence initial={false}>
                 {expanded && (
                   <motion.section
@@ -358,15 +378,21 @@ export function Ask({ className }: { className?: string }) {
                     className="overflow-hidden"
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
+                    exit={{
+                      height: 0,
+                      opacity: 0,
+                      transition: { height: { duration: 0.32, ease: [0.32, 0.72, 0, 1] }, opacity: { duration: 0.18 } },
+                    }}
                     transition={{ height: MORPH, opacity: { duration: 0.25 } }}
                   >
-                    <header className="flex items-center justify-between py-2.5 pr-2.5 pl-5">
-                      <span className="text-[0.8125rem] text-subtle-foreground">{text.title}</span>
-                      <span className="flex items-center gap-0.5">
-                        <IconButton label={text.newChat} icon={PlusSignIcon} onClick={restart} />
-                        <IconButton label={text.close} icon={Cancel01Icon} onClick={() => setOpen(false)} />
+                    <header className="flex items-center gap-3 py-3 pr-3 pl-4">
+                      <Orb count={1} size={34} />
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="text-sm leading-5 text-foreground">{text.title}</span>
+                        <span className="truncate text-xs leading-4 text-subtle-foreground">{text.subtitle}</span>
                       </span>
+                      <HeaderButton label={text.newChat} onClick={restart} icon="refresh" />
+                      <HeaderButton label={text.close} onClick={() => setOpen(false)} icon="close" />
                     </header>
                     <div
                       ref={log}
@@ -381,13 +407,15 @@ export function Ask({ className }: { className?: string }) {
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3, ease: EASE_SNAP }}
-                            className="max-w-[85%] self-end rounded-2xl rounded-br-md bg-foreground/[0.07] px-3.5 py-2 text-sm text-foreground"
+                            className="relative max-w-[85%] self-end rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]"
                           >
                             {message.text}
+                            <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] p-px" style={BUBBLE_RIM} />
                           </motion.p>
                         ) : (
                           <Answer
                             key={message.id}
+                            orbRef={message.id === last?.id ? thinkingOrb : undefined}
                             reply={message.reply}
                             shown={message.shown}
                             thinkingLabel={text.thinking}
@@ -520,6 +548,9 @@ export function Ask({ className }: { className?: string }) {
                 </AnimatePresence>
               </form>
             </div>
+            <AnimatePresence>
+              {expanded && thinking && <EdgeLight key="light" frame={frame} orb={thinkingOrb} />}
+            </AnimatePresence>
             <Rim x={shineX} glow={glow} />
           </motion.div>
         </div>
@@ -565,17 +596,65 @@ function Suggestion({ index, label, icon, onPick }: SuggestionProps) {
   );
 }
 
-function IconButton({ label, icon, onClick }: { label: string; icon: typeof PlusSignIcon; onClick: () => void }) {
+function HeaderButton({ label, icon, onClick }: { label: string; icon: 'refresh' | 'close'; onClick: () => void }) {
+  const handle = useRef<RefreshIconHandle & CircleXIconHandle>(null);
+  const Icon = icon === 'refresh' ? RefreshIcon : CircleXIcon;
+
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="grid size-7 cursor-pointer place-items-center rounded-full text-subtle-foreground transition-colors hover:bg-foreground/[0.07] hover:text-foreground"
+      onPointerEnter={() => handle.current?.startAnimation()}
+      onFocus={() => handle.current?.startAnimation()}
+      className="grid size-8 cursor-pointer place-items-center rounded-full text-subtle-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
     >
-      <HugeiconsIcon icon={icon} size={15} strokeWidth={2} />
+      <Icon ref={handle} size={17} />
     </button>
+  );
+}
+
+const BUBBLE_RIM: CSSProperties = {
+  ...RING,
+  background:
+    'radial-gradient(ellipse 60% 140% at 22% 0%, oklch(from var(--glare) l c h / 0.3), transparent), oklch(from var(--foreground) l c h / 0.1)',
+};
+
+function EdgeLight({ frame, orb }: { frame: RefObject<HTMLDivElement | null>; orb: RefObject<HTMLSpanElement | null> }) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  useEffect(() => {
+    let raf = 0;
+    const follow = () => {
+      const box = frame.current?.getBoundingClientRect();
+      const mark = orb.current?.getBoundingClientRect();
+      if (box && mark) {
+        x.set(mark.left + mark.width / 2 - box.left);
+        y.set(mark.top + mark.height / 2 - box.top);
+      }
+      raf = requestAnimationFrame(follow);
+    };
+    raf = requestAnimationFrame(follow);
+    return () => cancelAnimationFrame(raf);
+  }, [frame, orb, x, y]);
+
+  const wash = useMotionTemplate`radial-gradient(ellipse 40px 36px at ${x}px ${y}px, oklch(from var(--glare) l c h / 0.22), transparent), radial-gradient(ellipse 190px 210px at 0px ${y}px, oklch(from var(--primary) calc(l + 0.32) 0.05 calc(h + 35) / 0.34), oklch(from var(--glare) l c h / 0.1) 42%, transparent 72%)`;
+  const edge = useMotionTemplate`radial-gradient(ellipse 34px 170px at 0px ${y}px, oklch(from var(--glare) l c h / 0.95), oklch(from var(--primary) calc(l + 0.32) 0.06 calc(h + 35) / 0.5) 45%, transparent), oklch(from var(--foreground) l c h / 0)`;
+
+  return (
+    <motion.span
+      aria-hidden
+      className="pointer-events-none absolute inset-0 rounded-[inherit] dark:mix-blend-plus-lighter"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: [0.7, 1, 0.7] }}
+      exit={{ opacity: 0, transition: { duration: 0.5 } }}
+      transition={{ duration: 2.4, ease: 'easeInOut', repeat: Infinity }}
+    >
+      <motion.span className="absolute inset-0 overflow-hidden rounded-[inherit]" style={{ background: wash }} />
+      <motion.span className="absolute inset-0 rounded-[inherit] p-px" style={{ ...RING, background: edge }} />
+    </motion.span>
   );
 }
 
@@ -586,30 +665,55 @@ interface AnswerProps {
   actionLabel: string;
   onAction?: () => void;
   resume: ReturnType<typeof useResumeAnchor>;
+  orbRef?: Ref<HTMLSpanElement>;
 }
 
-function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume }: AnswerProps) {
+function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume, orbRef }: AnswerProps) {
   const words = reply.text.split(' ');
   const done = shown >= words.length;
+  const thinking = shown === 0;
+  const [cluster, setCluster] = useState(false);
 
-  if (shown === 0) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
-        className="relative flex items-center gap-3 py-1"
-      >
-        <Orb thinking />
-        <span className="shine text-sm" style={SHINE_PLACEHOLDER}>
-          {thinkingLabel}
-        </span>
-      </motion.div>
-    );
-  }
+  useEffect(() => {
+    if (!thinking) return;
+    const flip = window.setInterval(() => setCluster((current) => !current), 1400);
+    return () => window.clearInterval(flip);
+  }, [thinking]);
 
   return (
-    <div className="flex flex-col gap-3">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="flex items-start gap-3"
+    >
+      <span ref={orbRef} className="-ml-1 grid size-7 shrink-0 place-items-center">
+        <Orb count={thinking ? (cluster ? 4 : 2) : 1} spin={thinking} size={30} />
+      </span>
+      {thinking ? (
+        <span className="shimmer pt-1 text-sm" style={SHIMMER_TEXT}>
+          {thinkingLabel}
+        </span>
+      ) : (
+        <AnswerBody words={words} shown={shown} done={done} reply={reply} actionLabel={actionLabel} onAction={onAction} resume={resume} />
+      )}
+    </motion.div>
+  );
+}
+
+interface AnswerBodyProps {
+  words: string[];
+  shown: number;
+  done: boolean;
+  reply: Reply;
+  actionLabel: string;
+  onAction?: () => void;
+  resume: ReturnType<typeof useResumeAnchor>;
+}
+
+function AnswerBody({ words, shown, done, reply, actionLabel, onAction, resume }: AnswerBodyProps) {
+  return (
+    <div className="flex min-w-0 flex-col gap-3 pt-0.5">
       <p className="text-sm leading-relaxed text-foreground/90">
         {words.slice(0, shown).map((word, index) => (
           <motion.span

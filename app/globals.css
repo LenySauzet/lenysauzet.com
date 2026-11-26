@@ -189,6 +189,24 @@
   }
 }
 
+@keyframes shimmer {
+  from {
+    --sweep: -30%;
+  }
+  to {
+    --sweep: 130%;
+  }
+}
+
+@utility shimmer {
+  animation: shimmer 1.7s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    --sweep: -60%;
+  }
+}
+
 @utility shine-text {
   background-image: var(--shine-band-text), linear-gradient(var(--foreground), var(--foreground));
   background-clip: text;

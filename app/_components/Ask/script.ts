@@ -14,6 +14,7 @@ export interface Reply {
 interface Copy {
   placeholder: string;
   title: string;
+  subtitle: string;
   thinking: string;
   newChat: string;
   close: string;
@@ -33,6 +34,7 @@ export const copy = (locale: Locale): Copy =>
     ? {
         placeholder: 'Demande-moi n’importe quoi…',
         title: 'Demander à Lény',
+        subtitle: 'D’après mon CV, mes projets et mes articles',
         thinking: 'Réflexion…',
         newChat: 'Nouvelle conversation',
         close: 'Fermer',
@@ -63,6 +65,7 @@ export const copy = (locale: Locale): Copy =>
     : {
         placeholder: 'Ask me anything…',
         title: 'Ask Lény',
+        subtitle: 'Grounded in my resume, projects and articles',
         thinking: 'Thinking…',
         newChat: 'New chat',
         close: 'Close',
