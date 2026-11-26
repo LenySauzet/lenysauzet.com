@@ -11,7 +11,15 @@ import {
   PlusSignIcon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { animate, AnimatePresence, motion, useMotionTemplate, useMotionValue, useReducedMotion } from 'motion/react';
+import {
+  animate,
+  AnimatePresence,
+  motion,
+  useMotionTemplate,
+  useMotionValue,
+  useReducedMotion,
+  type TargetAndTransition,
+} from 'motion/react';
 import { useLocale } from 'next-intl';
 import {
   useEffect,
@@ -111,6 +119,7 @@ export function Ask({ className }: { className?: string }) {
   const lastPointer = useRef<{ x: number; y: number } | null>(null);
   const timers = useRef<number[]>([]);
   const count = useRef(0);
+  const stick = useRef(true);
   const shineX = useMotionValue(100);
   const glow = useMotionValue(0);
 
@@ -224,19 +233,6 @@ export function Ask({ className }: { className?: string }) {
     };
   }, []);
 
-  useEffect(() => {
-    const element = log.current;
-    if (!element) return;
-    let raf = 0;
-    const until = performance.now() + 900;
-    const pin = () => {
-      element.scrollTop = element.scrollHeight;
-      if (performance.now() < until) raf = requestAnimationFrame(pin);
-    };
-    raf = requestAnimationFrame(pin);
-    return () => cancelAnimationFrame(raf);
-  }, [messages]);
-
   useLayoutEffect(() => {
     const field = input.current;
     const measure = mirror.current;
@@ -260,6 +256,7 @@ export function Ask({ className }: { className?: string }) {
     if (!trimmed || busy) return;
     const reply = replyTo(trimmed, locale);
     count.current += 2;
+    stick.current = true;
     const id = count.current;
     const words = reply.text.split(' ').length;
     setMessages((current) => [
@@ -306,6 +303,18 @@ export function Ask({ className }: { className?: string }) {
       );
     }, 360);
     return () => window.clearTimeout(settle);
+  }, [expanded]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    let raf = 0;
+    const hold = () => {
+      const element = log.current;
+      if (element && stick.current) element.scrollTop = element.scrollHeight;
+      raf = requestAnimationFrame(hold);
+    };
+    raf = requestAnimationFrame(hold);
+    return () => cancelAnimationFrame(raf);
   }, [expanded]);
 
   const offering = focused && !expanded && messages.length === 0 && !draft;
@@ -382,67 +391,70 @@ export function Ask({ className }: { className?: string }) {
               </AnimatePresence>
               <AnimatePresence initial={false}>
                 {expanded && (
-                  <motion.section
+                  <Fit
                     key="conversation"
-                    aria-label={text.title}
                     className="relative overflow-hidden"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
+                    fade
                     exit={{
                       height: 0,
                       opacity: 0,
                       transition: { height: { duration: 0.32, ease: [0.32, 0.72, 0, 1] }, opacity: { duration: 0.18 } },
                     }}
-                    transition={{ height: MORPH, opacity: { duration: 0.25 } }}
                   >
-                    <header className="flex items-center gap-3 py-3 pr-3 pl-4">
-                      <Orb count={1} size={56} className="-my-2.5 -ml-2" />
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="text-sm leading-5 text-foreground">{text.title}</span>
-                        <span className="truncate text-xs leading-4 text-subtle-foreground">{text.subtitle}</span>
-                      </span>
-                      <HeaderButton label={text.newChat} onClick={restart} icon="refresh" />
-                      <HeaderButton label={text.close} onClick={() => setOpen(false)} icon="close" />
-                    </header>
-                    <div
-                      ref={log}
-                      role="log"
-                      aria-live="polite"
-                      className="flex max-h-[min(55vh,28rem)] flex-col overflow-y-auto px-5 pt-3 pb-9 [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
-                    >
-                      {messages.map((message) =>
-                        message.role === 'user' ? (
-                          <Arrival key={message.id} className="items-end">
-                            <motion.p
-                              initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
-                              animate={{ opacity: 1, y: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
-                              transition={{ ...MORPH, opacity: { duration: 0.3 }, filter: { duration: 0.35 } }}
-                              className="relative max-w-[85%] rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]"
-                            >
-                              {message.text}
-                              <span
-                                aria-hidden
-                                className="pointer-events-none absolute inset-0 rounded-[inherit] p-px"
-                                style={BUBBLE_RIM}
+                    <section aria-label={text.title}>
+                      <header className="flex items-center gap-3 py-3 pr-3 pl-4">
+                        <Orb count={1} size={56} className="-my-2.5 -ml-2" />
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="text-sm leading-5 text-foreground">{text.title}</span>
+                          <span className="truncate text-xs leading-4 text-subtle-foreground">{text.subtitle}</span>
+                        </span>
+                        <HeaderButton label={text.newChat} onClick={restart} icon="refresh" />
+                        <HeaderButton label={text.close} onClick={() => setOpen(false)} icon="close" />
+                      </header>
+                      <div
+                        ref={log}
+                        role="log"
+                        aria-live="polite"
+                        onScroll={(event) => {
+                          const element = event.currentTarget;
+                          stick.current = element.scrollHeight - element.scrollTop - element.clientHeight < 24;
+                        }}
+                        className="flex max-h-[min(55vh,28rem)] flex-col overflow-y-auto px-5 pt-3 pb-9 [scrollbar-width:none] [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
+                      >
+                        {messages.map((message) =>
+                          message.role === 'user' ? (
+                            <Arrival key={message.id} className="items-end">
+                              <motion.p
+                                initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
+                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
+                                transition={{ ...MORPH, opacity: { duration: 0.3 }, filter: { duration: 0.35 } }}
+                                className="relative max-w-[85%] rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]"
+                              >
+                                {message.text}
+                                <span
+                                  aria-hidden
+                                  className="pointer-events-none absolute inset-0 rounded-[inherit] p-px"
+                                  style={BUBBLE_RIM}
+                                />
+                              </motion.p>
+                            </Arrival>
+                          ) : (
+                            <Arrival key={message.id} delay={0.12}>
+                              <Answer
+                                orbRef={message.id === last?.id ? thinkingOrb : undefined}
+                                reply={message.reply}
+                                shown={message.shown}
+                                thinkingLabel={text.thinking}
+                                actionLabel={message.reply.action === 'book' ? text.book : text.resume}
+                                onAction={message.reply.action === 'book' ? book : undefined}
+                                resume={resume}
                               />
-                            </motion.p>
-                          </Arrival>
-                        ) : (
-                          <Arrival key={message.id} delay={0.12}>
-                            <Answer
-                              orbRef={message.id === last?.id ? thinkingOrb : undefined}
-                              reply={message.reply}
-                              shown={message.shown}
-                              thinkingLabel={text.thinking}
-                              actionLabel={message.reply.action === 'book' ? text.book : text.resume}
-                              onAction={message.reply.action === 'book' ? book : undefined}
-                              resume={resume}
-                            />
-                          </Arrival>
-                        )
-                      )}
-                    </div>
-                  </motion.section>
+                            </Arrival>
+                          )
+                        )}
+                      </div>
+                    </section>
+                  </Fit>
                 )}
               </AnimatePresence>
 
@@ -822,7 +834,16 @@ function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume, or
   );
 }
 
-function Arrival({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+interface FitProps {
+  children: ReactNode;
+  className?: string;
+  contentClassName?: string;
+  delay?: number;
+  fade?: boolean;
+  exit?: TargetAndTransition;
+}
+
+function Fit({ children, className, contentClassName, delay = 0, fade = false, exit }: FitProps) {
   const content = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
   const [arrived, setArrived] = useState(false);
@@ -830,24 +851,36 @@ function Arrival({ children, delay = 0, className }: { children: ReactNode; dela
   useLayoutEffect(() => {
     const element = content.current;
     if (!element) return;
-    const measure = () => setHeight(element.offsetHeight);
-    const resized = new ResizeObserver(measure);
+    const resized = new ResizeObserver(() => setHeight(element.offsetHeight));
     resized.observe(element);
     return () => resized.disconnect();
   }, []);
 
   return (
     <motion.div
-      className="group shrink-0"
-      initial={{ height: 0 }}
-      animate={{ height }}
-      transition={{ ...MORPH, delay: arrived ? 0 : delay }}
+      className={className}
+      initial={{ height: 0, opacity: fade ? 0 : 1 }}
+      animate={{ height, opacity: 1 }}
+      exit={exit}
+      transition={{ height: { ...MORPH, delay: arrived ? 0 : delay }, opacity: { duration: 0.25 } }}
       onAnimationComplete={() => setArrived(true)}
     >
-      <div ref={content} className={cn('flex flex-col pt-5 group-first:pt-0', className)}>
+      <div ref={content} className={contentClassName}>
         {children}
       </div>
     </motion.div>
+  );
+}
+
+function Arrival({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+  return (
+    <Fit
+      className="group shrink-0"
+      contentClassName={cn('flex flex-col pt-5 group-first:pt-0', className)}
+      delay={delay}
+    >
+      {children}
+    </Fit>
   );
 }
 
