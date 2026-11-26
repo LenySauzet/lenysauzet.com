@@ -395,7 +395,7 @@ export function Ask({ className }: { className?: string }) {
                 {expanded && (
                   <Fit
                     key="conversation"
-                    className="relative overflow-hidden"
+                    className="relative"
                     fade
                     follow
                     exit={{
@@ -405,7 +405,12 @@ export function Ask({ className }: { className?: string }) {
                     }}
                   >
                     <section aria-label={text.title}>
-                      <header className="flex items-center gap-3 py-3 pr-3 pl-4">
+                      <motion.header
+                        className="flex items-center gap-3 py-3 pr-3 pl-4"
+                        initial={BLURRED}
+                        animate={SHARP}
+                        transition={{ duration: 0.4, delay: 0.12 }}
+                      >
                         <Orb count={1} size={56} className="-my-2.5 -ml-2" />
                         <span className="flex min-w-0 flex-1 flex-col">
                           <span className="text-sm leading-5 text-foreground">{text.title}</span>
@@ -413,7 +418,7 @@ export function Ask({ className }: { className?: string }) {
                         </span>
                         <HeaderButton label={text.newChat} onClick={restart} icon="refresh" />
                         <HeaderButton label={text.close} onClick={() => setOpen(false)} icon="close" />
-                      </header>
+                      </motion.header>
                       <div
                         ref={log}
                         role="log"
@@ -424,9 +429,9 @@ export function Ask({ className }: { className?: string }) {
                         }}
                         className="flex max-h-[min(55vh,28rem)] flex-col overflow-y-auto px-5 pt-3 pb-9 [scrollbar-width:none] [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
                       >
-                        {messages.map((message) =>
+                        {messages.map((message, index) =>
                           message.role === 'user' ? (
-                            <Arrival key={message.id} className="items-end">
+                            <Arrival key={message.id} className={cn('items-end', index > 0 && 'pt-2')}>
                               <motion.p
                                 initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
                                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
@@ -442,7 +447,7 @@ export function Ask({ className }: { className?: string }) {
                               </motion.p>
                             </Arrival>
                           ) : (
-                            <Arrival key={message.id} delay={0.12}>
+                            <Arrival key={message.id} delay={0.12} className="pt-5 pb-3">
                               <Answer
                                 orbRef={message.id === last?.id ? thinkingOrb : undefined}
                                 reply={message.reply}
@@ -877,10 +882,11 @@ function Fit({
   }, []);
 
   const instant = (!appear && !measured) || (follow && arrived);
+  const clipped = !follow || !arrived;
 
   return (
     <motion.div
-      className={className}
+      className={cn(className, clipped && 'overflow-clip')}
       initial={{ height: appear ? 0 : 'auto', opacity: fade ? 0 : 1 }}
       animate={{ height, opacity: 1 }}
       exit={exit}
@@ -899,21 +905,20 @@ function Fit({
   );
 }
 
+const BLURRED = { opacity: 0, filter: 'blur(8px)' };
+const SHARP = { opacity: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } };
+
 function Arrival({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
   const opening = useContext(Opening);
   const [appear] = useState(!opening);
 
   return (
-    <Fit
-      className="group shrink-0 [clip-path:inset(-24px_-24px_0_-24px)]"
-      delay={delay}
-      appear={appear}
-    >
+    <Fit className="-mx-5 shrink-0 overflow-clip" contentClassName="px-5" delay={delay} appear={appear}>
       <motion.div
-        className={cn('flex flex-col pt-5 group-first:pt-0', className)}
-        initial={appear ? { opacity: 0 } : false}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: delay + 0.12 }}
+        className={cn('flex flex-col', className)}
+        initial={appear ? BLURRED : false}
+        animate={SHARP}
+        transition={{ duration: 0.4, delay: delay + 0.1 }}
       >
         {children}
       </motion.div>
@@ -933,7 +938,7 @@ interface AnswerBodyProps {
 
 function AnswerBody({ words, shown, done, reply, actionLabel, onAction, resume }: AnswerBodyProps) {
   return (
-    <div className="flex min-w-0 flex-col gap-3 pt-0.5">
+    <div className="flex min-w-0 flex-col pt-0.5">
       <p className="text-sm leading-relaxed text-foreground/90">
         {words.slice(0, shown).map((word, index) => (
           <motion.span
@@ -949,10 +954,10 @@ function AnswerBody({ words, shown, done, reply, actionLabel, onAction, resume }
       <AnimatePresence>
         {done && (
           <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: EASE_SNAP }}
-            className="flex flex-wrap items-center gap-2"
+            initial={{ ...BLURRED, y: 4 }}
+            animate={{ ...SHARP, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.08, ease: EASE_SNAP }}
+            className="flex flex-wrap items-center gap-2 pt-3"
           >
             {reply.sources.map((source) => (
               <a key={source.label} href={source.href} className={CHIP}>
