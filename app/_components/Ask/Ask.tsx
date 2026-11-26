@@ -47,6 +47,7 @@ const WAKE_HEIGHT = 24;
 const WAKE_HALF_WIDTH = 140;
 const STAY_REACH = 64;
 const TINY_DROP = 30;
+const TOP_ZONE = 64;
 const COLLAPSE_AFTER = 300;
 const THINKING_MS = 1800;
 const WORD_MS = 38;
@@ -76,6 +77,7 @@ export function Ask({ className }: { className?: string }) {
   const [entered, setEntered] = useState(false);
   const [near, setNear] = useState(false);
   const [touch, setTouch] = useState(false);
+  const [atTop, setAtTop] = useState(false);
   const firstWake = useRef(true);
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
@@ -120,6 +122,16 @@ export function Ask({ className }: { className?: string }) {
   }, []);
 
   useEffect(() => {
+    const update = () => setAtTop(window.scrollY < TOP_ZONE);
+    const initial = window.setTimeout(update);
+    window.addEventListener('scroll', update, { passive: true });
+    return () => {
+      window.clearTimeout(initial);
+      window.removeEventListener('scroll', update);
+    };
+  }, []);
+
+  useEffect(() => {
     const onMove = (event: PointerEvent) => {
       const slot = root.current;
       if (event.pointerType !== 'mouse' || !slot) return;
@@ -143,7 +155,7 @@ export function Ask({ className }: { className?: string }) {
   }, []);
 
   const expanded = open && messages.length > 0;
-  const awake = Boolean(still) || touch || near || focused || draft.length > 0 || expanded;
+  const awake = Boolean(still) || touch || atTop || near || focused || draft.length > 0 || expanded;
 
   useEffect(() => {
     const local: number[] = [];
@@ -158,7 +170,7 @@ export function Ask({ className }: { className?: string }) {
       return () => local.forEach(window.clearTimeout);
     }
 
-    const start = firstWake.current && touch && !still ? EXPAND_AT : 0;
+    const start = firstWake.current && !still ? EXPAND_AT : 0;
     at(start, () => setPhase((current) => (current === 'tiny' ? 'wide' : current)));
     at(start + (still ? 0 : LIT_AFTER), () => {
       setPhase('lit');
