@@ -13,19 +13,21 @@ type Color = readonly [number, number, number];
 
 const LAVENDER: Color = [0.62, 0.57, 0.78];
 const SLATE: Color = [0.56, 0.6, 0.6];
-const SILVER: Color = [0.86, 0.9, 0.9];
+const SILVER: Color = [0.9, 0.92, 0.94];
 
 const EDGE = {
-  depth: 0.38,
-  startsAbove: 1.8,
-  fadeIn: 1,
-  strength: 0.7,
+  depth: 0.42,
+  startsAbove: 1.9,
+  fadeIn: 1.1,
+  strength: 0.8,
 };
 
 const BEAM = {
-  spread: 0.7,
-  reach: 2.2,
-  strength: 0.95,
+  spread: 0.5,
+  flare: 0.16,
+  reach: 2.6,
+  strength: 1.2,
+  tint: 0.3,
 };
 
 const smoothstep = (from: number, to: number, value: number) => {
@@ -44,7 +46,8 @@ export function beamAt(x: number, y: number, avatar: Avatar) {
   if (dx <= 0) return 0;
   const angle = Math.atan2(y - avatar.y, dx);
   const distance = Math.hypot(dx, y - avatar.y) / avatar.size;
-  return BEAM.strength * Math.exp(-((angle / BEAM.spread) ** 2)) * Math.exp(-distance / BEAM.reach);
+  const spread = BEAM.spread + BEAM.flare * smoothstep(0, 1.8, distance);
+  return BEAM.strength * Math.exp(-((angle / spread) ** 2)) * Math.exp(-distance / BEAM.reach);
 }
 
 export function glowAt(x: number, y: number, avatar: Avatar) {
@@ -52,16 +55,18 @@ export function glowAt(x: number, y: number, avatar: Avatar) {
   const beam = beamAt(x, y, avatar);
   const lower = smoothstep(avatar.y, avatar.y + 3 * avatar.size, y);
   const rim = LAVENDER.map((channel, index) => channel + (SLATE[index]! - channel) * lower);
+  const far = smoothstep(0.4, 2, Math.hypot(x - avatar.x, y - avatar.y) / avatar.size) * BEAM.tint;
+  const shaft = SILVER.map((channel, index) => channel + (LAVENDER[index]! - channel) * far);
   const total = edge + beam;
   const color = rim.map((channel, index) =>
-    total > 0 ? (channel * edge + SILVER[index]! * beam) / total : channel
+    total > 0 ? (channel * edge + shaft[index]! * beam) / total : channel
   ) as unknown as Color;
   return { light: Math.min(1, total), color };
 }
 
 export function guidePath(avatar: Avatar, box: Box) {
   const rays = [-1, 1].map((side) => {
-    const angle = side * BEAM.spread;
+    const angle = side * (BEAM.spread + BEAM.flare);
     return `M${avatar.x},${avatar.y}L0,${(avatar.y + Math.tan(angle) * avatar.x).toFixed(1)}`;
   });
   const depth = (avatar.size * EDGE.depth).toFixed(1);
