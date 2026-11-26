@@ -19,6 +19,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
   type Ref,
   type RefObject,
   type SubmitEvent,
@@ -224,7 +225,16 @@ export function Ask({ className }: { className?: string }) {
   }, []);
 
   useEffect(() => {
-    log.current?.scrollTo({ top: log.current.scrollHeight });
+    const element = log.current;
+    if (!element) return;
+    let raf = 0;
+    const until = performance.now() + 900;
+    const pin = () => {
+      element.scrollTop = element.scrollHeight;
+      if (performance.now() < until) raf = requestAnimationFrame(pin);
+    };
+    raf = requestAnimationFrame(pin);
+    return () => cancelAnimationFrame(raf);
   }, [messages]);
 
   useLayoutEffect(() => {
@@ -398,35 +408,37 @@ export function Ask({ className }: { className?: string }) {
                       ref={log}
                       role="log"
                       aria-live="polite"
-                      className="flex max-h-[min(55vh,28rem)] flex-col gap-5 overflow-y-auto px-5 pt-3 pb-9 [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
+                      className="flex max-h-[min(55vh,28rem)] flex-col overflow-y-auto px-5 pt-3 pb-9 [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
                     >
                       {messages.map((message) =>
                         message.role === 'user' ? (
-                          <motion.p
-                            key={message.id}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, ease: EASE_SNAP }}
-                            className="relative max-w-[85%] self-end rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]"
-                          >
-                            {message.text}
-                            <span
-                              aria-hidden
-                              className="pointer-events-none absolute inset-0 rounded-[inherit] p-px"
-                              style={BUBBLE_RIM}
-                            />
-                          </motion.p>
+                          <Arrival key={message.id} className="items-end">
+                            <motion.p
+                              initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
+                              animate={{ opacity: 1, y: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
+                              transition={{ ...MORPH, opacity: { duration: 0.3 }, filter: { duration: 0.35 } }}
+                              className="relative max-w-[85%] rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]"
+                            >
+                              {message.text}
+                              <span
+                                aria-hidden
+                                className="pointer-events-none absolute inset-0 rounded-[inherit] p-px"
+                                style={BUBBLE_RIM}
+                              />
+                            </motion.p>
+                          </Arrival>
                         ) : (
-                          <Answer
-                            key={message.id}
-                            orbRef={message.id === last?.id ? thinkingOrb : undefined}
-                            reply={message.reply}
-                            shown={message.shown}
-                            thinkingLabel={text.thinking}
-                            actionLabel={message.reply.action === 'book' ? text.book : text.resume}
-                            onAction={message.reply.action === 'book' ? book : undefined}
-                            resume={resume}
-                          />
+                          <Arrival key={message.id} delay={0.12}>
+                            <Answer
+                              orbRef={message.id === last?.id ? thinkingOrb : undefined}
+                              reply={message.reply}
+                              shown={message.shown}
+                              thinkingLabel={text.thinking}
+                              actionLabel={message.reply.action === 'book' ? text.book : text.resume}
+                              onAction={message.reply.action === 'book' ? book : undefined}
+                              resume={resume}
+                            />
+                          </Arrival>
                         )
                       )}
                     </div>
@@ -766,37 +778,75 @@ function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume, or
   }, [thinking]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="flex items-start gap-3"
-    >
+    <div className="flex items-start gap-3">
       <span ref={orbRef} className="relative -mt-2.5 -ml-1 size-11 shrink-0">
         <motion.span
           className="absolute top-1/2 left-1/2 -translate-1/2"
-          initial={false}
-          animate={{ scale: thinking ? 1 : 0.75, x: thinking ? 12 : 0 }}
-          transition={MORPH}
+          initial={{ scale: 0.4, x: 12, opacity: 0, filter: 'blur(8px)' }}
+          animate={{
+            scale: thinking ? 1 : 0.75,
+            x: thinking ? 12 : 0,
+            opacity: 1,
+            filter: 'blur(0px)',
+            transitionEnd: { filter: 'none' },
+          }}
+          transition={{ ...MORPH, opacity: { duration: 0.35 }, filter: { duration: 0.45 } }}
         >
           <Orb count={thinking ? (cluster ? 4 : 2) : 1} spin={thinking} size={64} />
         </motion.span>
       </span>
-      {thinking ? (
-        <span className="shimmer pt-1 pl-7 text-sm" style={SHIMMER_TEXT}>
-          {thinkingLabel}
-        </span>
-      ) : (
-        <AnswerBody
-          words={words}
-          shown={shown}
-          done={done}
-          reply={reply}
-          actionLabel={actionLabel}
-          onAction={onAction}
-          resume={resume}
-        />
-      )}
+      <AnimatePresence mode="wait" initial={false}>
+        {thinking ? (
+          <motion.span
+            key="thinking"
+            className="shimmer pt-1 pl-7 text-sm"
+            style={SHIMMER_TEXT}
+            exit={{ opacity: 0, filter: 'blur(6px)', x: -4, transition: { duration: 0.2 } }}
+          >
+            <Letters text={thinkingLabel} delay={0.18} step={0.03} />
+          </motion.span>
+        ) : (
+          <AnswerBody
+            key="answer"
+            words={words}
+            shown={shown}
+            done={done}
+            reply={reply}
+            actionLabel={actionLabel}
+            onAction={onAction}
+            resume={resume}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function Arrival({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+  const content = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+  const [arrived, setArrived] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = content.current;
+    if (!element) return;
+    const measure = () => setHeight(element.offsetHeight);
+    const resized = new ResizeObserver(measure);
+    resized.observe(element);
+    return () => resized.disconnect();
+  }, []);
+
+  return (
+    <motion.div
+      className="group shrink-0"
+      initial={{ height: 0 }}
+      animate={{ height }}
+      transition={{ ...MORPH, delay: arrived ? 0 : delay }}
+      onAnimationComplete={() => setArrived(true)}
+    >
+      <div ref={content} className={cn('flex flex-col pt-5 group-first:pt-0', className)}>
+        {children}
+      </div>
     </motion.div>
   );
 }
