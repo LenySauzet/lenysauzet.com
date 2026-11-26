@@ -34,7 +34,7 @@ export const copy = (locale: Locale): Copy =>
     ? {
         placeholder: 'Demande-moi n’importe quoi…',
         title: 'Demander à Lény',
-        subtitle: 'D’après mon CV, mes projets et mes articles',
+        subtitle: 'Assistant IA · connaît mon parcours',
         thinking: 'Réflexion…',
         newChat: 'Nouvelle conversation',
         close: 'Fermer',
@@ -65,7 +65,7 @@ export const copy = (locale: Locale): Copy =>
     : {
         placeholder: 'Ask me anything…',
         title: 'Ask Lény',
-        subtitle: 'Grounded in my resume, projects and articles',
+        subtitle: 'AI assistant · knows my work',
         thinking: 'Thinking…',
         newChat: 'New chat',
         close: 'Close',

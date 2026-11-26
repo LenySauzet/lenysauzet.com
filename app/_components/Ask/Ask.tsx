@@ -371,12 +371,15 @@ export function Ask({ className }: { className?: string }) {
               style={{ ...GLASS_BLUR, '--glass-blur': '20px' } as CSSProperties}
               className="relative flex flex-1 flex-col justify-end overflow-hidden rounded-[inherit] bg-card/85"
             >
+              <AnimatePresence>
+                {expanded && <Aura key="aura" frame={frame} orb={thinkingOrb} thinking={thinking} />}
+              </AnimatePresence>
               <AnimatePresence initial={false}>
                 {expanded && (
                   <motion.section
                     key="conversation"
                     aria-label={text.title}
-                    className="overflow-hidden"
+                    className="relative overflow-hidden"
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{
@@ -387,7 +390,7 @@ export function Ask({ className }: { className?: string }) {
                     transition={{ height: MORPH, opacity: { duration: 0.25 } }}
                   >
                     <header className="flex items-center gap-3 py-3 pr-3 pl-4">
-                      <Orb count={1} size={34} />
+                      <Orb count={1} size={44} className="-my-1 -ml-1" />
                       <span className="flex min-w-0 flex-1 flex-col">
                         <span className="text-sm leading-5 text-foreground">{text.title}</span>
                         <span className="truncate text-xs leading-4 text-subtle-foreground">{text.subtitle}</span>
@@ -622,42 +625,94 @@ const BUBBLE_RIM: CSSProperties = {
     'radial-gradient(ellipse 60% 140% at 22% 0%, oklch(from var(--glare) l c h / 0.3), transparent), oklch(from var(--foreground) l c h / 0.1)',
 };
 
-function EdgeLight({ frame, orb }: { frame: RefObject<HTMLDivElement | null>; orb: RefObject<HTMLSpanElement | null> }) {
-  const x = useMotionValue(0);
+function useAvatarPoint(frame: RefObject<HTMLDivElement | null>, orb: RefObject<HTMLSpanElement | null>) {
+  const x = useMotionValue(36);
   const y = useMotionValue(0);
+  const height = useMotionValue(0);
 
   useEffect(() => {
     let raf = 0;
     const follow = () => {
       const box = frame.current?.getBoundingClientRect();
       const mark = orb.current?.getBoundingClientRect();
-      if (box && mark) {
-        x.set(mark.left + mark.width / 2 - box.left);
-        y.set(mark.top + mark.height / 2 - box.top);
+      if (box) {
+        height.set(box.height);
+        x.set(mark ? mark.left + mark.width / 2 - box.left : 36);
+        y.set(mark ? mark.top + mark.height / 2 - box.top : box.height - 72);
       }
       raf = requestAnimationFrame(follow);
     };
     raf = requestAnimationFrame(follow);
     return () => cancelAnimationFrame(raf);
-  }, [frame, orb, x, y]);
+  }, [frame, orb, x, y, height]);
 
-  const middle = useTransform(x, (value) => value * 0.45);
-  const reach = useTransform(x, (value) => value * 0.75);
-  const wash = useMotionTemplate`radial-gradient(ellipse 40px 36px at ${x}px ${y}px, oklch(from var(--glare) l c h / 0.2), transparent 70%), radial-gradient(ellipse ${reach}px 80px at ${middle}px ${y}px, oklch(from var(--glare) l c h / 0.11), transparent 75%), radial-gradient(ellipse 90px 210px at 0px ${y}px, oklch(from var(--primary) calc(l + 0.3) 0.05 calc(h + 30) / 0.28), oklch(from var(--glare) l c h / 0.07) 50%, transparent 80%)`;
-  const edge = useMotionTemplate`radial-gradient(ellipse 26px 230px at 0px ${y}px, oklch(from var(--primary) calc(l + 0.32) 0.05 calc(h + 30) / 0.8), oklch(from var(--glare) l c h / 0.18) 55%, transparent), oklch(from var(--foreground) l c h / 0)`;
+  return { x, y, height };
+}
+
+const MILK = (alpha: number) => `oklch(from var(--glare) l c h / ${alpha})`;
+const LAVENDER = (alpha: number) => `oklch(from var(--primary) calc(l + 0.32) 0.045 calc(h + 30) / ${alpha})`;
+
+interface LightProps {
+  frame: RefObject<HTMLDivElement | null>;
+  orb: RefObject<HTMLSpanElement | null>;
+  thinking: boolean;
+}
+
+function Aura({ frame, orb, thinking }: LightProps) {
+  const { x, y, height } = useAvatarPoint(frame, orb);
+  const stripTop = useTransform(height, (value) => value * 0.05);
+  const stripHeight = useTransform([y, height], ([avatar = 0, box = 0]: number[]) => Math.max(0, avatar - box * 0.05 + 40));
+  const bleedTop = useTransform(y, (value) => value - 170);
+  const focusLeft = useTransform(x, (value) => value - 64);
+  const focusTop = useTransform(y, (value) => value - 64);
+
+  return (
+    <motion.div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
+      initial={{ opacity: 0 }}
+      animate={thinking ? { opacity: [0.8, 1, 0.8], scale: [1, 1.03, 1] } : { opacity: 0.12, scale: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.4 } }}
+      transition={thinking ? { duration: 3.2, ease: 'easeInOut', repeat: Infinity } : { duration: 0.9, ease: 'easeOut' }}
+      style={{ transformOrigin: '0% 100%' }}
+    >
+      <motion.span
+        className="absolute -left-[7%] w-[24%] rounded-full blur-[38px]"
+        style={{
+          top: stripTop,
+          height: stripHeight,
+          background: `linear-gradient(to bottom, transparent, ${LAVENDER(0.12)} 45%, ${MILK(0.2)})`,
+        }}
+      />
+      <motion.span
+        className="absolute -left-[20%] h-[300px] w-[62%] rounded-full blur-[72px]"
+        style={{
+          top: bleedTop,
+          background: `radial-gradient(closest-side, ${MILK(0.26)}, ${LAVENDER(0.18)} 55%, transparent)`,
+        }}
+      />
+      <motion.span
+        className="absolute size-32 rounded-full blur-[30px]"
+        style={{ left: focusLeft, top: focusTop, background: `radial-gradient(closest-side, ${MILK(0.28)}, transparent)` }}
+      />
+    </motion.div>
+  );
+}
+
+function EdgeLight({ frame, orb }: Omit<LightProps, 'thinking'>) {
+  const { y } = useAvatarPoint(frame, orb);
+  const edge = useMotionTemplate`radial-gradient(ellipse 30px 260px at 0px ${y}px, ${LAVENDER(0.55)}, ${MILK(0.12)} 55%, transparent), oklch(from var(--foreground) l c h / 0)`;
 
   return (
     <motion.span
       aria-hidden
-      className="pointer-events-none absolute inset-0 rounded-[inherit]"
+      className="pointer-events-none absolute inset-0 rounded-[inherit] p-px"
+      style={{ ...RING, background: edge }}
       initial={{ opacity: 0 }}
-      animate={{ opacity: [0.75, 1, 0.75] }}
+      animate={{ opacity: [0.7, 1, 0.7] }}
       exit={{ opacity: 0, transition: { duration: 0.5 } }}
-      transition={{ duration: 3, ease: 'easeInOut', repeat: Infinity }}
-    >
-      <motion.span className="absolute inset-0 overflow-hidden rounded-[inherit]" style={{ background: wash }} />
-      <motion.span className="absolute inset-0 rounded-[inherit] p-px" style={{ ...RING, background: edge }} />
-    </motion.span>
+      transition={{ duration: 3.2, ease: 'easeInOut', repeat: Infinity }}
+    />
   );
 }
 
@@ -690,11 +745,11 @@ function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume, or
       transition={{ duration: 0.4 }}
       className="flex items-start gap-3"
     >
-      <span ref={orbRef} className="relative -ml-1 size-7 shrink-0">
+      <span ref={orbRef} className="relative -ml-0.5 size-8 shrink-0">
         <motion.span
           className="absolute top-1/2 left-1/2 -translate-1/2"
           initial={false}
-          animate={{ scale: thinking ? 1 : 0.64 }}
+          animate={{ scale: thinking ? 1 : 0.8 }}
           transition={MORPH}
         >
           <Orb count={thinking ? (cluster ? 4 : 2) : 1} spin={thinking} size={46} />
