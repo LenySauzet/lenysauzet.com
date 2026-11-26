@@ -403,9 +403,9 @@ export function Ask({ className }: { className?: string }) {
                       opacity: 0,
                       filter: 'blur(8px)',
                       transition: {
-                        height: { duration: 0.32, ease: [0.32, 0.72, 0, 1] },
-                        opacity: { duration: 0.2 },
-                        filter: { duration: 0.2 },
+                        height: { duration: 0.36, ease: [0.45, 0, 0.25, 1] },
+                        opacity: { duration: 0.32, ease: [0.45, 0, 0.25, 1] },
+                        filter: { duration: 0.32, ease: [0.45, 0, 0.25, 1] },
                       },
                     }}
                   >
@@ -927,7 +927,7 @@ function Arrival({ children, delay = 0, className }: { children: ReactNode; dela
   const [appear] = useState(!opening);
 
   return (
-    <Fit className="-mx-5 shrink-0 overflow-clip" contentClassName="px-5" delay={delay} appear={appear}>
+    <Fit className="-mx-5 shrink-0 [overflow-clip-margin:16px]" contentClassName="px-5" delay={delay} appear={appear}>
       <motion.div
         className={cn('flex flex-col', className)}
         initial={appear ? BLURRED : false}
