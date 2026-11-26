@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils';
 import { MORPH } from '../Island/motion';
 
 import { Letters, TwoPassLetters, twoPassDuration } from './Letters';
-import { boundaryPath, paintGlow } from './orb/glow';
+import { guidePath, paintGlow } from './orb/glow';
 import { Orb } from './Orb';
 import { RING, Rim } from './Rim';
 import { copy, replyTo, type Reply } from './script';
@@ -690,7 +690,7 @@ function Aura({ frame, orb, thinking }: LightProps) {
         const box = { width: width.get(), height: height.get() };
         paintGlow(image, GLOW_SCALE, avatar);
         context.putImageData(image, 0, 0);
-        curve.current?.setAttribute('d', boundaryPath(avatar, box));
+        curve.current?.setAttribute('d', guidePath(avatar, box));
       }
       raf = requestAnimationFrame(draw);
     };
