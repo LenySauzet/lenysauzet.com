@@ -17,7 +17,7 @@ const LAVENDER: Color = [0.66, 0.62, 0.82];
 const SPREAD = 2.2;
 const DEPTH = 0.7;
 const MIN_DEPTH = 0.3;
-const STRENGTH = 0.55;
+const STRENGTH = 0.68;
 
 export function curveAt(y: number, avatar: Avatar) {
   const offset = (y - avatar.y) / (avatar.size * SPREAD);
