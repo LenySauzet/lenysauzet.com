@@ -24,8 +24,10 @@ import { useLocale } from 'next-intl';
 import {
   useEffect,
   useLayoutEffect,
+  useContext,
   useRef,
   useState,
+  createContext,
   type CSSProperties,
   type ReactNode,
   type Ref,
@@ -395,6 +397,7 @@ export function Ask({ className }: { className?: string }) {
                     key="conversation"
                     className="relative overflow-hidden"
                     fade
+                    follow
                     exit={{
                       height: 0,
                       opacity: 0,
@@ -834,52 +837,86 @@ function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume, or
   );
 }
 
+const Opening = createContext(false);
+
 interface FitProps {
   children: ReactNode;
   className?: string;
   contentClassName?: string;
   delay?: number;
   fade?: boolean;
+  appear?: boolean;
+  follow?: boolean;
   exit?: TargetAndTransition;
 }
 
-function Fit({ children, className, contentClassName, delay = 0, fade = false, exit }: FitProps) {
+function Fit({
+  children,
+  className,
+  contentClassName,
+  delay = 0,
+  fade = false,
+  appear = true,
+  follow = false,
+  exit,
+}: FitProps) {
   const content = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
+  const [measured, setMeasured] = useState(false);
   const [arrived, setArrived] = useState(false);
 
   useLayoutEffect(() => {
     const element = content.current;
     if (!element) return;
-    const resized = new ResizeObserver(() => setHeight(element.offsetHeight));
+    const resized = new ResizeObserver(() => {
+      setHeight(element.offsetHeight);
+      setMeasured(true);
+    });
     resized.observe(element);
     return () => resized.disconnect();
   }, []);
 
+  const instant = (!appear && !measured) || (follow && arrived);
+
   return (
     <motion.div
       className={className}
-      initial={{ height: 0, opacity: fade ? 0 : 1 }}
+      initial={{ height: appear ? 0 : 'auto', opacity: fade ? 0 : 1 }}
       animate={{ height, opacity: 1 }}
       exit={exit}
-      transition={{ height: { duration: 0.42, ease: EASE_SNAP, delay: arrived ? 0 : delay }, opacity: { duration: 0.25 } }}
+      transition={{
+        height: instant ? { duration: 0 } : { duration: 0.42, ease: EASE_SNAP, delay: arrived ? 0 : delay },
+        opacity: { duration: 0.25 },
+      }}
       onAnimationComplete={() => setArrived(true)}
     >
-      <div ref={content} className={contentClassName}>
-        {children}
-      </div>
+      <Opening.Provider value={follow && !arrived}>
+        <div ref={content} className={contentClassName}>
+          {children}
+        </div>
+      </Opening.Provider>
     </motion.div>
   );
 }
 
 function Arrival({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+  const opening = useContext(Opening);
+  const [appear] = useState(!opening);
+
   return (
     <Fit
-      className="group shrink-0"
-      contentClassName={cn('flex flex-col pt-5 group-first:pt-0', className)}
+      className="group shrink-0 [clip-path:inset(-24px_-24px_0_-24px)]"
       delay={delay}
+      appear={appear}
     >
-      {children}
+      <motion.div
+        className={cn('flex flex-col pt-5 group-first:pt-0', className)}
+        initial={appear ? { opacity: 0 } : false}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, delay: delay + 0.12 }}
+      >
+        {children}
+      </motion.div>
     </Fit>
   );
 }
