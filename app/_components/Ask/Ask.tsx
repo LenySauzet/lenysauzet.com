@@ -73,6 +73,7 @@ const WAKE_HALF_WIDTH = 140;
 const STAY_REACH = 64;
 const TINY_DROP = 30;
 const TOP_ZONE = 64;
+const BOTTOM_ZONE = 120;
 const COLLAPSE_AFTER = 80;
 const THINKING_MS = 1800;
 const HELD = 1e9;
@@ -106,6 +107,7 @@ export function Ask({ className }: { className?: string }) {
   const [near, setNear] = useState(false);
   const [touch, setTouch] = useState(false);
   const [atTop, setAtTop] = useState(false);
+  const [atBottom, setAtBottom] = useState(false);
   const firstWake = useRef(true);
   const showing = useRef(false);
   const waking = useRef<number[]>([]);
@@ -156,7 +158,11 @@ export function Ask({ className }: { className?: string }) {
   }, []);
 
   useEffect(() => {
-    const update = () => setAtTop(window.scrollY < TOP_ZONE);
+    const update = () => {
+      const left = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
+      setAtTop(window.scrollY < TOP_ZONE);
+      setAtBottom(window.scrollY >= TOP_ZONE && left < BOTTOM_ZONE);
+    };
     const initial = window.setTimeout(update);
     window.addEventListener('scroll', update, { passive: true });
     return () => {
@@ -190,7 +196,7 @@ export function Ask({ className }: { className?: string }) {
   }, []);
 
   const expanded = open && messages.length > 0;
-  const awake = Boolean(still) || touch || atTop || near || focused || draft.length > 0 || expanded;
+  const awake = Boolean(still) || touch || atTop || atBottom || near || focused || draft.length > 0 || expanded;
 
   useEffect(() => {
     const local: number[] = [];
