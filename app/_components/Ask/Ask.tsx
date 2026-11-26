@@ -425,19 +425,23 @@ export function Ask({ className }: { className?: string }) {
                         aria-live="polite"
                         onScroll={(event) => {
                           const element = event.currentTarget;
-                          stick.current = element.scrollHeight - element.scrollTop - element.clientHeight < 24;
+                          if (element.scrollHeight - element.scrollTop - element.clientHeight < 2) stick.current = true;
+                        }}
+                        onWheel={(event) => {
+                          if (event.deltaY < 0) stick.current = false;
+                        }}
+                        onTouchMove={() => {
+                          stick.current = false;
+                        }}
+                        onKeyDown={(event) => {
+                          if (['ArrowUp', 'PageUp', 'Home'].includes(event.key)) stick.current = false;
                         }}
                         className="flex max-h-[min(55vh,28rem)] flex-col overflow-y-auto px-5 pt-3 pb-9 [scrollbar-width:none] [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
                       >
                         {messages.map((message, index) =>
                           message.role === 'user' ? (
                             <Arrival key={message.id} className={cn('items-end', index > 0 && 'pt-2')}>
-                              <motion.p
-                                initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
-                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
-                                transition={{ ...MORPH, opacity: { duration: 0.3 }, filter: { duration: 0.35 } }}
-                                className="relative max-w-[85%] rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]"
-                              >
+                              <motion.p className="relative max-w-[85%] rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]">
                                 {message.text}
                                 <span
                                   aria-hidden
@@ -868,27 +872,32 @@ function Fit({
   const content = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
   const [measured, setMeasured] = useState(false);
+  const [settled, setSettled] = useState(appear);
   const [arrived, setArrived] = useState(false);
 
   useLayoutEffect(() => {
     const element = content.current;
     if (!element) return;
+    let raf = 0;
     const resized = new ResizeObserver(() => {
       setHeight(element.offsetHeight);
       setMeasured(true);
+      raf = requestAnimationFrame(() => setSettled(true));
     });
     resized.observe(element);
-    return () => resized.disconnect();
+    return () => {
+      resized.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
-  const instant = (!appear && !measured) || (follow && arrived);
-  const clipped = !follow || !arrived;
+  const instant = !settled || (follow && arrived);
 
   return (
     <motion.div
-      className={cn(className, clipped && 'overflow-clip')}
+      className={cn(className, 'overflow-clip')}
       initial={{ height: appear ? 0 : 'auto', opacity: fade ? 0 : 1 }}
-      animate={{ height, opacity: 1 }}
+      animate={{ height: measured ? height : appear ? 0 : 'auto', opacity: 1 }}
       exit={exit}
       transition={{
         height: instant ? { duration: 0 } : { duration: 0.42, ease: EASE_SNAP, delay: arrived ? 0 : delay },
@@ -918,7 +927,7 @@ function Arrival({ children, delay = 0, className }: { children: ReactNode; dela
         className={cn('flex flex-col', className)}
         initial={appear ? BLURRED : false}
         animate={SHARP}
-        transition={{ duration: 0.4, delay: delay + 0.1 }}
+        transition={{ duration: 0.35, delay: delay + 0.2 }}
       >
         {children}
       </motion.div>
