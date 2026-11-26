@@ -1,44 +1,55 @@
 import { describe, expect, it } from 'vitest';
 
-import { glowAt, reachAt, strengthAt } from './glow';
+import { boundaryAt, boundaryPath, glowAt } from './glow';
 
 const box = { width: 480, height: 420 };
 const avatar = { x: 36, y: 330 };
 
-describe('thinking glow', () => {
-  it('is all but absent at the very top of the left edge', () => {
-    expect(glowAt(0, 0, avatar, box).light).toBeLessThan(0.15);
+describe('thinking glow boundary', () => {
+  it('hugs the left edge at the top', () => {
+    expect(boundaryAt(0, avatar, box)).toBeLessThan(15);
   });
 
-  it('is already present from the upper third of the panel', () => {
-    expect(glowAt(10, box.height / 3, avatar, box).light).toBeGreaterThan(0.2);
+  it('reaches furthest in at the avatar, just past it', () => {
+    const atAvatar = boundaryAt(avatar.y, avatar, box);
+    expect(atAvatar).toBeGreaterThan(avatar.x);
+    for (const y of [0, 100, 200, 300, 360, 400]) expect(boundaryAt(y, avatar, box)).toBeLessThanOrEqual(atAvatar);
   });
 
-  it('widens exponentially on the way down to the avatar', () => {
-    const widths = [0, 100, 200, 280, 330].map((y) => reachAt(y, avatar, box));
-    for (let index = 1; index < widths.length; index++) expect(widths[index]).toBeGreaterThan(widths[index - 1]!);
-    expect(widths[4]! - widths[3]!).toBeGreaterThan(widths[1]! - widths[0]!);
+  it('advances concavely, faster and faster, on the way down to the avatar', () => {
+    const steps = [130, 190, 250, 310].map((y) => boundaryAt(y, avatar, box));
+    const gains = steps.slice(1).map((value, index) => value - steps[index]!);
+    expect(gains[1]!).toBeGreaterThan(gains[0]!);
+    expect(gains[2]!).toBeGreaterThan(gains[1]!);
   });
 
-  it('spreads as a wide sheet at the avatar, reaching well toward the middle', () => {
-    expect(reachAt(avatar.y, avatar, box)).toBeGreaterThan(box.width * 0.4);
-    expect(glowAt(150, avatar.y, avatar, box).light).toBeGreaterThan(0.25);
+  it('recedes quickly below the avatar', () => {
+    expect(boundaryAt(avatar.y + 60, avatar, box)).toBeLessThan(boundaryAt(avatar.y, avatar, box) / 2);
   });
 
-  it('is brightest at the avatar and fades toward the right', () => {
-    const atAvatar = glowAt(avatar.x, avatar.y, avatar, box).light;
-    expect(atAvatar).toBeGreaterThan(glowAt(250, avatar.y, avatar, box).light * 2);
-    expect(glowAt(440, avatar.y, avatar, box).light).toBeLessThan(0.1);
+  it('traces as a path from the top to the bottom of the panel', () => {
+    const path = boundaryPath(avatar, box, 20);
+    expect(path.startsWith('M')).toBe(true);
+    expect(path.split('L')).toHaveLength(box.height / 20 + 1);
+  });
+});
+
+describe('thinking glow light', () => {
+  it('is dark just past the boundary and in the middle of the panel', () => {
+    const reach = boundaryAt(avatar.y - 40, avatar, box);
+    expect(glowAt(reach + 40, avatar.y - 40, avatar, box).light).toBeLessThan(0.05);
+    expect(glowAt(box.width / 2, avatar.y, avatar, box).light).toBeLessThan(0.01);
   });
 
-  it('keeps light toward the bottom-left corner', () => {
-    expect(strengthAt(avatar.y + 70, avatar, box)).toBeGreaterThan(0.55);
+  it('is barely there at the top and brightest at the avatar', () => {
+    expect(glowAt(2, 10, avatar, box).light).toBeLessThan(0.1);
+    expect(glowAt(avatar.x, avatar.y, avatar, box).light).toBeGreaterThan(0.6);
   });
 
-  it('turns silver at the core and lavender across the sheet', () => {
+  it('is lavender along the edge and silver at the avatar', () => {
+    const edge = glowAt(3, avatar.y - 90, avatar, box).color;
     const core = glowAt(avatar.x, avatar.y, avatar, box).color;
-    const sheet = glowAt(130, avatar.y - 80, avatar, box).color;
-    expect(core[1]).toBeGreaterThan(sheet[1]);
-    expect(sheet[2] - sheet[1]).toBeGreaterThan(core[2] - core[1]);
+    expect(edge[2] - edge[1]).toBeGreaterThan(core[2] - core[1]);
+    expect(core[1]).toBeGreaterThan(edge[1]);
   });
 });

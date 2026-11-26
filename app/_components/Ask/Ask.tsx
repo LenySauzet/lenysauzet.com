@@ -11,14 +11,7 @@ import {
   PlusSignIcon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import {
-  animate,
-  AnimatePresence,
-  motion,
-  useMotionTemplate,
-  useMotionValue,
-  useReducedMotion,
-} from 'motion/react';
+import { animate, AnimatePresence, motion, useMotionTemplate, useMotionValue, useReducedMotion } from 'motion/react';
 import { useLocale } from 'next-intl';
 import {
   useEffect,
@@ -41,7 +34,7 @@ import { cn } from '@/lib/utils';
 import { MORPH } from '../Island/motion';
 
 import { Letters, TwoPassLetters, twoPassDuration } from './Letters';
-import { paintGlow } from './orb/glow';
+import { boundaryPath, paintGlow } from './orb/glow';
 import { Orb } from './Orb';
 import { RING, Rim } from './Rim';
 import { copy, replyTo, type Reply } from './script';
@@ -414,7 +407,11 @@ export function Ask({ className }: { className?: string }) {
                             className="relative max-w-[85%] self-end rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]"
                           >
                             {message.text}
-                            <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] p-px" style={BUBBLE_RIM} />
+                            <span
+                              aria-hidden
+                              className="pointer-events-none absolute inset-0 rounded-[inherit] p-px"
+                              style={BUBBLE_RIM}
+                            />
                           </motion.p>
                         ) : (
                           <Answer
@@ -470,12 +467,7 @@ export function Ask({ className }: { className?: string }) {
                 >
                   {draft}
                 </span>
-                <motion.div
-                  className="relative"
-                  initial={false}
-                  animate={{ height: fieldHeight }}
-                  transition={MORPH}
-                >
+                <motion.div className="relative" initial={false} animate={{ height: fieldHeight }} transition={MORPH}>
                   <textarea
                     ref={input}
                     rows={1}
@@ -518,7 +510,7 @@ export function Ask({ className }: { className?: string }) {
                         type="button"
                         aria-label={text.voice}
                         title={text.voice}
-                          className="grid size-8 cursor-pointer place-items-center text-subtle-foreground/70 transition-[color,scale] duration-200 hover:scale-110 hover:text-foreground active:scale-95 motion-reduce:hover:scale-100"
+                        className="grid size-8 cursor-pointer place-items-center text-subtle-foreground/70 transition-[color,scale] duration-200 hover:scale-110 hover:text-foreground active:scale-95 motion-reduce:hover:scale-100"
                       >
                         <HugeiconsIcon icon={Mic02Icon} size={18} strokeWidth={1.5} />
                       </button>
@@ -665,6 +657,13 @@ const GLOW_SCALE = 4;
 function Aura({ frame, orb, thinking }: LightProps) {
   const { x, y, height, width } = useAvatarPoint(frame, orb);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const curve = useRef<SVGPathElement>(null);
+  const [debug, setDebug] = useState(false);
+
+  useEffect(() => {
+    const read = window.setTimeout(() => setDebug(new URLSearchParams(window.location.search).has('debugGlow')));
+    return () => window.clearTimeout(read);
+  }, []);
 
   useEffect(() => {
     const element = canvas.current;
@@ -681,27 +680,39 @@ function Aura({ frame, orb, thinking }: LightProps) {
         element.width = columns;
         element.height = rows;
         const image = context.createImageData(columns, rows);
-        paintGlow(image, GLOW_SCALE, { x: x.get(), y: y.get() }, { width: width.get(), height: height.get() });
+        const avatar = { x: x.get(), y: y.get() };
+        const box = { width: width.get(), height: height.get() };
+        paintGlow(image, GLOW_SCALE, avatar, box);
         context.putImageData(image, 0, 0);
+        curve.current?.setAttribute('d', boundaryPath(avatar, box));
       }
       raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [x, y, height, width]);
+  }, [x, y, height, width, debug]);
 
   return (
-    <motion.div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
-      initial={{ opacity: 0 }}
-      animate={thinking ? { opacity: [0.82, 1, 0.82], scale: [1, 1.025, 1] } : { opacity: 0.1, scale: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.4 } }}
-      transition={thinking ? { duration: 3.2, ease: 'easeInOut', repeat: Infinity } : { duration: 0.9, ease: 'easeOut' }}
-      style={{ transformOrigin: '0% 85%' }}
-    >
-      <canvas ref={canvas} className="absolute inset-0 size-full blur-[10px]" />
-    </motion.div>
+    <>
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
+        initial={{ opacity: 0 }}
+        animate={thinking ? { opacity: [0.82, 1, 0.82], scale: [1, 1.025, 1] } : { opacity: 0.1, scale: 1 }}
+        exit={{ opacity: 0, transition: { duration: 0.4 } }}
+        transition={
+          thinking ? { duration: 3.2, ease: 'easeInOut', repeat: Infinity } : { duration: 0.9, ease: 'easeOut' }
+        }
+        style={{ transformOrigin: '0% 85%' }}
+      >
+        <canvas ref={canvas} className="absolute inset-0 size-full blur-[8px]" />
+      </motion.div>
+      {debug && (
+        <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible">
+          <path ref={curve} fill="none" stroke="var(--primary)" strokeWidth={1} />
+        </svg>
+      )}
+    </>
   );
 }
 
@@ -766,7 +777,15 @@ function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume, or
           {thinkingLabel}
         </span>
       ) : (
-        <AnswerBody words={words} shown={shown} done={done} reply={reply} actionLabel={actionLabel} onAction={onAction} resume={resume} />
+        <AnswerBody
+          words={words}
+          shown={shown}
+          done={done}
+          reply={reply}
+          actionLabel={actionLabel}
+          onAction={onAction}
+          resume={resume}
+        />
       )}
     </motion.div>
   );
