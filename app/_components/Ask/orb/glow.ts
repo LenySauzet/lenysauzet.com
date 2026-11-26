@@ -11,43 +11,34 @@ export interface Box {
 
 type Color = readonly [number, number, number];
 
-const LAVENDER: Color = [0.64, 0.6, 0.8];
-const SILVER: Color = [0.88, 0.9, 0.93];
+const SILVER: Color = [0.86, 0.88, 0.92];
+const LAVENDER: Color = [0.66, 0.62, 0.82];
 
-const RIM = { depth: 0.38, above: 3, below: 5, strength: 0.42 };
-const HALO = { lean: 0.45, wide: 0.7, tall: 1.05, strength: 0.38 };
-const OPACITY = 0.7;
+const SPREAD = 2.2;
+const DEPTH = 0.7;
+const MIN_DEPTH = 0.3;
+const STRENGTH = 0.55;
 
-const bell = (value: number) => Math.exp(-0.5 * value * value);
-
-export function rimAt(x: number, y: number, avatar: Avatar) {
-  const offset = (y - avatar.y) / avatar.size;
-  const along = bell(offset / (offset < 0 ? RIM.above : RIM.below));
-  return RIM.strength * along * Math.exp(-Math.max(x, 0) / (avatar.size * RIM.depth));
+export function curveAt(y: number, avatar: Avatar) {
+  const offset = (y - avatar.y) / (avatar.size * SPREAD);
+  return Math.exp(-0.5 * offset * offset);
 }
 
-export function haloAt(x: number, y: number, avatar: Avatar) {
-  const dx = (x - (avatar.x - HALO.lean * avatar.size)) / (avatar.size * HALO.wide);
-  const dy = (y - avatar.y) / (avatar.size * HALO.tall);
-  return HALO.strength * bell(Math.hypot(dx, dy));
+export function depthAt(y: number, avatar: Avatar) {
+  return avatar.size * DEPTH * (MIN_DEPTH + (1 - MIN_DEPTH) * curveAt(y, avatar));
 }
 
 export function glowAt(x: number, y: number, avatar: Avatar) {
-  const rim = rimAt(x, y, avatar);
-  const halo = haloAt(x, y, avatar);
-  const light = rim + halo;
-  const color = LAVENDER.map((channel, index) =>
-    light > 0 ? (channel * rim + SILVER[index]! * halo) / light : channel
-  ) as unknown as Color;
+  const curve = curveAt(y, avatar);
+  const light = STRENGTH * curve * Math.exp(-Math.max(x, 0) / depthAt(y, avatar));
+  const color = LAVENDER.map((channel, index) => channel + (SILVER[index]! - channel) * curve) as unknown as Color;
   return { light, color };
 }
 
-export function guidePath(avatar: Avatar, box: Box) {
-  const cx = avatar.x - HALO.lean * avatar.size;
-  const rx = (avatar.size * HALO.wide * 2).toFixed(1);
-  const ry = (avatar.size * HALO.tall * 2).toFixed(1);
-  const depth = (avatar.size * RIM.depth).toFixed(1);
-  return `M${(cx - Number(rx)).toFixed(1)},${avatar.y}a${rx},${ry} 0 1 0 ${(2 * Number(rx)).toFixed(1)},0a${rx},${ry} 0 1 0 ${(-2 * Number(rx)).toFixed(1)},0M${depth},0L${depth},${box.height}`;
+export function guidePath(avatar: Avatar, box: Box, step = 4) {
+  const points: string[] = [];
+  for (let y = 0; y <= box.height; y += step) points.push(`${depthAt(y, avatar).toFixed(1)},${y}`);
+  return `M${points.join('L')}`;
 }
 
 export function paintGlow(image: ImageData, scale: number, avatar: Avatar) {
@@ -59,7 +50,7 @@ export function paintGlow(image: ImageData, scale: number, avatar: Avatar) {
       data[index] = color[0] * 255;
       data[index + 1] = color[1] * 255;
       data[index + 2] = color[2] * 255;
-      data[index + 3] = light * OPACITY * 255;
+      data[index + 3] = light * 255;
     }
   }
 }

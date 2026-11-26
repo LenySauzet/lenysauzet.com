@@ -711,7 +711,7 @@ function Aura({ frame, orb, thinking }: LightProps) {
         }
         style={{ transformOrigin: '0% 85%' }}
       >
-        <canvas ref={canvas} className="absolute inset-0 size-full blur-[4px]" />
+        <canvas ref={canvas} className="absolute inset-0 size-full" />
       </motion.div>
       {debug && (
         <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible">

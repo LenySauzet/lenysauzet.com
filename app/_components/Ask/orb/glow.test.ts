@@ -1,56 +1,43 @@
 import { describe, expect, it } from 'vitest';
 
-import { glowAt, guidePath, haloAt, rimAt } from './glow';
+import { depthAt, glowAt, guidePath } from './glow';
 
 const D = 30;
 const avatar = { x: 50, y: 330, size: D };
 
-describe('the rim', () => {
-  it('hugs the left edge', () => {
-    expect(rimAt(0, avatar.y, avatar)).toBeGreaterThan(5 * rimAt(D, avatar.y, avatar));
+describe('the edge glow', () => {
+  it('is brightest on the edge at the avatar and fades to the right', () => {
+    const across = [0, 10, 20, 40, 80].map((x) => glowAt(x, avatar.y, avatar).light);
+    for (let index = 1; index < across.length; index++) expect(across[index]!).toBeLessThan(across[index - 1]!);
+    expect(across[4]!).toBeLessThan(0.02);
   });
 
-  it('climbs the edge progressively above the avatar', () => {
-    const climb = [0, 1, 2, 3, 4].map((k) => rimAt(0, avatar.y - k * D, avatar));
-    for (let index = 1; index < climb.length; index++) expect(climb[index]!).toBeLessThan(climb[index - 1]!);
-    expect(climb[2]!).toBeGreaterThan(climb[0]! * 0.7);
-  });
-});
-
-describe('the halo', () => {
-  it('sits on the avatar, leaning toward the edge', () => {
-    expect(haloAt(avatar.x - 0.5 * D, avatar.y, avatar)).toBeGreaterThan(haloAt(avatar.x + 0.5 * D, avatar.y, avatar));
-  });
-
-  it('is gone a little way to the right of the avatar', () => {
-    expect(haloAt(avatar.x + 2 * D, avatar.y, avatar)).toBeLessThan(0.01);
-  });
-});
-
-describe('the glow', () => {
-  it('never saturates, so it keeps its gradient', () => {
-    for (let x = 0; x <= 3 * D; x += 2) {
-      for (let y = avatar.y - 3 * D; y <= avatar.y + 3 * D; y += 2) expect(glowAt(x, y, avatar).light).toBeLessThan(0.85);
+  it('fades smoothly up and down the edge', () => {
+    const above = [0, 1, 2, 4, 6].map((k) => glowAt(0, avatar.y - k * D, avatar).light);
+    const below = [0, 1, 2, 4, 6].map((k) => glowAt(0, avatar.y + k * D, avatar).light);
+    for (let index = 1; index < above.length; index++) {
+      expect(above[index]!).toBeLessThan(above[index - 1]!);
+      expect(below[index]!).toBeLessThan(below[index - 1]!);
     }
+    expect(above[4]!).toBeLessThan(0.05);
   });
 
-  it('has no hard edge: neighbouring points never jump', () => {
-    for (let x = 0; x <= 3 * D; x += 1) {
-      for (let y = avatar.y - 3 * D; y <= avatar.y + 3 * D; y += 3) {
-        expect(Math.abs(glowAt(x + 1, y, avatar).light - glowAt(x, y, avatar).light)).toBeLessThan(0.04);
-      }
-    }
+  it('reaches furthest in at the avatar, a soft curve and no further than its edge', () => {
+    expect(depthAt(avatar.y, avatar)).toBeGreaterThan(depthAt(avatar.y - 2 * D, avatar));
+    expect(depthAt(avatar.y, avatar)).toBeLessThan(avatar.x - D / 2);
   });
 
-  it('is lavender on the edge and silver around the avatar', () => {
-    const [, eg, eb] = glowAt(0, avatar.y - 2 * D, avatar).color;
-    const [hr, hg, hb] = glowAt(avatar.x - 0.4 * D, avatar.y, avatar).color;
-    expect(eb - eg).toBeGreaterThan(0.12);
-    expect(hb - hg).toBeLessThan(0.08);
-    expect(Math.min(hr, hg)).toBeGreaterThan(eg);
+  it('stays measured', () => {
+    expect(glowAt(0, avatar.y, avatar).light).toBeLessThanOrEqual(0.7);
   });
 
-  it('draws its guides', () => {
-    expect(guidePath(avatar, { width: 480, height: 420 }).match(/M/g)).toHaveLength(2);
+  it('is silver at its heart and lavender at its ends', () => {
+    const [, hg, hb] = glowAt(0, avatar.y, avatar).color;
+    const [, eg, eb] = glowAt(0, avatar.y - 3 * D, avatar).color;
+    expect(eb - eg).toBeGreaterThan(hb - hg);
+  });
+
+  it('traces its curve for debugging', () => {
+    expect(guidePath(avatar, { width: 480, height: 420 }, 20).split('L')).toHaveLength(22);
   });
 });
