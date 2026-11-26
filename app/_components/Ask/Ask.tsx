@@ -16,7 +16,6 @@ import {
   AnimatePresence,
   motion,
   useMotionTemplate,
-  useTransform,
   useMotionValue,
   useReducedMotion,
 } from 'motion/react';
@@ -42,6 +41,7 @@ import { cn } from '@/lib/utils';
 import { MORPH } from '../Island/motion';
 
 import { Letters, TwoPassLetters, twoPassDuration } from './Letters';
+import { paintGlow } from './orb/glow';
 import { Orb } from './Orb';
 import { RING, Rim } from './Rim';
 import { copy, replyTo, type Reply } from './script';
@@ -629,6 +629,7 @@ function useAvatarPoint(frame: RefObject<HTMLDivElement | null>, orb: RefObject<
   const x = useMotionValue(36);
   const y = useMotionValue(0);
   const height = useMotionValue(0);
+  const width = useMotionValue(0);
 
   useEffect(() => {
     let raf = 0;
@@ -637,6 +638,7 @@ function useAvatarPoint(frame: RefObject<HTMLDivElement | null>, orb: RefObject<
       const mark = orb.current?.getBoundingClientRect();
       if (box) {
         height.set(box.height);
+        width.set(box.width);
         x.set(mark ? mark.left + mark.width / 2 - box.left : 36);
         y.set(mark ? mark.top + mark.height / 2 - box.top : box.height - 72);
       }
@@ -644,9 +646,9 @@ function useAvatarPoint(frame: RefObject<HTMLDivElement | null>, orb: RefObject<
     };
     raf = requestAnimationFrame(follow);
     return () => cancelAnimationFrame(raf);
-  }, [frame, orb, x, y, height]);
+  }, [frame, orb, x, y, height, width]);
 
-  return { x, y, height };
+  return { x, y, height, width };
 }
 
 const MILK = (alpha: number) => `oklch(from var(--glare) l c h / ${alpha})`;
@@ -658,47 +660,47 @@ interface LightProps {
   thinking: boolean;
 }
 
+const GLOW_SCALE = 4;
+
 function Aura({ frame, orb, thinking }: LightProps) {
-  const { x, y, height } = useAvatarPoint(frame, orb);
-  const stripTop = useTransform(height, (value) => value * 0.05);
-  const stripHeight = useTransform([y, height], ([avatar = 0, box = 0]: number[]) => Math.max(0, avatar - box * 0.05 + 40));
-  const bleedTop = useTransform(y, (value) => value - 120);
-  const focusLeft = useTransform(x, (value) => value - 64);
-  const focusTop = useTransform(y, (value) => value - 56);
+  const { x, y, height, width } = useAvatarPoint(frame, orb);
+  const canvas = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const element = canvas.current;
+    const context = element?.getContext('2d');
+    if (!element || !context) return;
+    let drawn = '';
+    let raf = 0;
+    const draw = () => {
+      const columns = Math.ceil(width.get() / GLOW_SCALE);
+      const rows = Math.ceil(height.get() / GLOW_SCALE);
+      const key = `${columns}x${rows}@${Math.round(x.get())},${Math.round(y.get())}`;
+      if (columns > 0 && rows > 0 && key !== drawn) {
+        drawn = key;
+        element.width = columns;
+        element.height = rows;
+        const image = context.createImageData(columns, rows);
+        paintGlow(image, GLOW_SCALE, { x: x.get(), y: y.get() });
+        context.putImageData(image, 0, 0);
+      }
+      raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf);
+  }, [x, y, height, width]);
 
   return (
     <motion.div
       aria-hidden
       className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
       initial={{ opacity: 0 }}
-      animate={thinking ? { opacity: [0.8, 1, 0.8], scale: [1, 1.03, 1] } : { opacity: 0.12, scale: 1 }}
+      animate={thinking ? { opacity: [0.82, 1, 0.82], scale: [1, 1.025, 1] } : { opacity: 0.1, scale: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.4 } }}
       transition={thinking ? { duration: 3.2, ease: 'easeInOut', repeat: Infinity } : { duration: 0.9, ease: 'easeOut' }}
-      style={{ transformOrigin: '0% 100%' }}
+      style={{ transformOrigin: '0% 85%' }}
     >
-      <motion.span
-        className="absolute -left-[6%] w-[15%] rounded-full blur-[28px]"
-        style={{
-          top: stripTop,
-          height: stripHeight,
-          background: `linear-gradient(to bottom, transparent 0%, transparent 38%, ${LAVENDER(0.04)} 58%, ${LAVENDER(0.1)} 72%, ${LAVENDER(0.22)} 84%, ${MILK(0.26)} 96%)`,
-        }}
-      />
-      <motion.span
-        className="absolute -left-[16%] h-[220px] w-[40%] rounded-full blur-[54px]"
-        style={{
-          top: bleedTop,
-          background: `radial-gradient(closest-side, ${LAVENDER(0.34)}, ${LAVENDER(0.14)} 45%, transparent 80%)`,
-        }}
-      />
-      <motion.span
-        className="absolute size-28 rounded-full blur-[24px]"
-        style={{
-          left: focusLeft,
-          top: focusTop,
-          background: `radial-gradient(closest-side, ${MILK(0.3)}, ${LAVENDER(0.16)} 55%, transparent)`,
-        }}
-      />
+      <canvas ref={canvas} className="absolute inset-0 size-full blur-[6px]" />
     </motion.div>
   );
 }
