@@ -15,8 +15,8 @@ const EDGE = 6;
 const PAST_AVATAR = 34;
 const RISE = 0.3;
 const TAPER = 42;
-const SOFT_EDGE = 16;
-const CORE = 24;
+const SOFT_EDGE = 30;
+const CORE = 40;
 
 export function boundaryAt(y: number, avatar: Point, box: Box) {
   const offset = y - avatar.y;
@@ -34,12 +34,12 @@ export function strengthAt(y: number, avatar: Point, box: Box) {
 export function glowAt(x: number, y: number, avatar: Point, box: Box) {
   const reach = boundaryAt(y, avatar, box);
   const past = x - reach;
-  const across = past <= 0 ? 0.7 + 0.3 * Math.exp(past / Math.max(reach, 1)) : Math.exp(-((past / SOFT_EDGE) ** 2));
+  const across = past <= 0 ? 0.72 + 0.28 * Math.exp(past / Math.max(reach, 1)) : Math.exp(-((past / SOFT_EDGE) ** 1.6));
   const sheet = across * strengthAt(y, avatar, box);
   const distance = Math.hypot(x - avatar.x, y - avatar.y);
   const core = Math.exp(-((distance / CORE) ** 2) / 2);
-  const light = Math.min(1, sheet * 0.62 + core * 0.3);
-  const white = Math.min(1, core + 0.55 * Math.exp(-distance / 70));
+  const light = Math.min(1, sheet * 0.5 + core * 0.14);
+  const white = Math.min(1, core * 0.7 + 0.35 * Math.exp(-distance / 90));
   return {
     light,
     color: LAVENDER.map((channel, index) => channel + (SILVER[index]! - channel) * white) as [number, number, number],
@@ -61,7 +61,7 @@ export function paintGlow(image: ImageData, scale: number, avatar: Point, box: B
       data[index] = color[0] * 255;
       data[index + 1] = color[1] * 255;
       data[index + 2] = color[2] * 255;
-      data[index + 3] = light * 0.7 * 255;
+      data[index + 3] = light * 0.62 * 255;
     }
   }
 }

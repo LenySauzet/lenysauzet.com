@@ -37,13 +37,14 @@ describe('thinking glow boundary', () => {
 describe('thinking glow light', () => {
   it('is dark just past the boundary and in the middle of the panel', () => {
     const reach = boundaryAt(avatar.y - 40, avatar, box);
-    expect(glowAt(reach + 40, avatar.y - 40, avatar, box).light).toBeLessThan(0.05);
+    expect(glowAt(reach + 70, avatar.y - 40, avatar, box).light).toBeLessThan(0.05);
     expect(glowAt(box.width / 2, avatar.y, avatar, box).light).toBeLessThan(0.01);
   });
 
   it('is barely there at the top and brightest at the avatar', () => {
     expect(glowAt(2, 10, avatar, box).light).toBeLessThan(0.1);
-    expect(glowAt(avatar.x, avatar.y, avatar, box).light).toBeGreaterThan(0.6);
+    expect(glowAt(avatar.x, avatar.y, avatar, box).light).toBeGreaterThan(0.5);
+    expect(glowAt(avatar.x, avatar.y, avatar, box).light).toBeLessThan(0.7);
   });
 
   it('is lavender along the edge and silver at the avatar', () => {
