@@ -130,6 +130,12 @@
   }
 }
 
+@property --fade {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0rem;
+}
+
 @property --sweep {
   syntax: '<percentage>';
   inherits: true;

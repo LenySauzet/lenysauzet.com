@@ -2,6 +2,7 @@
 
 import {
   AiBrain01Icon,
+  ArrowDown02Icon,
   ArrowUp02Icon,
   Briefcase01Icon,
   Calendar03Icon,
@@ -129,6 +130,7 @@ export function Ask({ className }: { className?: string }) {
   const timers = useRef<number[]>([]);
   const count = useRef(0);
   const stick = useRef(true);
+  const [away, setAway] = useState(false);
   const shineX = useMotionValue(100);
   const glow = useMotionValue(0);
 
@@ -443,52 +445,77 @@ export function Ask({ className }: { className?: string }) {
                         <HeaderButton label={text.newChat} onClick={restart} icon="refresh" />
                         <HeaderButton label={text.close} onClick={() => setOpen(false)} icon="close" />
                       </header>
-                      <div
-                        ref={log}
-                        role="log"
-                        aria-live="polite"
-                        onScroll={(event) => {
-                          const element = event.currentTarget;
-                          if (element.scrollHeight - element.scrollTop - element.clientHeight < 2) stick.current = true;
-                        }}
-                        onWheel={(event) => {
-                          if (event.deltaY < 0) stick.current = false;
-                        }}
-                        onTouchMove={() => {
-                          stick.current = false;
-                        }}
-                        onKeyDown={(event) => {
-                          if (['ArrowUp', 'PageUp', 'Home'].includes(event.key)) stick.current = false;
-                        }}
-                        className="flex max-h-[min(55vh,28rem)] flex-col overflow-y-auto px-5 pt-3 pb-9 [scrollbar-width:none] [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
-                      >
-                        {messages.map((message, index) =>
-                          message.role === 'user' ? (
-                            <Arrival key={message.id} className={cn('items-end', index > 0 && 'pt-2')}>
-                              <motion.p className="relative max-w-[85%] rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]">
-                                {message.text}
-                                <span
-                                  aria-hidden
-                                  className="pointer-events-none absolute inset-0 rounded-[inherit] p-px"
-                                  style={BUBBLE_RIM}
+                      <div className="relative">
+                        <div
+                          ref={log}
+                          role="log"
+                          aria-live="polite"
+                          onScroll={(event) => {
+                            const element = event.currentTarget;
+                            const left = element.scrollHeight - element.scrollTop - element.clientHeight;
+                            if (left < 2) stick.current = true;
+                            setAway(left > 48);
+                          }}
+                          onWheel={(event) => {
+                            if (event.deltaY < 0) stick.current = false;
+                          }}
+                          onTouchMove={() => {
+                            stick.current = false;
+                          }}
+                          onKeyDown={(event) => {
+                            if (['ArrowUp', 'PageUp', 'Home'].includes(event.key)) stick.current = false;
+                          }}
+                          className="flex max-h-[min(55vh,28rem)] flex-col overflow-y-auto px-5 pt-3 pb-9 [scrollbar-width:none] [mask-image:linear-gradient(to_bottom,transparent,black_1rem,black_calc(100%-var(--fade)),transparent)] transition-[--fade] duration-300"
+                          style={{ '--fade': away ? '4.5rem' : '0rem' } as CSSProperties}
+                        >
+                          {messages.map((message, index) =>
+                            message.role === 'user' ? (
+                              <Arrival key={message.id} className={cn('items-end', index > 0 && 'pt-2')}>
+                                <motion.p className="relative max-w-[85%] rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]">
+                                  {message.text}
+                                  <span
+                                    aria-hidden
+                                    className="pointer-events-none absolute inset-0 rounded-[inherit] p-px"
+                                    style={BUBBLE_RIM}
+                                  />
+                                </motion.p>
+                              </Arrival>
+                            ) : (
+                              <Arrival key={message.id} delay={0.12} className="pt-5 pb-3">
+                                <Answer
+                                  orbRef={message.id === last?.id ? thinkingOrb : undefined}
+                                  reply={message.reply}
+                                  shown={message.shown}
+                                  thinkingLabel={text.thinking}
+                                  actionLabel={message.reply.action === 'book' ? text.book : text.resume}
+                                  onAction={message.reply.action === 'book' ? book : undefined}
+                                  resume={resume}
+                                  copyLabels={{ copy: text.copy, copied: text.copied }}
                                 />
-                              </motion.p>
-                            </Arrival>
-                          ) : (
-                            <Arrival key={message.id} delay={0.12} className="pt-5 pb-3">
-                              <Answer
-                                orbRef={message.id === last?.id ? thinkingOrb : undefined}
-                                reply={message.reply}
-                                shown={message.shown}
-                                thinkingLabel={text.thinking}
-                                actionLabel={message.reply.action === 'book' ? text.book : text.resume}
-                                onAction={message.reply.action === 'book' ? book : undefined}
-                                resume={resume}
-                                copyLabels={{ copy: text.copy, copied: text.copied }}
-                              />
-                            </Arrival>
-                          )
-                        )}
+                              </Arrival>
+                            )
+                          )}
+                        </div>
+                        <AnimatePresence>
+                          {away && (
+                            <motion.button
+                              type="button"
+                              aria-label={text.latest}
+                              title={text.latest}
+                              onClick={() => {
+                                stick.current = true;
+                                log.current?.scrollTo({ top: log.current.scrollHeight, behavior: 'smooth' });
+                              }}
+                              initial={{ opacity: 0, scale: 0.7, filter: 'blur(4px)' }}
+                              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                              exit={{ opacity: 0, scale: 0.7, filter: 'blur(4px)' }}
+                              transition={{ duration: 0.2 }}
+                              className="absolute bottom-3 left-1/2 grid size-8 -translate-x-1/2 cursor-pointer place-items-center rounded-full bg-card/80 text-foreground/80 shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.08)] ring-1 ring-foreground/15 backdrop-blur-md ring-inset hover:text-foreground"
+                            >
+                              <HugeiconsIcon icon={ArrowDown02Icon} size={16} strokeWidth={2} />
+                            </motion.button>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </motion.section>
                   </Fit>

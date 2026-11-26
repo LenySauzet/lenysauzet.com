@@ -21,6 +21,7 @@ interface Copy {
   send: string;
   copy: string;
   copied: string;
+  latest: string;
   voice: string;
   book: string;
   resume: string;
@@ -43,6 +44,7 @@ export const copy = (locale: Locale): Copy =>
         send: 'Envoyer',
         copy: 'Copier la réponse',
         copied: 'Copiée',
+        latest: 'Aller en bas',
         voice: 'Dicter',
         book: 'Réserver un appel',
         resume: 'Télécharger le CV',
@@ -76,6 +78,7 @@ export const copy = (locale: Locale): Copy =>
         send: 'Send',
         copy: 'Copy answer',
         copied: 'Copied',
+        latest: 'Jump to latest',
         voice: 'Dictate',
         book: 'Book a call',
         resume: 'Download resume',
