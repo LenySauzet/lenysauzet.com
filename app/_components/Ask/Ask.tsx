@@ -401,16 +401,21 @@ export function Ask({ className }: { className?: string }) {
                     exit={{
                       height: 0,
                       opacity: 0,
-                      transition: { height: { duration: 0.32, ease: [0.32, 0.72, 0, 1] }, opacity: { duration: 0.18 } },
+                      filter: 'blur(8px)',
+                      transition: {
+                        height: { duration: 0.32, ease: [0.32, 0.72, 0, 1] },
+                        opacity: { duration: 0.2 },
+                        filter: { duration: 0.2 },
+                      },
                     }}
                   >
-                    <section aria-label={text.title}>
-                      <motion.header
-                        className="flex items-center gap-3 py-3 pr-3 pl-4"
-                        initial={BLURRED}
-                        animate={SHARP}
-                        transition={{ duration: 0.4, delay: 0.12 }}
-                      >
+                    <motion.section
+                      aria-label={text.title}
+                      initial={BLURRED}
+                      animate={SHARP}
+                      transition={{ duration: 0.35, delay: 0.16 }}
+                    >
+                      <header className="flex items-center gap-3 py-3 pr-3 pl-4">
                         <Orb count={1} size={56} className="-my-2.5 -ml-2" />
                         <span className="flex min-w-0 flex-1 flex-col">
                           <span className="text-sm leading-5 text-foreground">{text.title}</span>
@@ -418,7 +423,7 @@ export function Ask({ className }: { className?: string }) {
                         </span>
                         <HeaderButton label={text.newChat} onClick={restart} icon="refresh" />
                         <HeaderButton label={text.close} onClick={() => setOpen(false)} icon="close" />
-                      </motion.header>
+                      </header>
                       <div
                         ref={log}
                         role="log"
@@ -465,7 +470,7 @@ export function Ask({ className }: { className?: string }) {
                           )
                         )}
                       </div>
-                    </section>
+                    </motion.section>
                   </Fit>
                 )}
               </AnimatePresence>
