@@ -7,10 +7,17 @@ const avatar = { x: 36, y: 330, size: D };
 const box = { width: 480, height: 420 };
 
 describe('thinking glow boundary, in avatar diameters', () => {
-  it('keeps a thin line along the edge far above the avatar', () => {
-    const reach = boundaryAt(avatar.y - 4 * D, avatar) / D;
-    expect(reach).toBeGreaterThan(0.15);
-    expect(reach).toBeLessThan(0.35);
+  it('narrows to the edge far above the avatar', () => {
+    expect(boundaryAt(avatar.y - 4 * D, avatar) / D).toBeLessThan(0.15);
+  });
+
+  it('narrows and dims together above the avatar, so the lit edge is one arch', () => {
+    for (const k of [0.5, 1, 2, 3]) {
+      const y = avatar.y - k * D;
+      const width = boundaryAt(y, avatar) / boundaryAt(avatar.y, avatar);
+      const strength = strengthAt(y, avatar);
+      expect(Math.abs(width - strength)).toBeLessThan(0.02);
+    }
   });
 
   it('reaches into the left half of the avatar at its height, and no further', () => {
@@ -44,7 +51,7 @@ describe('thinking glow boundary, in avatar diameters', () => {
 
 describe('thinking glow light', () => {
   it('fades monotonically away from the edge, with no ridge at the boundary', () => {
-    const y = avatar.y - 1.5 * D;
+    const y = avatar.y - 2.5 * D;
     let previous = Infinity;
     for (let x = 0; x <= 4 * D; x += 1) {
       const light = glowAt(x, y, avatar).light;
@@ -63,14 +70,11 @@ describe('thinking glow light', () => {
     expect(glowAt(box.width / 3, avatar.y, avatar).light).toBeLessThan(0.01);
   });
 
-  it('is mostly silver, with only a faint lavender', () => {
-    for (const [x, y] of [
-      [2, avatar.y - 2 * D],
-      [avatar.x - D / 2, avatar.y],
-    ] as const) {
-      const [r, g, b] = glowAt(x, y, avatar).color;
-      expect(b - Math.min(r, g)).toBeLessThan(0.15);
-      expect(Math.min(r, g, b)).toBeGreaterThan(0.8);
-    }
+  it('is lavender along the edge and silver at the avatar', () => {
+    const [er, eg, eb] = glowAt(2, avatar.y - 1.5 * D, avatar).color;
+    const [cr, cg, cb] = glowAt(avatar.x - D / 3, avatar.y, avatar).color;
+    expect(eb - eg).toBeGreaterThan(0.15);
+    expect(cb - cg).toBeLessThan(0.1);
+    expect(Math.min(cr, cg)).toBeGreaterThan(Math.min(er, eg));
   });
 });

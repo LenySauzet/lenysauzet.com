@@ -9,25 +9,24 @@ export interface Box {
   height: number;
 }
 
-const HAZE = [0.84, 0.82, 0.96] as const;
+const HAZE = [0.74, 0.67, 0.98] as const;
 const SILVER = [0.95, 0.95, 0.98] as const;
 
 const PEAK = 1.15;
-const LINE = 0.22;
-const RISE = 1.6;
-const FALL = 1.7;
-const SOFTNESS = 0.16;
+const RISE = 2.6;
+const FALL = 1.8;
+const SOFTNESS = 0.11;
 
 const bell = (value: number, width: number) => Math.exp(-((value / width) ** 2));
 
 export function boundaryAt(y: number, avatar: Avatar) {
   const offset = (y - avatar.y) / avatar.size;
-  return avatar.size * (LINE + (PEAK - LINE) * bell(offset, offset < 0 ? RISE : FALL));
+  return avatar.size * PEAK * (offset < 0 ? bell(offset, RISE) : 0.22 + 0.78 * bell(offset, FALL));
 }
 
 export function strengthAt(y: number, avatar: Avatar) {
   const offset = (y - avatar.y) / avatar.size;
-  return offset < 0 ? bell(offset, 3) : 0.55 + 0.45 * bell(offset, 1.3);
+  return offset < 0 ? bell(offset, RISE) : 0.55 + 0.45 * bell(offset, 1.3);
 }
 
 export function glowAt(x: number, y: number, avatar: Avatar) {
@@ -36,8 +35,8 @@ export function glowAt(x: number, y: number, avatar: Avatar) {
   const distance = Math.hypot(x - avatar.x, y - avatar.y) / avatar.size;
   const rightward = Math.max(0, x - avatar.x) / avatar.size;
   const bloom = bell(distance, 0.85) * bell(rightward, 0.4);
-  const light = Math.min(1, across * strengthAt(y, avatar) * 0.62 + bloom * 0.4);
-  const white = Math.min(1, 0.35 + bell(distance, 1.4) * 0.65);
+  const light = Math.min(1, across * strengthAt(y, avatar) * 0.66 + bloom * 0.24);
+  const white = Math.min(1, 0.1 + bell(distance, 1.1) * 0.85);
   return {
     light,
     color: HAZE.map((channel, index) => channel + (SILVER[index]! - channel) * white) as [number, number, number],
