@@ -41,10 +41,12 @@ describe('thinking glow light', () => {
     expect(glowAt(box.width / 2, avatar.y, avatar, box).light).toBeLessThan(0.01);
   });
 
-  it('is barely there at the top and brightest at the avatar', () => {
-    expect(glowAt(2, 10, avatar, box).light).toBeLessThan(0.1);
-    expect(glowAt(avatar.x, avatar.y, avatar, box).light).toBeGreaterThan(0.5);
-    expect(glowAt(avatar.x, avatar.y, avatar, box).light).toBeLessThan(0.7);
+  it('is barely there at the top and radiates from the avatar', () => {
+    const atAvatar = glowAt(avatar.x, avatar.y, avatar, box).light;
+    expect(glowAt(2, 10, avatar, box).light).toBeLessThan(0.02);
+    expect(atAvatar).toBeGreaterThan(glowAt(4, avatar.y - 90, avatar, box).light * 2);
+    expect(atAvatar).toBeGreaterThan(glowAt(4, avatar.y + 60, avatar, box).light * 1.5);
+    expect(atAvatar).toBeLessThan(0.6);
   });
 
   it('is lavender along the edge and silver at the avatar', () => {

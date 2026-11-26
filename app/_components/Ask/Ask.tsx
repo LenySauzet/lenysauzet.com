@@ -383,7 +383,7 @@ export function Ask({ className }: { className?: string }) {
                     transition={{ height: MORPH, opacity: { duration: 0.25 } }}
                   >
                     <header className="flex items-center gap-3 py-3 pr-3 pl-4">
-                      <Orb count={1} size={50} className="-my-2 -ml-1.5" />
+                      <Orb count={1} size={56} className="-my-2.5 -ml-2" />
                       <span className="flex min-w-0 flex-1 flex-col">
                         <span className="text-sm leading-5 text-foreground">{text.title}</span>
                         <span className="truncate text-xs leading-4 text-subtle-foreground">{text.subtitle}</span>
@@ -762,18 +762,18 @@ function Answer({ reply, shown, thinkingLabel, actionLabel, onAction, resume, or
       transition={{ duration: 0.4 }}
       className="flex items-start gap-3"
     >
-      <span ref={orbRef} className="relative -mt-2 -ml-1 size-10 shrink-0">
+      <span ref={orbRef} className="relative -mt-2.5 -ml-1 size-11 shrink-0">
         <motion.span
           className="absolute top-1/2 left-1/2 -translate-1/2"
           initial={false}
-          animate={{ scale: thinking ? 1 : 0.74 }}
+          animate={{ scale: thinking ? 1 : 0.75 }}
           transition={MORPH}
         >
-          <Orb count={thinking ? (cluster ? 4 : 2) : 1} spin={thinking} size={58} />
+          <Orb count={thinking ? (cluster ? 4 : 2) : 1} spin={thinking} size={64} />
         </motion.span>
       </span>
       {thinking ? (
-        <span className="shimmer pt-0.5 pl-3 text-sm" style={SHIMMER_TEXT}>
+        <span className="shimmer pt-1 pl-3.5 text-sm" style={SHIMMER_TEXT}>
           {thinkingLabel}
         </span>
       ) : (
