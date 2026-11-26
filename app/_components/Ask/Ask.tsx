@@ -131,6 +131,7 @@ export function Ask({ className }: { className?: string }) {
   const count = useRef(0);
   const stick = useRef(true);
   const [away, setAway] = useState(false);
+  const gliding = useRef<ReturnType<typeof animate> | null>(null);
   const shineX = useMotionValue(100);
   const glow = useMotionValue(0);
 
@@ -457,7 +458,9 @@ export function Ask({ className }: { className?: string }) {
                             setAway(left > 48);
                           }}
                           onWheel={(event) => {
-                            if (event.deltaY < 0) stick.current = false;
+                            if (event.deltaY >= 0) return;
+                            gliding.current?.stop();
+                            stick.current = false;
                           }}
                           onTouchMove={() => {
                             stick.current = false;
@@ -466,7 +469,7 @@ export function Ask({ className }: { className?: string }) {
                             if (['ArrowUp', 'PageUp', 'Home'].includes(event.key)) stick.current = false;
                           }}
                           className="flex max-h-[min(55vh,28rem)] flex-col overflow-y-auto px-5 pt-3 pb-9 [scrollbar-width:none] [mask-image:linear-gradient(to_bottom,transparent,black_1rem,black_calc(100%-var(--fade)),transparent)] transition-[--fade] duration-300"
-                          style={{ '--fade': away ? '4.5rem' : '0rem' } as CSSProperties}
+                          style={{ '--fade': away ? '72px' : '0px' } as CSSProperties}
                         >
                           {messages.map((message, index) =>
                             message.role === 'user' ? (
@@ -503,8 +506,23 @@ export function Ask({ className }: { className?: string }) {
                               aria-label={text.latest}
                               title={text.latest}
                               onClick={() => {
-                                stick.current = true;
-                                log.current?.scrollTo({ top: log.current.scrollHeight, behavior: 'smooth' });
+                                const element = log.current;
+                                if (!element) return;
+                                gliding.current?.stop();
+                                gliding.current = animate(
+                                  element.scrollTop,
+                                  element.scrollHeight - element.clientHeight,
+                                  {
+                                    duration: 0.6,
+                                    ease: EASE_SNAP,
+                                    onUpdate: (top) => {
+                                      element.scrollTop = top;
+                                    },
+                                    onComplete: () => {
+                                      stick.current = true;
+                                    },
+                                  }
+                                );
                               }}
                               initial={{ opacity: 0, scale: 0.7, filter: 'blur(4px)' }}
                               animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}

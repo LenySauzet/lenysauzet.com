@@ -133,7 +133,7 @@
 @property --fade {
   syntax: '<length>';
   inherits: false;
-  initial-value: 0rem;
+  initial-value: 0px;
 }
 
 @property --sweep {
