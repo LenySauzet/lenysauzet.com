@@ -681,7 +681,7 @@ function Aura({ frame, orb, thinking }: LightProps) {
         element.width = columns;
         element.height = rows;
         const image = context.createImageData(columns, rows);
-        paintGlow(image, GLOW_SCALE, { x: x.get(), y: y.get() });
+        paintGlow(image, GLOW_SCALE, { x: x.get(), y: y.get() }, { width: width.get(), height: height.get() });
         context.putImageData(image, 0, 0);
       }
       raf = requestAnimationFrame(draw);
@@ -700,7 +700,7 @@ function Aura({ frame, orb, thinking }: LightProps) {
       transition={thinking ? { duration: 3.2, ease: 'easeInOut', repeat: Infinity } : { duration: 0.9, ease: 'easeOut' }}
       style={{ transformOrigin: '0% 85%' }}
     >
-      <canvas ref={canvas} className="absolute inset-0 size-full blur-[6px]" />
+      <canvas ref={canvas} className="absolute inset-0 size-full blur-[10px]" />
     </motion.div>
   );
 }
