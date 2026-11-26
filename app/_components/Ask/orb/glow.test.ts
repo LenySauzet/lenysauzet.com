@@ -1,60 +1,56 @@
 import { describe, expect, it } from 'vitest';
 
-import { archAt, edgeAt, glowAt, guidePath } from './glow';
+import { glowAt, guidePath, haloAt, rimAt } from './glow';
 
 const D = 30;
 const avatar = { x: 50, y: 330, size: D };
 
-describe('the edge light', () => {
-  it('hugs the left edge and is gone within about a diameter', () => {
-    expect(edgeAt(0, avatar.y, avatar)).toBeGreaterThan(0.45);
-    expect(edgeAt(D, avatar.y, avatar)).toBeLessThan(0.1);
-    expect(edgeAt(1.5 * D, avatar.y, avatar)).toBeLessThan(0.03);
+describe('the rim', () => {
+  it('hugs the left edge', () => {
+    expect(rimAt(0, avatar.y, avatar)).toBeGreaterThan(5 * rimAt(D, avatar.y, avatar));
   });
 
-  it('starts above the avatar and runs down to the bottom', () => {
-    expect(edgeAt(0, avatar.y - 3.5 * D, avatar)).toBeLessThan(0.01);
-    expect(edgeAt(0, avatar.y - 2 * D, avatar)).toBeGreaterThan(0.2);
-    expect(edgeAt(0, avatar.y - 0.5 * D, avatar)).toBeGreaterThan(0.45);
-    expect(edgeAt(0, avatar.y + 4 * D, avatar)).toBeGreaterThan(0.45);
+  it('climbs the edge progressively above the avatar', () => {
+    const climb = [0, 1, 2, 3, 4].map((k) => rimAt(0, avatar.y - k * D, avatar));
+    for (let index = 1; index < climb.length; index++) expect(climb[index]!).toBeLessThan(climb[index - 1]!);
+    expect(climb[2]!).toBeGreaterThan(climb[0]! * 0.7);
   });
 });
 
-describe('the arch between the edge and the avatar', () => {
-  it('only goes left, toward the edge', () => {
-    expect(archAt(avatar.x + 10, avatar.y, avatar)).toBe(0);
-    expect(archAt(avatar.x - 10, avatar.y, avatar)).toBeGreaterThan(0.3);
+describe('the halo', () => {
+  it('sits on the avatar, leaning toward the edge', () => {
+    expect(haloAt(avatar.x - 0.5 * D, avatar.y, avatar)).toBeGreaterThan(haloAt(avatar.x + 0.5 * D, avatar.y, avatar));
   });
 
-  it('is an arch: taller at the edge, rounding off at the avatar', () => {
-    const height = (x: number) => {
-      let lit = 0;
-      for (let y = avatar.y - 3 * D; y <= avatar.y + 3 * D; y++) if (archAt(x, y, avatar) > 0.2) lit++;
-      return lit;
-    };
-    expect(height(5)).toBeGreaterThan(height(avatar.x - 10) * 2);
-  });
-
-  it('is brightest beside the avatar and dimmer at the edge', () => {
-    expect(archAt(avatar.x - 8, avatar.y, avatar)).toBeGreaterThan(archAt(2, avatar.y, avatar));
+  it('is gone a little way to the right of the avatar', () => {
+    expect(haloAt(avatar.x + 2 * D, avatar.y, avatar)).toBeLessThan(0.01);
   });
 });
 
-describe('the glow together', () => {
-  it('is dark to the right of the avatar and high above it', () => {
-    expect(glowAt(avatar.x + 40, avatar.y, avatar).light).toBeLessThan(0.001);
-    expect(glowAt(10, avatar.y - 3 * D, avatar).light).toBeLessThan(0.02);
+describe('the glow', () => {
+  it('never saturates, so it keeps its gradient', () => {
+    for (let x = 0; x <= 3 * D; x += 2) {
+      for (let y = avatar.y - 3 * D; y <= avatar.y + 3 * D; y += 2) expect(glowAt(x, y, avatar).light).toBeLessThan(0.85);
+    }
   });
 
-  it('keeps its colours apart: lavender on the edge, silver in the beam', () => {
-    const [er, eg, eb] = glowAt(1, avatar.y - D, avatar).color;
-    const [br, bg, bb] = glowAt(avatar.x - 12, avatar.y, avatar).color;
-    expect(eb - eg).toBeGreaterThan(0.1);
-    expect(Math.abs(bb - bg)).toBeLessThan(0.05);
-    expect(Math.min(br, bg)).toBeGreaterThan(Math.min(er, eg));
+  it('has no hard edge: neighbouring points never jump', () => {
+    for (let x = 0; x <= 3 * D; x += 1) {
+      for (let y = avatar.y - 3 * D; y <= avatar.y + 3 * D; y += 3) {
+        expect(Math.abs(glowAt(x + 1, y, avatar).light - glowAt(x, y, avatar).light)).toBeLessThan(0.04);
+      }
+    }
   });
 
-  it('draws its guides: the arch and the edge line', () => {
+  it('is lavender on the edge and silver around the avatar', () => {
+    const [, eg, eb] = glowAt(0, avatar.y - 2 * D, avatar).color;
+    const [hr, hg, hb] = glowAt(avatar.x - 0.4 * D, avatar.y, avatar).color;
+    expect(eb - eg).toBeGreaterThan(0.12);
+    expect(hb - hg).toBeLessThan(0.08);
+    expect(Math.min(hr, hg)).toBeGreaterThan(eg);
+  });
+
+  it('draws its guides', () => {
     expect(guidePath(avatar, { width: 480, height: 420 }).match(/M/g)).toHaveLength(2);
   });
 });
