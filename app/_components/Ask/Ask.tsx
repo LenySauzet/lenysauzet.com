@@ -82,7 +82,7 @@ const GLASS_BLUR: CSSProperties = {
   WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
 };
 const ACTION =
-  'inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-foreground px-3 py-1 text-xs font-medium text-background transition-[scale] active:scale-95';
+  'inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-foreground/[0.06] px-3 py-1.5 text-xs font-medium text-foreground/85 shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.08)] ring-1 ring-foreground/15 transition-[background-color,color,scale] ring-inset hover:bg-foreground/10 hover:text-foreground active:scale-95';
 const SHIMMER_TEXT: CSSProperties = {
   backgroundImage:
     'linear-gradient(100deg, transparent calc(var(--sweep) - 18%), var(--foreground) var(--sweep), transparent calc(var(--sweep) + 18%)), linear-gradient(var(--subtle-foreground), var(--subtle-foreground))',
