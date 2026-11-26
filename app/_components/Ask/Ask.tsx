@@ -398,7 +398,7 @@ export function Ask({ className }: { className?: string }) {
                       ref={log}
                       role="log"
                       aria-live="polite"
-                      className="flex max-h-[min(55vh,28rem)] flex-col gap-5 overflow-y-auto px-5 pt-3 pb-4 [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
+                      className="flex max-h-[min(55vh,28rem)] flex-col gap-5 overflow-y-auto px-5 pt-3 pb-9 [mask-image:linear-gradient(to_bottom,transparent,black_1rem)]"
                     >
                       {messages.map((message) =>
                         message.role === 'user' ? (
