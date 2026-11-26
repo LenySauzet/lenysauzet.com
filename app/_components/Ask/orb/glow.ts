@@ -9,41 +9,38 @@ export interface Box {
   height: number;
 }
 
-const LAVENDER = [0.66, 0.56, 0.98] as const;
-const SILVER = [0.93, 0.93, 0.99] as const;
+const HAZE = [0.84, 0.82, 0.96] as const;
+const SILVER = [0.95, 0.95, 0.98] as const;
 
 const PEAK = 1.15;
-const RISE = 1.35;
-const FALL = 1.6;
-const FLOOR = 0.2;
-const EDGE_SOFTNESS = 0.32;
+const LINE = 0.22;
+const RISE = 1.6;
+const FALL = 1.7;
+const SOFTNESS = 0.16;
+
+const bell = (value: number, width: number) => Math.exp(-((value / width) ** 2));
 
 export function boundaryAt(y: number, avatar: Avatar) {
   const offset = (y - avatar.y) / avatar.size;
-  return offset < 0
-    ? avatar.size * (0.04 + PEAK * Math.exp(-((offset / RISE) ** 2)))
-    : avatar.size * (FLOOR + (PEAK - FLOOR) * Math.exp(-offset / FALL));
+  return avatar.size * (LINE + (PEAK - LINE) * bell(offset, offset < 0 ? RISE : FALL));
 }
 
 export function strengthAt(y: number, avatar: Avatar) {
   const offset = (y - avatar.y) / avatar.size;
-  return offset < 0 ? Math.exp(-((offset / 1.25) ** 2)) : 0.45 + 0.55 * Math.exp(-offset / 1.1);
+  return offset < 0 ? bell(offset, 3) : 0.55 + 0.45 * bell(offset, 1.3);
 }
 
 export function glowAt(x: number, y: number, avatar: Avatar) {
-  const reach = boundaryAt(y, avatar);
-  const past = x - reach;
-  const across =
-    past <= 0 ? 0.75 + 0.25 * Math.exp(past / Math.max(reach, 1)) : Math.exp(-((past / (avatar.size * EDGE_SOFTNESS)) ** 2));
+  const past = (x - boundaryAt(y, avatar)) / avatar.size;
+  const across = 1 / (1 + Math.exp(past / SOFTNESS));
   const distance = Math.hypot(x - avatar.x, y - avatar.y) / avatar.size;
-  const sheet = across * strengthAt(y, avatar);
   const rightward = Math.max(0, x - avatar.x) / avatar.size;
-  const bloom = Math.exp(-((distance / 0.85) ** 2)) * Math.exp(-((rightward / 0.4) ** 2));
-  const light = Math.min(1, sheet * 0.65 + bloom * 0.42);
-  const white = Math.min(1, Math.exp(-distance / 0.8) * 0.9 + bloom * 0.2);
+  const bloom = bell(distance, 0.85) * bell(rightward, 0.4);
+  const light = Math.min(1, across * strengthAt(y, avatar) * 0.62 + bloom * 0.4);
+  const white = Math.min(1, 0.35 + bell(distance, 1.4) * 0.65);
   return {
     light,
-    color: LAVENDER.map((channel, index) => channel + (SILVER[index]! - channel) * white) as [number, number, number],
+    color: HAZE.map((channel, index) => channel + (SILVER[index]! - channel) * white) as [number, number, number],
   };
 }
 
@@ -62,7 +59,7 @@ export function paintGlow(image: ImageData, scale: number, avatar: Avatar) {
       data[index] = color[0] * 255;
       data[index + 1] = color[1] * 255;
       data[index + 2] = color[2] * 255;
-      data[index + 3] = light * 0.9 * 255;
+      data[index + 3] = light * 0.85 * 255;
     }
   }
 }
