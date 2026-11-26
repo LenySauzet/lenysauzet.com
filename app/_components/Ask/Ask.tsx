@@ -650,7 +650,7 @@ function useAvatarPoint(frame: RefObject<HTMLDivElement | null>, orb: RefObject<
 }
 
 const MILK = (alpha: number) => `oklch(from var(--glare) l c h / ${alpha})`;
-const LAVENDER = (alpha: number) => `oklch(from var(--primary) calc(l + 0.32) 0.045 calc(h + 30) / ${alpha})`;
+const LAVENDER = (alpha: number) => `oklch(from var(--primary) calc(l + 0.24) 0.1 calc(h + 32) / ${alpha})`;
 
 interface LightProps {
   frame: RefObject<HTMLDivElement | null>;
@@ -662,9 +662,9 @@ function Aura({ frame, orb, thinking }: LightProps) {
   const { x, y, height } = useAvatarPoint(frame, orb);
   const stripTop = useTransform(height, (value) => value * 0.05);
   const stripHeight = useTransform([y, height], ([avatar = 0, box = 0]: number[]) => Math.max(0, avatar - box * 0.05 + 40));
-  const bleedTop = useTransform(y, (value) => value - 170);
+  const bleedTop = useTransform(y, (value) => value - 120);
   const focusLeft = useTransform(x, (value) => value - 64);
-  const focusTop = useTransform(y, (value) => value - 64);
+  const focusTop = useTransform(y, (value) => value - 56);
 
   return (
     <motion.div
@@ -677,23 +677,27 @@ function Aura({ frame, orb, thinking }: LightProps) {
       style={{ transformOrigin: '0% 100%' }}
     >
       <motion.span
-        className="absolute -left-[7%] w-[24%] rounded-full blur-[38px]"
+        className="absolute -left-[6%] w-[15%] rounded-full blur-[28px]"
         style={{
           top: stripTop,
           height: stripHeight,
-          background: `linear-gradient(to bottom, transparent, ${LAVENDER(0.12)} 45%, ${MILK(0.2)})`,
+          background: `linear-gradient(to bottom, transparent 0%, transparent 38%, ${LAVENDER(0.04)} 58%, ${LAVENDER(0.1)} 72%, ${LAVENDER(0.22)} 84%, ${MILK(0.26)} 96%)`,
         }}
       />
       <motion.span
-        className="absolute -left-[20%] h-[300px] w-[62%] rounded-full blur-[72px]"
+        className="absolute -left-[16%] h-[220px] w-[40%] rounded-full blur-[54px]"
         style={{
           top: bleedTop,
-          background: `radial-gradient(closest-side, ${MILK(0.26)}, ${LAVENDER(0.18)} 55%, transparent)`,
+          background: `radial-gradient(closest-side, ${LAVENDER(0.34)}, ${LAVENDER(0.14)} 45%, transparent 80%)`,
         }}
       />
       <motion.span
-        className="absolute size-32 rounded-full blur-[30px]"
-        style={{ left: focusLeft, top: focusTop, background: `radial-gradient(closest-side, ${MILK(0.28)}, transparent)` }}
+        className="absolute size-28 rounded-full blur-[24px]"
+        style={{
+          left: focusLeft,
+          top: focusTop,
+          background: `radial-gradient(closest-side, ${MILK(0.3)}, ${LAVENDER(0.16)} 55%, transparent)`,
+        }}
       />
     </motion.div>
   );
