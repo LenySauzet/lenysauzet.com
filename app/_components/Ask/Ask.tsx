@@ -62,6 +62,7 @@ const FIELD_MAX = 200;
 const ACTIONS_ROOM = 84;
 const ACTIONS_ROW = 44;
 const TINY = { width: 52, height: 10 };
+const AIM = { type: 'spring', stiffness: 170, damping: 24, mass: 0.6 } as const;
 const SETTLE = { type: 'spring', stiffness: 260, damping: 34 } as const;
 const NUDGE = { type: 'spring', stiffness: 420, damping: 30 } as const;
 const SNAPPY = { type: 'spring', stiffness: 260, damping: 22, mass: 0.8 } as const;
@@ -271,9 +272,35 @@ export function Ask({ className }: { className?: string }) {
 
   useEffect(() => {
     if (!entered) return;
-    animate(glow, focused ? 1 : 0.7, { duration: 0.6 });
-    animate(shineX, focused ? 24 : 30, { duration: 0.8, ease: EASE_SNAP });
-  }, [focused, entered, glow, shineX]);
+    const rest = () => {
+      animate(glow, focused ? 1 : 0.7, { duration: 0.6 });
+      animate(shineX, focused ? 24 : 30, { duration: 0.8, ease: EASE_SNAP });
+    };
+    rest();
+    if (still || touch) return;
+    let aiming = false;
+    const onMove = (event: PointerEvent) => {
+      const slot = root.current;
+      if (event.pointerType !== 'mouse' || !slot) return;
+      const bounds = slot.getBoundingClientRect();
+      const inside =
+        event.clientY >= bounds.top - STAY_REACH &&
+        event.clientX >= bounds.left - STAY_REACH &&
+        event.clientX <= bounds.right + STAY_REACH;
+      if (!inside) {
+        if (aiming) rest();
+        aiming = false;
+        return;
+      }
+      aiming = true;
+      const across = ((event.clientX - bounds.left) / bounds.width) * 100;
+      const over = event.clientY >= bounds.top && event.clientX >= bounds.left && event.clientX <= bounds.right;
+      animate(shineX, Math.min(96, Math.max(4, across)), AIM);
+      animate(glow, over ? 1 : 0.85, { duration: 0.4 });
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    return () => window.removeEventListener('pointermove', onMove);
+  }, [focused, entered, still, touch, glow, shineX]);
 
   const ask = (question: string) => {
     const trimmed = question.trim();
