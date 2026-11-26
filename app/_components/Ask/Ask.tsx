@@ -107,6 +107,8 @@ export function Ask({ className }: { className?: string }) {
   const [touch, setTouch] = useState(false);
   const [atTop, setAtTop] = useState(false);
   const firstWake = useRef(true);
+  const showing = useRef(false);
+  const waking = useRef<number[]>([]);
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -196,22 +198,27 @@ export function Ask({ className }: { className?: string }) {
 
     if (!awake) {
       at(COLLAPSE_AFTER, () => {
+        waking.current.forEach(window.clearTimeout);
+        waking.current = [];
+        showing.current = false;
         setPhase((current) => (current === 'lit' ? 'wide' : current));
         animate(glow, 0, { duration: 0.2 });
       });
-      at(COLLAPSE_AFTER + 90, () => setPhase('tiny'));
+      at(COLLAPSE_AFTER + 90, () => {
+        setPhase('tiny');
+        setEntered(false);
+      });
       return () => local.forEach(window.clearTimeout);
     }
 
+    if (showing.current) return;
+    showing.current = true;
+    const wake = (ms: number, run: () => void) => waking.current.push(window.setTimeout(run, ms));
     const start = firstWake.current && !still ? EXPAND_AT : 0;
-    at(start, () => setPhase((current) => (current === 'tiny' ? 'wide' : current)));
-    at(start + (still ? 0 : LIT_AFTER), () => {
+    firstWake.current = false;
+    wake(start, () => setPhase((current) => (current === 'tiny' ? 'wide' : current)));
+    wake(start + (still ? 0 : LIT_AFTER), () => {
       setPhase('lit');
-      if (!firstWake.current) {
-        animate(glow, 0.7, { duration: 0.4 });
-        return;
-      }
-      firstWake.current = false;
       if (still) {
         shineX.set(30);
         glow.set(0.7);
@@ -219,11 +226,12 @@ export function Ask({ className }: { className?: string }) {
         return;
       }
       const sweep = twoPassDuration(text.placeholder, PLACEHOLDER_STEP);
+      shineX.set(100);
+      glow.set(0);
       animate(glow, [0, 1, 0.7], { duration: sweep, delay: TEXT_DELAY, times: [0, 0.2, 1] });
       animate(shineX, 30, { duration: sweep, delay: TEXT_DELAY, ease: [0.4, 0, 0.2, 1] });
-      timers.current.push(window.setTimeout(() => setEntered(true), (TEXT_DELAY + sweep) * 1000));
+      wake((TEXT_DELAY + sweep) * 1000, () => setEntered(true));
     });
-    return () => local.forEach(window.clearTimeout);
   }, [awake, touch, still, glow, shineX, text.placeholder]);
 
   useEffect(() => {
@@ -232,9 +240,11 @@ export function Ask({ className }: { className?: string }) {
     };
     window.addEventListener('pointerdown', onPointer);
     const pending = timers.current;
+    const wakes = waking;
     return () => {
       window.removeEventListener('pointerdown', onPointer);
       pending.forEach(window.clearTimeout);
+      wakes.current.forEach(window.clearTimeout);
     };
   }, []);
 
