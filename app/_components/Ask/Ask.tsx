@@ -5,7 +5,6 @@ import {
   ArrowUp02Icon,
   Briefcase01Icon,
   Calendar03Icon,
-  Copy01Icon,
   Download01Icon,
   File01Icon,
   Mic02Icon,
@@ -38,6 +37,7 @@ import {
 } from 'react';
 
 import { CircleXIcon, type CircleXIconHandle } from '@/components/ui/circle-x';
+import { Copy01Icon, type Copy01IconHandle } from '@/components/ui/copy-01';
 import { RefreshIcon, type RefreshIconHandle } from '@/components/ui/refresh';
 import { useBooking } from '@/hooks/use-booking';
 import { useResumeAnchor } from '@/hooks/use-resume-anchor';
@@ -81,8 +81,8 @@ const GLASS_BLUR: CSSProperties = {
   backdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
   WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
 };
-const CHIP =
-  'inline-flex items-center gap-1.5 rounded-full border border-foreground/10 bg-foreground/[0.04] px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.08] hover:text-foreground';
+const ACTION =
+  'inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-foreground px-3 py-1 text-xs font-medium text-background transition-[scale] active:scale-95';
 const SHIMMER_TEXT: CSSProperties = {
   backgroundImage:
     'linear-gradient(100deg, transparent calc(var(--sweep) - 18%), var(--foreground) var(--sweep), transparent calc(var(--sweep) + 18%)), linear-gradient(var(--subtle-foreground), var(--subtle-foreground))',
@@ -977,33 +977,32 @@ function AnswerBody({ words, shown, done, reply, actionLabel, onAction, resume, 
             initial={{ ...BLURRED, y: 4 }}
             animate={{ ...SHARP, y: 0 }}
             transition={{ duration: 0.4, delay: 0.08, ease: EASE_SNAP }}
-            className="flex flex-wrap items-center gap-2 pt-3"
+            className="flex flex-col items-start gap-2.5 pt-3"
           >
-            {reply.sources.map((source) => (
-              <a key={source.label} href={source.href} className={CHIP}>
-                <HugeiconsIcon icon={File01Icon} size={12} strokeWidth={2} />
-                {source.label}
-              </a>
-            ))}
             {onAction ? (
-              <button
-                type="button"
-                onClick={onAction}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-foreground px-3 py-1 text-xs font-medium text-background transition-[scale] active:scale-95"
-              >
+              <button type="button" onClick={onAction} className={ACTION}>
                 <HugeiconsIcon icon={Calendar03Icon} size={13} strokeWidth={2} />
                 {actionLabel}
               </button>
             ) : (
-              <a
-                {...resume}
-                className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1 text-xs font-medium text-background transition-[scale] active:scale-95"
-              >
+              <a {...resume} className={ACTION}>
                 <HugeiconsIcon icon={Download01Icon} size={13} strokeWidth={2} />
                 {actionLabel}
               </a>
             )}
-            <CopyAnswer text={reply.text} labels={copyLabels} />
+            <div className="-ml-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <CopyAnswer text={reply.text} labels={copyLabels} />
+              {reply.sources.map((source) => (
+                <a
+                  key={source.label}
+                  href={source.href}
+                  className="inline-flex items-center gap-1 text-xs text-subtle-foreground transition-colors hover:text-foreground"
+                >
+                  <HugeiconsIcon icon={File01Icon} size={12} strokeWidth={2} />
+                  {source.label}
+                </a>
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1013,6 +1012,7 @@ function AnswerBody({ words, shown, done, reply, actionLabel, onAction, resume, 
 
 function CopyAnswer({ text, labels }: { text: string; labels: { copy: string; copied: string } }) {
   const [copied, setCopied] = useState(false);
+  const icon = useRef<Copy01IconHandle>(null);
 
   useEffect(() => {
     if (!copied) return;
@@ -1025,10 +1025,12 @@ function CopyAnswer({ text, labels }: { text: string; labels: { copy: string; co
       type="button"
       aria-label={copied ? labels.copied : labels.copy}
       title={copied ? labels.copied : labels.copy}
+      onPointerEnter={() => icon.current?.startAnimation()}
+      onFocus={() => icon.current?.startAnimation()}
       onClick={() => {
         void navigator.clipboard?.writeText(text).then(() => setCopied(true));
       }}
-      className="ml-auto grid size-7 cursor-pointer place-items-center rounded-full text-subtle-foreground transition-[color,background-color,scale] hover:bg-foreground/[0.06] hover:text-foreground active:scale-95"
+      className="grid size-7 cursor-pointer place-items-center rounded-full text-subtle-foreground transition-[color,background-color,scale] hover:bg-foreground/[0.06] hover:text-foreground active:scale-95"
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
@@ -1039,7 +1041,7 @@ function CopyAnswer({ text, labels }: { text: string; labels: { copy: string; co
           transition={{ duration: 0.16 }}
           className="grid place-items-center"
         >
-          <HugeiconsIcon icon={copied ? Tick02Icon : Copy01Icon} size={14} strokeWidth={2} />
+          {copied ? <HugeiconsIcon icon={Tick02Icon} size={15} strokeWidth={2} /> : <Copy01Icon ref={icon} size={15} />}
         </motion.span>
       </AnimatePresence>
       <span aria-live="polite" className="sr-only">
