@@ -44,12 +44,15 @@ describe('Ask', () => {
 
     const log = screen.getByRole('log');
     expect(log).toHaveTextContent('Are you available?');
-    expect(log).toHaveAttribute('aria-busy', 'true');
     expect(log).toHaveTextContent('Thinking…');
+    expect(screen.getByRole('status')).toHaveTextContent('Thinking…');
+
+    settle(2000);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
 
     settle(8000);
-    expect(log).toHaveAttribute('aria-busy', 'false');
     expect(log).toHaveTextContent('My work-study at Tolk.ai ended');
+    expect(screen.getByRole('status')).toHaveTextContent('My work-study at Tolk.ai ended');
     expect(screen.getByRole('button', { name: 'Book a call' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy answer' })).toBeInTheDocument();
   });
@@ -69,8 +72,9 @@ describe('Ask', () => {
     expect(field).toHaveValue('');
   });
 
-  it('closes on Escape and opens again on the conversation it left', () => {
+  it('closes one layer per Escape and opens again on the conversation it left', () => {
     const field = visit();
+    act(() => field.focus());
     fireEvent.change(field, { target: { value: 'Are you available?' } });
     fireEvent.keyDown(field, { key: 'Enter' });
     settle(8000);
@@ -78,9 +82,27 @@ describe('Ask', () => {
     fireEvent.keyDown(field, { key: 'Escape' });
     settle(1000);
     expect(screen.queryByRole('log')).toBeNull();
+    expect(field).toHaveFocus();
+
+    fireEvent.keyDown(field, { key: 'Escape' });
+    expect(field).not.toHaveFocus();
 
     act(() => field.focus());
     expect(screen.getByRole('log')).toHaveTextContent('Are you available?');
+  });
+
+  it('gives the field back its focus when the conversation is closed from the keyboard', () => {
+    const field = visit();
+    fireEvent.change(field, { target: { value: 'Are you available?' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    settle(8000);
+
+    const close = screen.getByRole('button', { name: 'Close' });
+    act(() => close.focus());
+    fireEvent.click(close, { detail: 0 });
+    settle(1000);
+    expect(screen.queryByRole('log')).toBeNull();
+    expect(field).toHaveFocus();
   });
 
   it('starts over from the header', () => {

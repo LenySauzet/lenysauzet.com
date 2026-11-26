@@ -2,9 +2,9 @@
 
 import { motion } from 'motion/react';
 
-import { EASE_OUT } from '@/lib/motion';
+import { blurred, EASE_OUT } from '@/lib/motion';
 
-const BLURRED_LETTER = { opacity: 0, filter: 'blur(6px)' };
+const BLURRED_LETTER = blurred(6);
 const PACE = { step: 0.015, pass: 0.8 };
 
 export const RESTING_OPACITY = 0.5;

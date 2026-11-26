@@ -43,7 +43,7 @@ function useAvatarPoint({ frame, avatar }: LightProps) {
   return { x, y, size, width, height };
 }
 
-export function Aura({ thinking, ...refs }: LightProps & { thinking: boolean }) {
+export function Aura(refs: LightProps) {
   const { x, y, size, width, height } = useAvatarPoint(refs);
   const canvas = useRef<HTMLCanvasElement>(null);
   const still = useReducedMotion();
@@ -77,9 +77,9 @@ export function Aura({ thinking, ...refs }: LightProps & { thinking: boolean }) 
       aria-hidden
       className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
       initial={{ opacity: 0 }}
-      animate={{ opacity: thinking ? 1 : 0 }}
-      exit={{ opacity: 0, transition: { duration: 0.4 } }}
-      transition={{ duration: thinking ? 0.7 : 0.9, ease: 'easeInOut' }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.9, ease: 'easeInOut' } }}
+      transition={{ duration: 0.7, ease: 'easeInOut' }}
     >
       <motion.div
         className="absolute inset-0 origin-[0%_85%]"

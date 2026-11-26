@@ -4,21 +4,30 @@ import { ArrowUp02Icon, Mic02Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useLayoutEffect, useRef, useState, type RefObject, type SubmitEvent } from 'react';
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FocusEventHandler,
+  type PointerEventHandler,
+  type RefObject,
+  type SubmitEvent,
+} from 'react';
 
 import { focusRing } from '@/components/shared/styles';
 import { cn } from '@/lib/utils';
 
 import { RESTING_OPACITY, WrittenTwice } from './Letters';
 import { MORPH, SNAPPY } from './motion';
-import { glassButton } from './styles';
+import { BAR, glassButton } from './styles';
 import { useDictation } from './use-dictation';
 
-export const BAR = 44;
 const FIELD_MAX = 200;
 const ACTIONS_ROOM = 84;
 const ACTIONS_ROW = 44;
 const SIDE_PADDING = 20;
+// Safari confirms an IME composition with an Enter whose isComposing is false, but keyCode 229.
+const COMPOSING = 229;
 
 interface ComposerProps {
   inputRef: RefObject<HTMLTextAreaElement | null>;
@@ -31,7 +40,8 @@ interface ComposerProps {
   framed: boolean;
   width: number;
   writeDelay: number;
-  onFocus: () => void;
+  onFocus: FocusEventHandler<HTMLTextAreaElement>;
+  onPointerDown: PointerEventHandler<HTMLTextAreaElement>;
 }
 
 export function Composer({
@@ -46,6 +56,7 @@ export function Composer({
   width,
   writeDelay,
   onFocus,
+  onPointerDown,
 }: ComposerProps) {
   const t = useTranslations('Ask');
   const mirror = useRef<HTMLSpanElement>(null);
@@ -61,11 +72,12 @@ export function Composer({
     if (!textarea || !line) return;
     const overflows = draft.includes('\n') || line.offsetWidth > width - SIDE_PADDING - ACTIONS_ROOM;
     setStacked(overflows);
+    if (overflows !== stacked) return;
     textarea.style.height = 'auto';
     const content = textarea.scrollHeight;
     textarea.style.height = '';
     setHeight(overflows ? Math.min(content, FIELD_MAX) : BAR);
-  }, [draft, width, inputRef]);
+  }, [draft, width, stacked, inputRef]);
 
   const submit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -78,7 +90,7 @@ export function Composer({
       className={cn(
         'relative shrink-0 transition-[margin,background-color,box-shadow,border-radius] duration-300',
         framed && 'mx-1.5 mb-1.5 bg-foreground/[0.04] ring-1 ring-foreground/10 ring-inset',
-        framed && (stacked ? 'rounded-[18px]' : 'rounded-full')
+        framed && (stacked ? 'rounded-[20px]' : 'rounded-full')
       )}
     >
       <AnimatePresence>
@@ -114,13 +126,18 @@ export function Composer({
           ref={inputRef}
           rows={1}
           value={draft}
-          onChange={(event) => onDraft(event.target.value)}
+          onChange={(event) => {
+            dictation.cancel();
+            onDraft(event.target.value);
+          }}
           onKeyDown={(event) => {
-            if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+            const composing = event.nativeEvent.isComposing || event.nativeEvent.keyCode === COMPOSING;
+            if (event.key !== 'Enter' || event.shiftKey || composing) return;
             event.preventDefault();
             onSend();
           }}
           onFocus={onFocus}
+          onPointerDown={onPointerDown}
           aria-label={t('title')}
           aria-placeholder={t('placeholder')}
           enterKeyHint="send"

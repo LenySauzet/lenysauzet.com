@@ -2,26 +2,27 @@
 
 import { AnimatePresence, motion, MotionConfig } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { isBusy, isThinking } from '@/lib/ask/conversation';
+import { blurred, sharp } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 import { Aura, EdgeLight } from './Aura';
-import { BAR, Composer } from './Composer';
+import { Composer } from './Composer';
 import { Conversation } from './Conversation';
 import { Fit } from './Fit';
-import { EASE_FOLD, MORPH, NUDGE, SETTLE } from './motion';
+import { FOLD, MORPH, NUDGE, REVEAL, SETTLE } from './motion';
 import { Rim } from './Rim';
-import { glass } from './styles';
+import { BAR, glass, PANEL_RADIUS } from './styles';
 import { Topics } from './Topics';
 import { useConversation } from './use-conversation';
 import { useWake } from './use-wake';
 
 const CAPSULE = { width: 52, height: 10, drop: 30 };
-const PANEL_RADIUS = 26;
 const HOVER_GROWTH = 4;
 const PRESS_SHRINK = -4;
-const FOLD = { duration: 0.32, ease: EASE_FOLD };
+const TOPICS_ROOM = 36;
 
 export function Ask({ className }: { className?: string }) {
   return (
@@ -33,7 +34,7 @@ export function Ask({ className }: { className?: string }) {
 
 function AskBar({ className }: { className?: string }) {
   const t = useTranslations('Ask');
-  const { messages, status, send, reset } = useConversation();
+  const { messages, status, send, retry, reset } = useConversation();
   const root = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
@@ -45,6 +46,8 @@ function AskBar({ className }: { className?: string }) {
   const [pointer, setPointer] = useState<'rest' | 'hover' | 'press'>('rest');
 
   const expanded = open && messages.length > 0;
+  const offering = focused && !expanded && messages.length === 0 && !draft;
+  const offers = useRef(false);
   const { phase, written, shineX, glow, writeDelay } = useWake(root, {
     held: focused || draft.length > 0 || expanded,
     focused,
@@ -52,9 +55,18 @@ function AskBar({ className }: { className?: string }) {
   });
   const wide = phase !== 'tiny';
   const lit = phase === 'lit';
-  const thinking = status === 'submitted';
+  const busy = isBusy(status);
+  const thinking = isThinking(messages, status);
   const nudge =
     !lit || expanded || draft ? 0 : pointer === 'press' ? PRESS_SHRINK : pointer === 'hover' ? HOVER_GROWTH : 0;
+
+  const publishClearance = useCallback(() => {
+    const element = frame.current;
+    if (!element) return;
+    const top = element.getBoundingClientRect().top - (offers.current ? TOPICS_ROOM : 0);
+    const clearance = Math.round(window.innerHeight - top);
+    document.documentElement.style.setProperty('--ask-clearance', `${clearance}px`);
+  }, []);
 
   useLayoutEffect(() => {
     const element = root.current;
@@ -67,20 +79,20 @@ function AskBar({ className }: { className?: string }) {
   useEffect(() => {
     const element = frame.current;
     if (!element) return;
-    const publish = () =>
-      document.documentElement.style.setProperty(
-        '--ask-clearance',
-        `${Math.round(window.innerHeight - element.getBoundingClientRect().top)}px`
-      );
-    const resized = new ResizeObserver(publish);
+    const resized = new ResizeObserver(publishClearance);
     resized.observe(element);
-    window.addEventListener('resize', publish);
+    window.addEventListener('resize', publishClearance);
     return () => {
       resized.disconnect();
-      window.removeEventListener('resize', publish);
+      window.removeEventListener('resize', publishClearance);
       document.documentElement.style.removeProperty('--ask-clearance');
     };
-  }, []);
+  }, [publishClearance]);
+
+  useEffect(() => {
+    offers.current = offering;
+    publishClearance();
+  }, [offering, publishClearance]);
 
   useEffect(() => {
     const close = (event: PointerEvent) => {
@@ -91,7 +103,7 @@ function AskBar({ className }: { className?: string }) {
   }, []);
 
   const ask = (question: string) => {
-    if (status !== 'ready' || !question.trim()) return;
+    if (busy || !question.trim()) return;
     send(question);
     setDraft('');
     setOpen(true);
@@ -102,6 +114,11 @@ function AskBar({ className }: { className?: string }) {
     reset();
     setOpen(false);
     input.current?.focus();
+  };
+
+  const close = (byKeyboard: boolean) => {
+    setOpen(false);
+    if (byKeyboard) input.current?.focus();
   };
 
   return (
@@ -121,8 +138,8 @@ function AskBar({ className }: { className?: string }) {
         }}
         onKeyDown={(event) => {
           if (event.key !== 'Escape') return;
-          setOpen(false);
-          input.current?.blur();
+          if (expanded) close(true);
+          else if (event.target instanceof HTMLElement) event.target.blur();
         }}
       >
         <div className="flex min-h-11 items-center justify-center">
@@ -146,19 +163,25 @@ function AskBar({ className }: { className?: string }) {
               borderRadius: wide ? MORPH : SETTLE,
               y: wide ? MORPH : SETTLE,
             }}
+            onUpdate={publishClearance}
+            onAnimationComplete={publishClearance}
+            onClick={() => !wide && input.current?.focus()}
             onPointerEnter={(event) => event.pointerType === 'mouse' && setPointer('hover')}
             onPointerLeave={() => setPointer('rest')}
             onPointerDown={() => setPointer('press')}
             onPointerUp={() => setPointer('hover')}
             onPointerCancel={() => setPointer('rest')}
-            className="relative flex shrink-0 flex-col shadow-pill"
+            className={cn(
+              'relative flex shrink-0 flex-col shadow-pill',
+              !wide && "cursor-pointer after:absolute after:-inset-x-4 after:-inset-y-[17px] after:content-['']"
+            )}
           >
             <div
               style={glass('20px')}
               className="relative flex flex-1 flex-col justify-end overflow-hidden rounded-[inherit] bg-card/85"
             >
               <AnimatePresence>
-                {expanded && <Aura key="aura" frame={frame} avatar={avatar} thinking={thinking} />}
+                {expanded && thinking && <Aura key="aura" frame={frame} avatar={avatar} />}
               </AnimatePresence>
               <AnimatePresence initial={false}>
                 {expanded && (
@@ -169,22 +192,18 @@ function AskBar({ className }: { className?: string }) {
                     follow
                     exit={{
                       height: 0,
-                      opacity: 0,
-                      filter: 'blur(8px)',
+                      ...blurred(8),
                       transition: { ...FOLD, height: { ...FOLD, duration: 0.36 } },
                     }}
                   >
-                    <motion.div
-                      initial={{ opacity: 0, filter: 'blur(8px)' }}
-                      animate={{ opacity: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
-                      transition={{ duration: 0.35, delay: 0.16 }}
-                    >
+                    <motion.div initial={blurred(8)} animate={sharp} transition={{ ...REVEAL, delay: 0.16 }}>
                       <Conversation
                         messages={messages}
                         status={status}
                         avatarRef={avatar}
                         onRestart={restart}
-                        onClose={() => setOpen(false)}
+                        onRetry={retry}
+                        onClose={close}
                       />
                     </motion.div>
                   </Fit>
@@ -195,13 +214,16 @@ function AskBar({ className }: { className?: string }) {
                 draft={draft}
                 onDraft={setDraft}
                 onSend={() => ask(draft)}
-                busy={status !== 'ready'}
+                busy={busy}
                 lit={lit}
                 written={written}
                 framed={expanded}
                 width={width}
                 writeDelay={writeDelay}
-                onFocus={() => messages.length > 0 && setOpen(true)}
+                onFocus={(event) => {
+                  if (messages.length > 0 && !root.current?.contains(event.relatedTarget)) setOpen(true);
+                }}
+                onPointerDown={() => messages.length > 0 && setOpen(true)}
               />
             </div>
             <AnimatePresence>
@@ -211,7 +233,7 @@ function AskBar({ className }: { className?: string }) {
           </motion.div>
         </div>
         <AnimatePresence>
-          {focused && !expanded && messages.length === 0 && !draft && (
+          {offering && (
             <Topics onPick={ask} className="absolute inset-x-0 bottom-full mb-2" />
           )}
         </AnimatePresence>

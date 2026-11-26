@@ -64,7 +64,7 @@ interface Target {
   context: CanvasRenderingContext2D;
   width: number;
   height: number;
-  frame: (time: number, dt: number) => OrbFrame;
+  frame: (time: number, dt: number) => OrbFrame | null;
 }
 
 interface Program {
@@ -102,6 +102,16 @@ class Renderer {
   private dark = true;
   private ink: [number, number, number] = [1, 1, 1];
   private theme: MutationObserver | null = null;
+
+  constructor() {
+    this.canvas.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault();
+      this.program = null;
+    });
+    this.canvas.addEventListener('webglcontextrestored', () => {
+      this.program = this.setup();
+    });
+  }
 
   private setup() {
     const gl = this.canvas.getContext('webgl', { premultipliedAlpha: true, antialias: false, alpha: true });
@@ -173,7 +183,9 @@ class Renderer {
           this.canvas.width = Math.max(this.canvas.width, target.width);
           this.canvas.height = Math.max(this.canvas.height, target.height);
         }
-        const { spheres, pixel } = target.frame(now / 1000, dt);
+        const drawn = target.frame(now / 1000, dt);
+        if (!drawn) continue;
+        const { spheres, pixel } = drawn;
         gl.viewport(0, 0, target.width, target.height);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);

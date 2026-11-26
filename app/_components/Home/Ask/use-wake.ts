@@ -1,13 +1,14 @@
 'use client';
 
-import { animate, useMotionValue, useReducedMotion } from 'motion/react';
+import { animate, useMotionValue, useReducedMotion, type AnimationPlaybackControls } from 'motion/react';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 
+import { startAt, travel, type Travel } from '@/lib/ask/travel';
 import { across, near as isNear, stays, type Point } from '@/lib/ask/zones';
 import { EASE_SNAP } from '@/lib/motion';
 
 import { writingDuration } from './Letters';
-import { AIM } from './motion';
+import { AIM, EASE_SWEEP } from './motion';
 
 export type Phase = 'tiny' | 'wide' | 'lit';
 
@@ -15,21 +16,30 @@ const FIRST_EXPAND_MS = 180;
 const LIGHT_AFTER_MS = 260;
 const FOLD_AFTER_MS = 80;
 const SHRINK_AFTER_MS = 90;
+const RECHECK_MS = 360;
 const WRITE_DELAY = 0.05;
 const TOP_ZONE = 64;
 const BOTTOM_ZONE = 120;
 const SHINE_REST = 30;
 const SHINE_FOCUSED = 24;
+const GLOW_REST = 0.7;
 
-const fine = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+const FINE_POINTER = '(hover: hover) and (pointer: fine)';
 
-function useScrollEnds() {
-  const [atEnd, setAtEnd] = useState(false);
+function useScroll() {
+  const [scroll, setScroll] = useState({ atEnd: false, rising: false });
 
   useEffect(() => {
+    let moved: Travel | null = null;
     const update = () => {
-      const left = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
-      setAtEnd(window.scrollY < TOP_ZONE || left < BOTTOM_ZONE);
+      const room = document.documentElement.scrollHeight - window.innerHeight;
+      const y = Math.min(Math.max(window.scrollY, 0), room);
+      const next: Travel = moved ? travel(moved, y) : startAt(y);
+      moved = next;
+      const atEnd = y < TOP_ZONE || room - y < BOTTOM_ZONE;
+      setScroll((current) =>
+        current.atEnd === atEnd && current.rising === next.rising ? current : { atEnd, rising: next.rising }
+      );
     };
     const first = requestAnimationFrame(update);
     window.addEventListener('scroll', update, { passive: true });
@@ -41,7 +51,24 @@ function useScrollEnds() {
     };
   }, []);
 
-  return atEnd;
+  return scroll;
+}
+
+function useCoarse() {
+  const [coarse, setCoarse] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia(FINE_POINTER);
+    const update = () => setCoarse(!query.matches);
+    const initial = requestAnimationFrame(update);
+    query.addEventListener('change', update);
+    return () => {
+      cancelAnimationFrame(initial);
+      query.removeEventListener('change', update);
+    };
+  }, []);
+
+  return coarse;
 }
 
 function usePointerNear(bar: RefObject<HTMLElement | null>, held: boolean) {
@@ -52,8 +79,9 @@ function usePointerNear(bar: RefObject<HTMLElement | null>, held: boolean) {
     const onMove = (event: PointerEvent) => {
       const element = bar.current;
       if (event.pointerType !== 'mouse' || !element) return;
-      last.current = { x: event.clientX, y: event.clientY };
-      setNear((already) => isNear(last.current!, element.getBoundingClientRect(), already));
+      const pointer = { x: event.clientX, y: event.clientY };
+      last.current = pointer;
+      setNear((already) => isNear(pointer, element.getBoundingClientRect(), already));
     };
     const onLeave = () => setNear(false);
     window.addEventListener('pointermove', onMove, { passive: true });
@@ -70,7 +98,7 @@ function usePointerNear(bar: RefObject<HTMLElement | null>, held: boolean) {
       const element = bar.current;
       const pointer = last.current;
       setNear(Boolean(element && pointer && isNear(pointer, element.getBoundingClientRect(), false)));
-    }, 360);
+    }, RECHECK_MS);
     return () => window.clearTimeout(recheck);
   }, [held, bar]);
 
@@ -85,74 +113,86 @@ interface WakeOptions {
 
 export function useWake(bar: RefObject<HTMLElement | null>, { held, focused, placeholder }: WakeOptions) {
   const still = Boolean(useReducedMotion());
-  const [coarse, setCoarse] = useState(false);
-  const atEnd = useScrollEnds();
+  const coarse = useCoarse();
+  const { atEnd, rising } = useScroll();
   const near = usePointerNear(bar, held);
   const [phase, setPhase] = useState<Phase>('tiny');
   const [written, setWritten] = useState(false);
   const shineX = useMotionValue(100);
   const glow = useMotionValue(0);
-  const first = useRef(true);
-  const waking = useRef<number[]>([]);
+  const shown = useRef({ written: false, entered: false, first: true });
+
+  const awake = still || atEnd || near || held || (coarse && rising);
+  const lit = phase === 'lit';
 
   useEffect(() => {
-    const query = window.matchMedia('(hover: hover) and (pointer: fine)');
-    const update = () => setCoarse(!fine());
-    const initial = requestAnimationFrame(update);
-    query.addEventListener('change', update);
-    return () => {
-      cancelAnimationFrame(initial);
-      query.removeEventListener('change', update);
+    const timers: number[] = [];
+    const running: AnimationPlaybackControls[] = [];
+    const later = (ms: number, run: () => void) => timers.push(window.setTimeout(run, ms));
+    const write = (value: boolean) => {
+      shown.current.written = value;
+      setWritten(value);
     };
-  }, []);
-
-  const awake = still || coarse || atEnd || near || held;
-
-  useEffect(() => {
-    const local: number[] = [];
-    const later = (into: number[], ms: number, run: () => void) => into.push(window.setTimeout(run, ms));
+    const cleanup = () => {
+      timers.forEach(window.clearTimeout);
+      running.forEach((animation) => animation.stop());
+    };
 
     if (!awake) {
-      later(local, FOLD_AFTER_MS, () => {
+      later(FOLD_AFTER_MS, () => {
         setPhase((current) => (current === 'lit' ? 'wide' : current));
-        animate(glow, 0, { duration: 0.2 });
+        running.push(animate(glow, 0, { duration: 0.2 }));
       });
-      later(local, FOLD_AFTER_MS + SHRINK_AFTER_MS, () => {
+      later(FOLD_AFTER_MS + SHRINK_AFTER_MS, () => {
         setPhase('tiny');
-        setWritten(false);
+        write(false);
       });
-      return () => local.forEach(window.clearTimeout);
+      return cleanup;
     }
 
-    const start = first.current && !still ? FIRST_EXPAND_MS : 0;
-    first.current = false;
-    later(waking.current, start, () => setPhase((current) => (current === 'tiny' ? 'wide' : current)));
-    later(waking.current, start + (still ? 0 : LIGHT_AFTER_MS), () => {
+    if (shown.current.written) {
       setPhase('lit');
-      if (still) {
+      return cleanup;
+    }
+
+    const quiet = still || (coarse && shown.current.entered);
+    const start = shown.current.first && !still ? FIRST_EXPAND_MS : 0;
+    later(start, () => {
+      shown.current.first = false;
+      setPhase((current) => (current === 'tiny' ? 'wide' : current));
+    });
+    later(start + (still ? 0 : LIGHT_AFTER_MS), () => {
+      setPhase('lit');
+      if (quiet) {
         shineX.set(SHINE_REST);
-        glow.set(0.7);
-        setWritten(true);
+        write(true);
         return;
       }
       const sweep = writingDuration(placeholder);
+      shown.current.entered = true;
       shineX.set(100);
       glow.set(0);
-      animate(glow, [0, 1, 0.7], { duration: sweep, delay: WRITE_DELAY, times: [0, 0.2, 1] });
-      animate(shineX, SHINE_REST, { duration: sweep, delay: WRITE_DELAY, ease: [0.4, 0, 0.2, 1] });
-      later(waking.current, (WRITE_DELAY + sweep) * 1000, () => setWritten(true));
+      running.push(
+        animate(glow, [0, 1, GLOW_REST], { duration: sweep, delay: WRITE_DELAY, times: [0, 0.2, 1] }),
+        animate(shineX, SHINE_REST, { duration: sweep, delay: WRITE_DELAY, ease: EASE_SWEEP })
+      );
+      later((WRITE_DELAY + sweep) * 1000, () => write(true));
     });
-    return () => {
-      waking.current.forEach(window.clearTimeout);
-      waking.current = [];
-    };
-  }, [awake, still, placeholder, glow, shineX]);
+    return cleanup;
+  }, [awake, still, coarse, placeholder, glow, shineX]);
 
   useEffect(() => {
-    if (!written) return;
+    if (!written || !lit) return;
     const rest = () => {
-      animate(glow, focused ? 1 : 0.7, { duration: 0.6 });
-      animate(shineX, focused ? SHINE_FOCUSED : SHINE_REST, { duration: 0.8, ease: EASE_SNAP });
+      const level = focused ? 1 : GLOW_REST;
+      const shine = focused ? SHINE_FOCUSED : SHINE_REST;
+      if (still) {
+        glow.set(level);
+        shineX.set(shine);
+        return;
+      }
+      animate(glow, level, { duration: 0.6 });
+      animate(shineX, shine, { duration: 0.8, ease: EASE_SNAP });
     };
     rest();
     if (still || coarse) return;
@@ -174,7 +214,7 @@ export function useWake(bar: RefObject<HTMLElement | null>, { held, focused, pla
     };
     window.addEventListener('pointermove', onMove, { passive: true });
     return () => window.removeEventListener('pointermove', onMove);
-  }, [written, focused, still, coarse, bar, glow, shineX]);
+  }, [written, lit, focused, still, coarse, bar, glow, shineX]);
 
-  return { phase, written, shineX, glow, coarse, writeDelay: WRITE_DELAY };
+  return { phase, written, shineX, glow, writeDelay: WRITE_DELAY };
 }

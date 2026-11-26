@@ -2,6 +2,9 @@ import type { CSSProperties } from 'react';
 
 import { focusRing } from '@/components/shared/styles';
 
+export const BAR = 44;
+export const PANEL_RADIUS = 26;
+
 export const RING = {
   mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
   maskComposite: 'exclude',

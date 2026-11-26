@@ -112,6 +112,9 @@
     "copy": "Copy answer",
     "copied": "Copied",
     "latest": "Jump to latest",
+    "conversation": "Conversation with Lény",
+    "error": "Something went wrong. Try again in a moment.",
+    "retry": "Try again",
     "topics": {
       "role": "Your role at Tolk.ai?",
       "availability": "Are you available?",

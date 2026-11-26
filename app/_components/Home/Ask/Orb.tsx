@@ -10,11 +10,11 @@ import { cn } from '@/lib/utils';
 interface OrbProps {
   count?: Count;
   size?: number;
-  spin?: boolean;
+  spin?: number;
   className?: string;
 }
 
-export function Orb({ count = 1, size = 28, spin = false, className }: OrbProps) {
+export function Orb({ count = 1, size = 28, spin = 0, className }: OrbProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const target = useRef({ count, spin });
   const still = useReducedMotion();
@@ -44,12 +44,12 @@ export function Orb({ count = 1, size = 28, spin = false, className }: OrbProps)
       width: pixels,
       height: pixels,
       frame: (time: number, dt: number) => {
-        const goal = LAYOUTS[target.current.count];
-        if (visible) step(bodies, goal, dt);
+        if (!visible) return null;
+        step(bodies, LAYOUTS[target.current.count], dt);
         return {
           pixel: 2.6 / pixels,
           spheres: bodies.map((body, index) =>
-            still ? body.value : breathe(body.value, index, time, target.current.spin ? 0.55 : 0)
+            still ? body.value : breathe(body.value, index, time, target.current.spin)
           ),
         };
       },

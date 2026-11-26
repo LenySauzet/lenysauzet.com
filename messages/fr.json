@@ -112,6 +112,9 @@
     "copy": "Copier la réponse",
     "copied": "Copiée",
     "latest": "Aller en bas",
+    "conversation": "Conversation avec Lény",
+    "error": "Un problème est survenu. Réessaie dans un instant.",
+    "retry": "Réessayer",
     "topics": {
       "role": "Ton rôle chez Tolk.ai ?",
       "availability": "Es-tu disponible ?",

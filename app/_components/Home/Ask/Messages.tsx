@@ -1,46 +1,54 @@
 'use client';
 
-import { Calendar03Icon, Download01Icon, File01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
+import { Calendar03Icon, Download01Icon, File01Icon, RefreshIcon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState, type Ref } from 'react';
+import { memo, useEffect, useMemo, useState, type Ref } from 'react';
 
 import { AnimatedCopyIcon } from '@/components/icons/AnimatedCopyIcon';
 import { focusRing } from '@/components/shared/styles';
 import { useAnimatedIcon } from '@/hooks/use-animated-icon';
 import { useBooking } from '@/hooks/use-booking';
 import { useResumeAnchor } from '@/hooks/use-resume-anchor';
-import { actionOf, sourcesOf, textOf, type Message } from '@/lib/ask/conversation';
+import { actionOf, isExternal, labelOf, sourcesOf, textOf, type Message } from '@/lib/ask/conversation';
 import { wordsOf } from '@/lib/ask/demo';
-import { EASE_SNAP } from '@/lib/motion';
+import { blurred, EASE_SNAP, sharp } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 import { Letters } from './Letters';
-import { BLURRED, MORPH, SHARP } from './motion';
+import { MORPH, REVEAL } from './motion';
 import { Orb } from './Orb';
 import { BUBBLE_RIM, glassButton, quietButton, SHIMMER_TEXT } from './styles';
 
 const CLUSTER_EVERY_MS = 1400;
 const COPIED_FOR_MS = 1600;
+const SPIN = 0.55;
 
-export function UserMessage({ message }: { message: Message }) {
+export const UserMessage = memo(function UserMessage({ message }: { message: Message }) {
   return (
     <p className="relative max-w-[85%] rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]">
       {textOf(message)}
       <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] p-px" style={BUBBLE_RIM} />
     </p>
   );
-}
+});
 
 interface AssistantMessageProps {
-  message: Message;
+  message?: Message;
   thinking: boolean;
   done: boolean;
+  onRetry?: () => void;
   avatarRef?: Ref<HTMLSpanElement>;
 }
 
-export function AssistantMessage({ message, thinking, done, avatarRef }: AssistantMessageProps) {
+export const AssistantMessage = memo(function AssistantMessage({
+  message,
+  thinking,
+  done,
+  onRetry,
+  avatarRef,
+}: AssistantMessageProps) {
   const t = useTranslations('Ask');
   const [clustered, setClustered] = useState(false);
 
@@ -55,11 +63,11 @@ export function AssistantMessage({ message, thinking, done, avatarRef }: Assista
       <span ref={avatarRef} className="relative -mt-2.5 -ml-1 size-11 shrink-0">
         <motion.span
           className="absolute top-1/2 left-1/2 -translate-1/2"
-          initial={{ scale: 0.4, x: 12, opacity: 0, filter: 'blur(8px)' }}
-          animate={{ scale: thinking ? 1 : 0.75, x: thinking ? 12 : 0, ...SHARP }}
-          transition={{ ...MORPH, opacity: { duration: 0.35 }, filter: { duration: 0.45 } }}
+          initial={{ scale: 0.4, x: 12, ...blurred(8) }}
+          animate={{ scale: thinking ? 1 : 0.75, x: thinking ? 12 : 0, ...sharp }}
+          transition={{ ...MORPH, opacity: REVEAL, filter: { duration: 0.45 } }}
         >
-          <Orb count={thinking ? (clustered ? 4 : 2) : 1} spin={thinking} size={64} />
+          <Orb count={thinking ? (clustered ? 4 : 2) : 1} spin={thinking ? SPIN : 0} size={64} />
         </motion.span>
       </span>
       <AnimatePresence mode="wait" initial={false}>
@@ -73,54 +81,80 @@ export function AssistantMessage({ message, thinking, done, avatarRef }: Assista
             <Letters text={t('thinking')} delay={0.18} step={0.03} />
           </motion.span>
         ) : (
-          <Answer key="answer" message={message} done={done} />
+          <Answer key="answer" message={message} done={done} onRetry={onRetry} />
         )}
       </AnimatePresence>
     </div>
   );
+});
+
+const EXTRAS = { initial: { ...blurred(8), y: 4 }, animate: { ...sharp, y: 0 } };
+
+interface AnswerProps {
+  message?: Message;
+  done: boolean;
+  onRetry?: () => void;
 }
 
-function Answer({ message, done }: { message: Message; done: boolean }) {
+function Answer({ message, done, onRetry }: AnswerProps) {
+  const t = useTranslations('Ask');
+  const text = message ? textOf(message) : '';
+  const words = useMemo(() => wordsOf(text), [text]);
+
   return (
     <div className="flex min-w-0 flex-col pt-0.5">
-      <p className="text-sm leading-relaxed text-foreground/90">
-        {wordsOf(textOf(message)).map((word, index) => (
-          <motion.span
-            key={index}
-            initial={{ opacity: 0, filter: 'blur(4px)' }}
-            animate={SHARP}
-            transition={{ duration: 0.4 }}
-          >
-            {word}
-          </motion.span>
-        ))}
-      </p>
+      {text && (
+        <p className="text-sm leading-relaxed text-foreground/90">
+          {words.map((word, index) => (
+            <motion.span key={index} initial={blurred(4)} animate={sharp} transition={{ duration: 0.4 }}>
+              {word}
+            </motion.span>
+          ))}
+        </p>
+      )}
       <AnimatePresence>
-        {done && (
+        {onRetry ? (
           <motion.div
-            initial={{ ...BLURRED, y: 4 }}
-            animate={{ ...SHARP, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.08, ease: EASE_SNAP }}
-            className="flex flex-col items-start gap-2.5 pt-3"
+            key="failed"
+            {...EXTRAS}
+            transition={{ duration: 0.4, ease: EASE_SNAP }}
+            className={cn('flex flex-col items-start gap-2.5', text && 'pt-3')}
           >
-            <Action message={message} />
-            <div className="-ml-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-              <CopyButton text={textOf(message)} />
-              {sourcesOf(message).map((source) => (
-                <a
-                  key={source.sourceId}
-                  href={source.url}
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-sm text-xs text-subtle-foreground transition-colors hover:text-foreground',
-                    focusRing
-                  )}
-                >
-                  <HugeiconsIcon icon={File01Icon} size={12} strokeWidth={2} />
-                  {source.title}
-                </a>
-              ))}
-            </div>
+            <p className="text-sm leading-relaxed text-subtle-foreground">{t('error')}</p>
+            <button type="button" onClick={onRetry} className={ACTION}>
+              <HugeiconsIcon icon={RefreshIcon} size={13} strokeWidth={2} />
+              {t('retry')}
+            </button>
           </motion.div>
+        ) : (
+          done &&
+          message && (
+            <motion.div
+              key="extras"
+              {...EXTRAS}
+              transition={{ duration: 0.4, delay: 0.08, ease: EASE_SNAP }}
+              className="flex flex-col items-start gap-2.5 pt-3"
+            >
+              <Action message={message} />
+              <div className="-ml-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <CopyButton text={text} />
+                {sourcesOf(message).map((source) => (
+                  <a
+                    key={source.sourceId}
+                    href={source.url}
+                    {...(isExternal(source) && { target: '_blank', rel: 'noopener noreferrer' })}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-sm text-xs text-subtle-foreground transition-colors hover:text-foreground',
+                      focusRing
+                    )}
+                  >
+                    <HugeiconsIcon icon={File01Icon} size={12} strokeWidth={2} />
+                    {labelOf(source)}
+                  </a>
+                ))}
+              </div>
+            </motion.div>
+          )
         )}
       </AnimatePresence>
     </div>
@@ -165,6 +199,12 @@ function CopyButton({ text }: { text: string }) {
     return () => window.clearTimeout(reset);
   }, [copied]);
 
+  const copy = () =>
+    navigator.clipboard?.writeText(text).then(
+      () => setCopied(true),
+      () => setCopied(false)
+    );
+
   const label = copied ? t('copied') : t('copy');
 
   return (
@@ -173,7 +213,7 @@ function CopyButton({ text }: { text: string }) {
       aria-label={label}
       title={label}
       {...trigger}
-      onClick={() => void navigator.clipboard?.writeText(text).then(() => setCopied(true))}
+      onClick={copy}
       className={cn('size-7', quietButton)}
     >
       <AnimatePresence mode="wait" initial={false}>

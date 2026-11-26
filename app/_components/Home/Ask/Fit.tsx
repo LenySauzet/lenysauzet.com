@@ -3,9 +3,10 @@
 import { motion, useReducedMotion, type TargetAndTransition } from 'motion/react';
 import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
+import { blurred, sharp } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
-import { BLURRED, GROW, SHARP } from './motion';
+import { GROW, REVEAL } from './motion';
 
 const Opening = createContext(false);
 
@@ -90,9 +91,9 @@ export function Arrival({ children, delay = 0, className }: ArrivalProps) {
     <Fit className="-mx-5 shrink-0 [overflow-clip-margin:16px]" contentClassName="px-5" delay={delay} appear={appear}>
       <motion.div
         className={cn('flex flex-col', className)}
-        initial={appear ? BLURRED : false}
-        animate={SHARP}
-        transition={{ duration: 0.35, delay: delay + 0.2 }}
+        initial={appear ? blurred(8) : false}
+        animate={sharp}
+        transition={{ ...REVEAL, delay: delay + 0.2 }}
       >
         {children}
       </motion.div>

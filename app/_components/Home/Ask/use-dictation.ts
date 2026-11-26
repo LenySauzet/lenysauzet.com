@@ -8,9 +8,11 @@ interface Recognition {
   interimResults: boolean;
   continuous: boolean;
   onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
+  onerror: (() => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
+  abort: () => void;
 }
 
 type RecognitionClass = new () => Recognition;
@@ -42,30 +44,47 @@ export function useDictation(onText: (text: string) => void) {
     deliver.current = onText;
   }, [onText]);
 
-  useEffect(() => () => recognition.current?.stop(), []);
+  const cancel = useCallback(() => {
+    const session = recognition.current;
+    if (!session) return;
+    recognition.current = null;
+    session.abort();
+    setListening(false);
+  }, []);
+
+  useEffect(() => cancel, [cancel]);
 
   const toggle = useCallback(() => {
-    if (listening) {
-      recognition.current?.stop();
+    if (recognition.current) {
+      recognition.current.stop();
       return;
     }
     const Recognition = recognitionClass();
     if (!Recognition) return;
     const session = new Recognition();
+    const current = () => recognition.current === session;
+    const end = () => {
+      if (!current()) return;
+      recognition.current = null;
+      setListening(false);
+    };
     session.lang = LANGUAGES[locale];
     session.interimResults = true;
     session.continuous = false;
-    session.onresult = (event) =>
+    session.onresult = (event) => {
+      if (!current()) return;
       deliver.current(
         Array.from(event.results)
           .map((result) => result[0]?.transcript ?? '')
           .join('')
       );
-    session.onend = () => setListening(false);
+    };
+    session.onerror = end;
+    session.onend = end;
     recognition.current = session;
     session.start();
     setListening(true);
-  }, [listening, locale]);
+  }, [locale]);
 
-  return { supported, listening, toggle };
+  return { supported, listening, toggle, cancel };
 }
