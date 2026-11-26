@@ -29,12 +29,16 @@ export function Letters({ text, delay = 0, step = 0.022 }: LettersProps) {
   );
 }
 
-const PASS = 1.3;
+export interface Pace {
+  step: number;
+  pass: number;
+}
 const REST = 0.5;
 
-export const twoPassDuration = (text: string, step: number) => text.length * step + PASS;
+export const twoPassDuration = (text: string, { step, pass }: Pace) => text.length * step + pass;
 
-export function TwoPassLetters({ text, step, delay = 0 }: { text: string; step: number; delay?: number }) {
+export function TwoPassLetters({ text, pace, delay = 0 }: { text: string; pace: Pace; delay?: number }) {
+  const { step, pass } = pace;
   return (
     <>
       {[...text].map((letter, index) => (
@@ -47,7 +51,7 @@ export function TwoPassLetters({ text, step, delay = 0 }: { text: string; step: 
             transitionEnd: { filter: 'none' },
           }}
           transition={{
-            duration: PASS,
+            duration: pass,
             delay: delay + index * step,
             times: [0, 0.22, 0.42, 0.6, 1],
             ease: 'easeInOut',

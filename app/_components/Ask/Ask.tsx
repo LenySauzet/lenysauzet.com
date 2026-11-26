@@ -46,7 +46,7 @@ import { cn } from '@/lib/utils';
 
 import { MORPH } from '../Island/motion';
 
-import { Letters, TwoPassLetters, twoPassDuration } from './Letters';
+import { Letters, TwoPassLetters, twoPassDuration, type Pace } from './Letters';
 import { guidePath, paintGlow } from './orb/glow';
 import { Orb } from './Orb';
 import { RING, Rim } from './Rim';
@@ -64,7 +64,8 @@ const TINY = { width: 52, height: 10 };
 const SETTLE = { type: 'spring', stiffness: 260, damping: 34 } as const;
 const NUDGE = { type: 'spring', stiffness: 420, damping: 30 } as const;
 const SNAPPY = { type: 'spring', stiffness: 260, damping: 22, mass: 0.8 } as const;
-const PLACEHOLDER_STEP = 0.025;
+const FIRST_PACE: Pace = { step: 0.025, pass: 1.3 };
+const QUICK_PACE: Pace = { step: 0.015, pass: 0.8 };
 const TEXT_DELAY = 0.05;
 const EXPAND_AT = 180;
 const LIT_AFTER = 260;
@@ -103,6 +104,7 @@ export function Ask({ className }: { className?: string }) {
   const [phase, setPhase] = useState<Phase>('tiny');
   const [full, setFull] = useState(0);
   const [entered, setEntered] = useState(false);
+  const [pace, setPace] = useState(FIRST_PACE);
   const [near, setNear] = useState(false);
   const [touch, setTouch] = useState(false);
   const [atTop, setAtTop] = useState(false);
@@ -215,6 +217,8 @@ export function Ask({ className }: { className?: string }) {
     showing.current = true;
     const wake = (ms: number, run: () => void) => waking.current.push(window.setTimeout(run, ms));
     const start = firstWake.current && !still ? EXPAND_AT : 0;
+    const paceFor = firstWake.current ? FIRST_PACE : QUICK_PACE;
+    setPace(paceFor);
     firstWake.current = false;
     wake(start, () => setPhase((current) => (current === 'tiny' ? 'wide' : current)));
     wake(start + (still ? 0 : LIT_AFTER), () => {
@@ -225,7 +229,7 @@ export function Ask({ className }: { className?: string }) {
         setEntered(true);
         return;
       }
-      const sweep = twoPassDuration(text.placeholder, PLACEHOLDER_STEP);
+      const sweep = twoPassDuration(text.placeholder, paceFor);
       shineX.set(100);
       glow.set(0);
       animate(glow, [0, 1, 0.7], { duration: sweep, delay: TEXT_DELAY, times: [0, 0.2, 1] });
@@ -512,7 +516,7 @@ export function Ask({ className }: { className?: string }) {
                         <span style={{ opacity: 0.5 }}>{text.placeholder}</span>
                       ) : (
                         <span>
-                          <TwoPassLetters text={text.placeholder} step={PLACEHOLDER_STEP} delay={TEXT_DELAY} />
+                          <TwoPassLetters text={text.placeholder} pace={pace} delay={TEXT_DELAY} />
                         </span>
                       )}
                     </motion.span>
