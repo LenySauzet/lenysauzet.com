@@ -7,7 +7,13 @@ import { InEnglish } from '@/test/intl';
 import { ProjectCard } from './ProjectCard';
 
 const image = { width: 1200, height: 630 };
-const project = (fields: Partial<Project>): Project => ({ title: 'Atrean', year: '2025', image: 'atrean.jpg', ...fields });
+const project = (fields: Partial<Project>): Project => ({
+  slug: 'atrean',
+  title: 'Atrean',
+  year: '2025',
+  image: 'atrean.jpg',
+  ...fields,
+});
 
 describe('ProjectCard', () => {
   it('links the article to the blog post that tells it', () => {
