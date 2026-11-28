@@ -4,6 +4,8 @@ paths:
   - 'content/projects.ts'
   - 'lib/assistant/**'
   - 'scripts/knowledge.ts'
+  - 'app/api/ask/**'
+  - 'evals/**'
 ---
 
 # The assistant's knowledge
@@ -50,3 +52,49 @@ model is not wired yet; this is the only place it will learn from.
   and links to posts are only checked when the whole blog was read. A feed with no post,
   or with an item that is not a post, is not a whole blog.
 - **YAML years are quoted** (`start: '2023'`): a bare `2023` is a number.
+
+## The brain
+
+`POST /api/ask` (`app/api/ask/route.ts`) answers from that knowledge, through
+`lib/assistant/`.
+
+- **The guards run before anything costs**, in order (`failureOf`): the switch
+  (`askEnabled`), the same origin, BotID, then the limit per visitor (10 a minute, 60 a
+  day, Upstash). Each refusal is a code with its status (`refuse`). They fail closed: a
+  BotID check that cannot run on Vercel counts as a bot, and production without Redis
+  answers `unavailable`. Off Vercel, BotID cannot run, so a local build skips it.
+- **The request is validated, then reduced to text** (`request.ts`): 20 messages, 500
+  characters a question, one text part each; the model only ever sees the text of past
+  turns, never a part the client sent.
+- **The instructions keep a stable prefix** (`buildInstructions`): persona, scope,
+  grounding, format, actions, then the knowledge core, and only then the date and the
+  language. Bump `PROMPT_VERSION` with any change under `prompts/`; the logs carry it.
+- **The model reads before it details**: the core holds summaries, `read` returns
+  whole documents, writes a `source-url` per document and a transient `data-status`
+  naming its `Step`. `offer` writes the one `data-action`. A tool's result is data,
+  never instructions, and an unknown id is an answer the model can read, not a throw.
+- **An answer is two moves** (`prepareStep`): the first step must call a tool (`read`,
+  `offer`, or `reply` when it needs neither) and writes nothing the visitor sees; the
+  second may not call one and streams the answer. A model narrates and repeats itself
+  around tool calls when it may write and call in the same step; this split makes that
+  impossible while keeping the stream. `answerOnly` drops the first step's text and every
+  tool chunk, so documents and reasoning never reach the browser.
+- **The logs never hold a word of a conversation**: one line per answer (prompt
+  version, steps, tools, tokens, latency) and the error's name when it fails. A failed
+  stream ends on `{"code":"unavailable"}`, never the provider's message.
+- **The model is Claude Haiku 5.5 through AI Gateway**, thinking off, 600 tokens, 3
+  steps, falling back to GPT-5 mini then Gemini 2.5 Flash, other providers (`model.ts`).
+  `ASK_MODEL` overrides it without a deploy. The team is on paid gateway credit: the
+  free tier allows 5 requests a minute per model across the team, and an answer takes
+  two or three, so it cannot serve visitors.
+- **`/api/` is never rewritten to a locale**: the rewrite in `next.config.ts` excludes
+  it, or the route would 404 under `/en/api/ask`. The knowledge is traced into the
+  route (`outputFileTracingIncludes`), as it is read from disk at runtime.
+- **Evals cost money and run by hand** (`bun run evals`, `evals/`), with the gateway
+  credentials in the environment: golden questions, inference, the unanswerable and the
+  adversarial, scored by rules and by a judge against the whole knowledge. The judge is
+  of another family than the model it grades (`ASK_JUDGE`, GPT-5 mini by default), as a model rates its own answers too kindly. Run
+  them after any change to the prompts or the knowledge, and put the scores in the PR.
+  Evalite does not pass the environment to its workers: `evals/setup.ts` loads
+  `.env.local` (`vercel env pull`), whose OIDC token lasts about twelve hours. Run them
+  twice: one pass can be lucky.

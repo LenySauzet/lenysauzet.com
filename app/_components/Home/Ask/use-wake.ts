@@ -182,7 +182,11 @@ export function useWake(bar: RefObject<HTMLElement | null>, { held, focused, pla
   }, [awake, still, coarse, placeholder, glow, shineX]);
 
   useEffect(() => {
-    if (!written || !lit) return;
+    if (!lit) {
+      const fade = animate(glow, 0, { duration: 0.2 });
+      return () => fade.stop();
+    }
+    if (!written) return;
     const rest = () => {
       const level = focused ? 1 : GLOW_REST;
       const shine = focused ? SHINE_FOCUSED : SHINE_REST;

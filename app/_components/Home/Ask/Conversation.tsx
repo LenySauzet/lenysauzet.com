@@ -19,11 +19,12 @@ import { AnimatedCloseIcon } from '@/components/icons/AnimatedCloseIcon';
 import { AnimatedRefreshIcon } from '@/components/icons/AnimatedRefreshIcon';
 import { useAnimatedIcon } from '@/hooks/use-animated-icon';
 import {
+  isBusy,
   isThinking,
   textOf,
   turnsOf,
-  type Failure,
   type Message,
+  type Notice,
   type Status,
   type Step,
 } from '@/lib/ask/conversation';
@@ -31,7 +32,7 @@ import { EASE_SNAP } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 import { Arrival } from './Fit';
-import { AssistantMessage, UserMessage } from './Messages';
+import { AssistantMessage, UserMessage, type Activity } from './Messages';
 import { Orb } from './Orb';
 import { glass, glassButton, quietButton } from './styles';
 
@@ -45,7 +46,7 @@ interface ConversationProps {
   messages: Message[];
   status: Status;
   step?: Step;
-  failure?: Failure;
+  notices: Record<string, Notice>;
   avatarRef: RefObject<HTMLSpanElement | null>;
   onRestart: () => void;
   onRetry: () => void;
@@ -57,7 +58,7 @@ export function Conversation({
   messages,
   status,
   step,
-  failure,
+  notices,
   avatarRef,
   onRestart,
   onRetry,
@@ -73,19 +74,17 @@ export function Conversation({
   const still = useReducedMotion();
   const turns = useMemo(() => turnsOf(messages), [messages]);
   const thinking = isThinking(messages, status);
-  const failed = status === 'error';
-  const reason = failure ?? 'unavailable';
-  const latest = turns.at(-1)?.answer;
-  const stopped = status === 'ready' && turns.length > 0 && !latest;
+  const latest = turns.at(-1);
+  const latestText = latest?.answer ? textOf(latest.answer) : '';
+  const latestNotice = latest ? notices[latest.question.id] : undefined;
+  const activity: Activity = thinking ? (step ? 'reading' : 'thinking') : status === 'streaming' ? 'writing' : 'idle';
   const announcement = thinking
     ? t(step ? `steps.${step}` : 'thinking')
-    : failed
-      ? t(`errors.${reason}`)
-      : stopped
-        ? t('stopped')
-        : status === 'ready' && latest
-          ? textOf(latest)
-          : '';
+    : latestNotice
+      ? t(latestNotice === 'stopped' ? 'stopped' : `errors.${latestNotice}`)
+      : status === 'ready' && latestText
+        ? latestText
+        : '';
 
   useEffect(() => {
     stick.current = true;
@@ -163,22 +162,23 @@ export function Conversation({
             <p className="pb-4 text-center text-xs leading-relaxed text-balance text-subtle-foreground">{t('intro')}</p>
             {turns.map(({ question, answer }, index) => {
               const last = index === turns.length - 1;
-              const pending = last && (thinking || failed || stopped);
+              const notice = notices[question.id];
+              const answered = !!answer && textOf(answer) !== '';
               return (
                 <Fragment key={question.id}>
                   <Arrival className={cn('items-end', index > 0 && 'pt-2')}>
                     <UserMessage message={question} />
                   </Arrival>
-                  {(answer || pending) && (
+                  {(answered || notice || (last && thinking)) && (
                     <Arrival delay={0.12} className="pt-5 pb-3">
                       <AssistantMessage
                         message={answer}
-                        thinking={last && thinking}
+                        activity={last ? activity : 'idle'}
                         step={last ? step : undefined}
-                        done={!last || status === 'ready'}
-                        failure={last && failed ? reason : undefined}
-                        stopped={last && stopped}
-                        onRetry={onRetry}
+                        done={!last || !isBusy(status)}
+                        failure={notice !== 'stopped' ? notice : undefined}
+                        stopped={notice === 'stopped'}
+                        onRetry={last ? onRetry : undefined}
                         avatarRef={last ? avatarRef : undefined}
                       />
                     </Arrival>

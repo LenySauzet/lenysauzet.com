@@ -13,12 +13,13 @@ glass bar, then into a conversation. Answers are scripted for now.
 
 ## Shape
 
-- **`useConversation` is the only seam to the model.** Its messages, parts
-  (`text`, `source-url`, `data-action`) and statuses (`ready`, `submitted`,
-  `streaming`, `error`) are the Vercel AI SDK's, and like `useChat` it adds the reply
-  only with its first words: the thinking row is drawn from `isThinking`, never from
-  an empty message. The real backend replaces its body, nothing else.
-  `lib/ask/demo.ts` is the stand-in; its sentences are in `messages/` (`Ask.demo`).
+- **`useConversation` is the only seam to the model**: `useChat` on `/api/ask`, with
+  `surface` and `locale` in the body. Its messages are the AI SDK's `UIMessage`, typed
+  with this assistant's data parts (`AskData`), and like `useChat` the reply appears only
+  with its first content: the thinking row is drawn from `isThinking`, never from an
+  empty message. A refusal arrives as the response body, `{ "code": … }`, which
+  `failureFrom` reads; anything else is `unavailable`. Tests feed it real SDK chunks
+  through a fake transport (`test/ask.ts`), and `Ask` through a stubbed `fetch`.
   Beside them it gives `step`, `failure` and `stop` (`useChat`'s, keeping what was
   written). A `step` is a key (`Step`), never text: the server's transient `data-status`
   part names it and `Ask.steps` words it in the visitor's language, shown and announced
@@ -30,11 +31,25 @@ glass bar, then into a conversation. Answers are scripted for now.
   the codes `/api/ask` answers with), each with its sentence in `Ask.errors`;
   `remediesOf` decides what follows it: a retry only for `unavailable`, a call and an
   email for `unavailable` and `disabled`. An error without a code is `unavailable`.
-- **The visitor is told it is an AI** (AI Act, article 50): the header reads "AI
-  version of Lény · can be wrong", and the log opens on a sentence that also says this
-  site does not keep conversations. That sentence must stay true: `/api/ask` never
-  stores text. The header wraps rather than truncates: "can be wrong" is the part a
-  phone would cut.
+- **The visitor is told it is an AI** (AI Act, article 50) before the first answer: the
+  header reads "AI assistant · knows my work", and the log opens on a sentence saying it
+  is Lény's AI version, that it can be wrong and that this site does not keep
+  conversations. That sentence must stay true: `/api/ask` never stores text. Because the
+  interface says it, the answers never do unless asked: the assistant speaks as Lény.
+- **A notice belongs to its question** (`notices`): a refusal or an answer stopped before
+  its first words stays under the question it concerns when the next one is asked; only
+  the latest offers a retry. The request carries only the last `SENT_MESSAGES`, so a long
+  conversation is never refused for its length.
+- **The orb says what the assistant is doing**: two spheres while it thinks, four while
+  it reads (a step is named), one turning while it writes, one at rest. The step's label
+  cross-fades as it changes.
+- **Answers are Markdown through Streamdown**, words blurring in as they stream: light
+  formatting only (paragraphs, bold, short lists), mapped to the prose styles in
+  `MARKDOWN`; links, headings and code are not asked of the model.
+- **The topics are centred while they fit** (`justify-center-safe`) and start-aligned when
+  they overflow, with a fade growing on the side that hides something (`edgesOf`).
+- **A sent question fades out of the field** rather than vanishing: a copy of its text
+  blurs away over the emptied field.
 - **`useWake` decides when the bar is open**: at the top or bottom of the page, under
   reduced motion, while it holds focus, text or an open conversation, when the cursor
   comes near (`lib/ask/zones.ts`: a narrow band wakes it, a wider one keeps it, so it
@@ -81,6 +96,10 @@ glass bar, then into a conversation. Answers are scripted for now.
   unregistered property does not interpolate, so the log's bottom fade snapped.
 - **No `mix-blend-mode` over the glass**: it isolates the panel and its backdrop blur
   stops seeing the page.
+- **The rim's glow goes out when the bar is no longer lit**, in the effect that drives it:
+  the fold's own fade-out was stopped mid-way by that effect's cleanup, leaving a shine on
+  the capsule. Closing the conversation with the mouse drops the focus, so the bar folds
+  as it does when the visitor clicks elsewhere.
 - **The capsule closes on a spring that does not overshoot** (`SETTLE`): the island's
   `MORPH` would crush its 10px into a line.
 - **Hover and press change the bar's width by whole pixels**, never `scale`: a scaled

@@ -15,6 +15,7 @@ import {
 } from 'react';
 
 import { focusRing } from '@/components/shared/styles';
+import { EASE_SNAP } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 import { RESTING_OPACITY, Spelled, WrittenTwice } from './Letters';
@@ -85,8 +86,11 @@ export function Composer({
     setHeight(overflows ? Math.min(content, FIELD_MAX) : BAR);
   }, [draft, width, stacked, inputRef]);
 
+  const [sent, setSent] = useState<{ key: number; text: string; stacked: boolean }>();
+
   const send = () => {
     dictation.cancel();
+    if (!busy && typed) setSent({ key: Date.now(), text: draft, stacked });
     onSend();
   };
 
@@ -160,6 +164,22 @@ export function Composer({
           )}
           style={{ paddingRight: stacked ? undefined : ACTIONS_ROOM, paddingBottom: stacked ? ACTIONS_ROW : undefined }}
         />
+        <AnimatePresence>
+          {sent && !draft && (
+            <motion.span
+              key={sent.key}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 overflow-hidden pt-3 pl-5 text-base leading-5 break-words whitespace-pre-wrap text-foreground sm:text-sm"
+              style={{ paddingRight: sent.stacked ? 20 : ACTIONS_ROOM }}
+              initial={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+              animate={{ opacity: 0, filter: 'blur(6px)', y: -8 }}
+              transition={{ duration: 0.35, ease: EASE_SNAP }}
+              onAnimationComplete={() => setSent(undefined)}
+            >
+              {sent.text}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </motion.div>
       <AnimatePresence>
         {lit && (

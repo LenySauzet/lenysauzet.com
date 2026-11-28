@@ -1,13 +1,15 @@
+import { withBotId } from 'botid/next/config';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const nextConfig: NextConfig = {
   experimental: { globalNotFound: true },
+  outputFileTracingIncludes: { '/api/ask': ['./content/knowledge/**/*'] },
   redirects: async () => [{ source: '/en/:path*', destination: '/:path*', permanent: true }],
   rewrites: async () => ({
     beforeFiles: [
       { source: '/', destination: '/en' },
-      { source: '/:path((?!(?:en|fr)(?:/|$)|_next/|opengraph-image|.*\\..*).+)', destination: '/en/:path' },
+      { source: '/:path((?!(?:en|fr)(?:/|$)|_next/|api/|opengraph-image|.*\\..*).+)', destination: '/en/:path' },
     ],
     afterFiles: [],
     fallback: [],
@@ -18,4 +20,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default createNextIntlPlugin('./i18n/request.ts')(nextConfig);
+export default withBotId(createNextIntlPlugin('./i18n/request.ts')(nextConfig));

@@ -1,20 +1,32 @@
+import type { SourceUrlUIPart, UIMessage } from 'ai';
+
 export type Action = 'book' | 'resume';
 
-export type Source = { type: 'source-url'; sourceId: string; url: string; title?: string };
+export type Step = 'resume' | 'projects' | 'posts';
 
-export type Part = { type: 'text'; text: string } | Source | { type: 'data-action'; data: Action };
+export type AskData = { action: Action; status: Step };
 
-export interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  parts: Part[];
-}
+export type Message = UIMessage<never, AskData>;
+
+export type Part = Message['parts'][number];
+
+export type Source = SourceUrlUIPart;
 
 export type Status = 'ready' | 'submitted' | 'streaming' | 'error';
 
-export type Step = 'resume' | 'projects';
-
 export type Failure = 'disabled' | 'rate-limited' | 'unavailable' | 'invalid';
+
+export type Notice = Failure | 'stopped';
+
+const FAILURES: readonly Failure[] = ['disabled', 'rate-limited', 'unavailable', 'invalid'];
+
+export function failureFrom(error: unknown): Failure {
+  try {
+    const { code } = JSON.parse(error instanceof Error ? error.message : String(error)) as { code?: unknown };
+    if (FAILURES.includes(code as Failure)) return code as Failure;
+  } catch {}
+  return 'unavailable';
+}
 
 export const remediesOf = (failure: Failure) => ({
   retry: failure === 'unavailable',

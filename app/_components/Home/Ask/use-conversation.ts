@@ -1,94 +1,105 @@
 'use client';
 
-import { useLocale, useMessages } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, type ChatTransport } from 'ai';
+import { useLocale } from 'next-intl';
+import { useCallback, useMemo, useState } from 'react';
 
-import { getPathname } from '@/i18n/navigation';
-import { isBusy, textOf, wordsOf, type Failure, type Message, type Status, type Step } from '@/lib/ask/conversation';
-import { demoReply } from '@/lib/ask/demo';
+import { failureFrom, isBusy, textOf, type Message, type Notice, type Step } from '@/lib/ask/conversation';
 
-const THINKING_MS = 1800;
-const WORD_MS = 38;
+export const ASK_API = '/api/ask';
+export const SENT_MESSAGES = 10;
 
-export function useConversation() {
+export const requestBody = (messages: Message[], locale: string, body?: object) => ({
+  ...body,
+  surface: 'portfolio',
+  locale,
+  messages: messages.slice(-SENT_MESSAGES),
+});
+
+export function useConversation(transport?: ChatTransport<Message>) {
   const locale = useLocale();
-  const { demo } = useMessages().Ask;
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [status, setStatus] = useState<Status>('ready');
   const [step, setStep] = useState<Step>();
-  const [failure, setFailure] = useState<Failure>();
-  const timers = useRef<number[]>([]);
-  const count = useRef(0);
+  const [notices, setNotices] = useState<Record<string, Notice>>({});
+  const chatTransport = useMemo<ChatTransport<Message>>(
+    () =>
+      transport ??
+      new DefaultChatTransport<Message>({
+        api: ASK_API,
+        prepareSendMessagesRequest: ({ messages, body }) => ({ body: requestBody(messages, locale, body) }),
+      }),
+    [transport, locale]
+  );
+  const chat = useChat<Message>({
+    transport: chatTransport,
+    onData: (part) => {
+      if (part.type === 'data-status') setStep(part.data);
+    },
+  });
+  const { messages, status, error, sendMessage, regenerate, stop: abort, setMessages, clearError } = chat;
+  const busy = isBusy(status);
+  const last = messages.at(-1);
+  const writing = last?.role === 'assistant' && textOf(last) !== '';
+  const question = messages.findLast((message) => message.role === 'user');
 
-  const clear = useCallback(() => {
-    timers.current.forEach(window.clearTimeout);
-    timers.current = [];
-    setStep(undefined);
-  }, []);
-
-  useEffect(() => clear, [clear]);
-
-  const answer = useCallback(
-    (question: string) => {
-      const reply = demoReply(question, locale, demo, getPathname({ href: '/resume', locale }));
-      const id = `m${++count.current}`;
-      const words = wordsOf(textOf({ id, role: 'assistant', parts: reply.parts }));
-      const later = (ms: number, run: () => void) => timers.current.push(window.setTimeout(run, ms));
-      const write = (message: Message) =>
-        setMessages((current) =>
-          current.at(-1)?.id === id ? [...current.slice(0, -1), message] : [...current, message]
-        );
-
-      setFailure(undefined);
-      setStatus('submitted');
-      setStep(reply.step);
-      words.forEach((_, index) =>
-        later(THINKING_MS + index * WORD_MS, () => {
-          if (index === 0) {
-            setStep(undefined);
-            setStatus('streaming');
-          }
-          write({ id, role: 'assistant', parts: [{ type: 'text', text: words.slice(0, index + 1).join('') }] });
-        })
-      );
-      later(THINKING_MS + words.length * WORD_MS, () => {
-        write({ id, role: 'assistant', parts: reply.parts });
-        setStatus('ready');
+  const note = useCallback(
+    (notice?: Notice) => {
+      if (!question) return;
+      setNotices((current) => {
+        const rest = Object.fromEntries(Object.entries(current).filter(([id]) => id !== question.id));
+        return notice ? { ...rest, [question.id]: notice } : rest;
       });
     },
-    [locale, demo]
+    [question]
   );
 
   const send = useCallback(
     (input: string) => {
       const text = input.trim();
-      if (!text || isBusy(status)) return;
-      const question: Message = { id: `m${++count.current}`, role: 'user', parts: [{ type: 'text', text }] };
-      setMessages((current) => [...current, question]);
-      answer(text);
+      if (!text || busy) return;
+      setStep(undefined);
+      if (error) {
+        note(failureFrom(error));
+        clearError();
+      }
+      void sendMessage({ text });
     },
-    [answer, status]
+    [busy, error, note, clearError, sendMessage]
   );
 
   const retry = useCallback(() => {
-    const question = messages.findLast((message) => message.role === 'user');
-    if (!question || isBusy(status)) return;
-    setMessages((current) => current.slice(0, current.indexOf(question) + 1));
-    answer(textOf(question));
-  }, [answer, messages, status]);
+    if (busy || !question) return;
+    setStep(undefined);
+    note();
+    clearError();
+    if (last?.role === 'user' || (last && !textOf(last))) {
+      setMessages(messages.slice(0, messages.indexOf(question)));
+      void sendMessage({ text: textOf(question) });
+    } else void regenerate();
+  }, [busy, question, last, messages, note, clearError, setMessages, sendMessage, regenerate]);
 
   const stop = useCallback(() => {
-    if (!isBusy(status)) return;
-    clear();
-    setStatus('ready');
-  }, [clear, status]);
+    if (!busy) return;
+    if (!writing) note('stopped');
+    void abort();
+  }, [busy, writing, note, abort]);
 
   const reset = useCallback(() => {
-    clear();
+    void abort();
+    clearError();
     setMessages([]);
-    setFailure(undefined);
-    setStatus('ready');
-  }, [clear]);
+    setNotices({});
+    setStep(undefined);
+  }, [abort, clearError, setMessages]);
 
-  return { messages, status, step, failure, send, retry, stop, reset };
+  return {
+    messages,
+    status,
+    step: busy && !writing ? step : undefined,
+    notices: error && question ? { ...notices, [question.id]: failureFrom(error) } : notices,
+    send,
+    retry,
+    stop,
+    reset,
+  };
 }
