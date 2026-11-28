@@ -45,6 +45,7 @@
   --ring: oklch(0.705 0.015 var(--base-hue));
   --shine-text: oklch(0.82 0.02 var(--base-hue));
   --shine-rim: oklch(0.5 0.02 var(--base-hue));
+  --glare: oklch(1 0 0);
   --well: oklch(0.955 0.004 var(--base-hue));
   --well-hover: oklch(0.93 0.005 var(--base-hue));
   --media-ink: oklch(0.86 0.008 var(--base-hue));
@@ -129,6 +130,12 @@
   }
 }
 
+@property --fade {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
 @property --sweep {
   syntax: '<percentage>';
   inherits: true;
@@ -181,6 +188,24 @@
     transparent calc(var(--sweep) + 14%)
   );
   animation: sweep 4.5s cubic-bezier(0.45, 0, 0.25, 1) 1s infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    --sweep: -60%;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    --sweep: -30%;
+  }
+  to {
+    --sweep: 130%;
+  }
+}
+
+@utility shimmer {
+  animation: shimmer 1.7s linear infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;

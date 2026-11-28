@@ -34,7 +34,6 @@ export function BookCall({ className }: { className?: string }) {
         className
       )}
     >
-      {/* The sweep runs inside: WebKit skips every transition of an element with a running animation. */}
       <span className="shine shine-border flex items-center rounded-[inherit]">
         <span className="relative size-8 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border">
           <Image src={resolveMedia(siteConfig.author.avatar)} alt="" fill sizes="32px" className="object-cover" />

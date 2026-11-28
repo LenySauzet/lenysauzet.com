@@ -98,5 +98,33 @@
     "bookingUnreachable": "Réservation indisponible",
     "otherVersion": "Lire en anglais",
     "otherVersionKeywords": "anglais english langue language version"
+  },
+  "Ask": {
+    "title": "Demander à Lény",
+    "subtitle": "Assistant IA · connaît mon parcours",
+    "placeholder": "Demandez-moi ce que vous voulez…",
+    "thinking": "Réflexion…",
+    "newChat": "Nouvelle conversation",
+    "close": "Fermer",
+    "send": "Envoyer",
+    "dictate": "Dicter",
+    "stopDictating": "Arrêter la dictée",
+    "copy": "Copier la réponse",
+    "copied": "Copiée",
+    "latest": "Aller en bas",
+    "conversation": "Conversation avec Lény",
+    "error": "Un problème est survenu. Réessayez dans un instant.",
+    "retry": "Réessayer",
+    "topics": {
+      "role": "Votre rôle chez Tolk.ai ?",
+      "availability": "Êtes-vous disponible ?",
+      "project": "Votre projet IA phare ?"
+    },
+    "demo": {
+      "available": "Oui. Mon alternance chez Tolk.ai s’est terminée en septembre 2026 et je cherche maintenant un poste d’ingénieur IA ou full-stack, à Montpellier ou en télétravail. Le plus simple est d’en parler de vive voix.",
+      "availableSource": "CV · Expérience",
+      "tolk": "Chez Tolk.ai, j’ai pris en charge les pipelines d’ingestion et de recherche sur lesquels repose le produit : 600 millions de mots indexés et 4,3 millions de conversations servies. J’ai aussi ouvert le marché du e-commerce avec des bases de connaissances qui se mettent à jour seules, aujourd’hui 80 % de la base en production.",
+      "tolkSource": "CV · Tolk.ai"
+    }
   }
 }

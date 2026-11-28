@@ -99,7 +99,7 @@ export function Island({ className }: { className?: string }) {
       layoutRoot
       data-presence-ignore
       className={cn(
-        'fixed bottom-6 left-[calc(50%-var(--removed-body-scroll-bar-size,0px)/2)] z-50 -translate-x-1/2 sm:top-6 sm:bottom-auto',
+        'fixed bottom-[max(1.5rem,calc(var(--ask-clearance,0px)+0.75rem))] left-[calc(50%-var(--removed-body-scroll-bar-size,0px)/2)] z-50 -translate-x-1/2 sm:top-6 sm:bottom-auto',
         className
       )}
     >

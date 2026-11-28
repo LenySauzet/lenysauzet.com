@@ -90,6 +90,8 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
 | `hooks/use-presence-store.ts` | Whether this visitor hides the others' cursors, kept in the browser |
 | `workers/presence/` | The worker: one Durable Object room, its budget, its address grouping |
 | `hooks/use-animated-icon.ts` | The animated icons' controls, and playing one from its control |
+| `lib/ask/`, `app/_components/Home/Ask/` | The assistant: its conversation model, its zones, and the bar; see `.claude/rules/ask.md` |
+| `lib/orb/` | The assistant's orb: one shared WebGL renderer, its spheres, and the thinking glow |
 
 ## What the code does not say
 
@@ -160,7 +162,10 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
   open over the next avatar. Until a logo is on the CDN the initial shows.
 - **The shine is CSS alone**: a registered `--sweep` animated in `@keyframes`, painted
   through `shine-text` and `shine-border`. The text's band dims in dark and lightens in
-  light (`--shine-text`), the rim's is `--shine-rim`. Reduced motion parks it.
+  light (`--shine-text`), the rim's is `--shine-rim`. Reduced motion parks it. It runs
+  on a span inside the element that transitions, never on that element: WebKit starts
+  no transition on an element with a running CSS animation, and Book a call's row leapt
+  sideways in Safari.
 - **The status pages share `StatusPage`**: the status as a hairline outline of
   Departure Mono (stroked at twice its width, then covered by the same text in
   `--background`, so only the outer half shows), the serif title, the copy, faded
@@ -176,6 +181,7 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
   every spelling of the name, `sameAs` each profile and the blog, inside a
   `ProfilePage`. The blog should point its author at that `@id`.
 - **Live cursors** are in `.claude/rules/presence.md`, which loads with their files.
+- **The assistant** is in `.claude/rules/ask.md`, which loads with its files.
 - **The page's foot is blurred progressively.** `PageBlur` stacks backdrop blurs whose
   radii add in quadrature to an exponential curve (`lib/blur.ts`), 12px at the edge,
   layers under 1px dropped. Over the last 96px of scroll it is squeezed to the edge

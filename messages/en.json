@@ -98,5 +98,33 @@
     "bookingUnreachable": "Booking is unreachable",
     "otherVersion": "Read in French",
     "otherVersionKeywords": "french français language langue version"
+  },
+  "Ask": {
+    "title": "Ask Lény",
+    "subtitle": "AI assistant · knows my work",
+    "placeholder": "Ask me anything…",
+    "thinking": "Thinking…",
+    "newChat": "New chat",
+    "close": "Close",
+    "send": "Send",
+    "dictate": "Dictate",
+    "stopDictating": "Stop dictating",
+    "copy": "Copy answer",
+    "copied": "Copied",
+    "latest": "Jump to latest",
+    "conversation": "Conversation with Lény",
+    "error": "Something went wrong. Try again in a moment.",
+    "retry": "Try again",
+    "topics": {
+      "role": "Your role at Tolk.ai?",
+      "availability": "Are you available?",
+      "project": "Best AI project?"
+    },
+    "demo": {
+      "available": "Yes. My work-study at Tolk.ai ended in September 2026, and I am now looking for an AI or full-stack engineering role, in Montpellier or remote. The quickest way forward is a short call.",
+      "availableSource": "Resume · Experience",
+      "tolk": "At Tolk.ai, I owned the ingestion and retrieval pipelines the product rests on: 600 million indexed words and 4.3 million conversations served. I also opened e-commerce as a market, with knowledge bases that keep themselves current, now 80% of the live knowledge base.",
+      "tolkSource": "Resume · Tolk.ai"
+    }
   }
 }
