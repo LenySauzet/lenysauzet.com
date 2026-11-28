@@ -123,7 +123,10 @@ class Renderer {
     gl.attachShader(program, vertex);
     gl.attachShader(program, fragment);
     gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+    const linked = gl.getProgramParameter(program, gl.LINK_STATUS);
+    gl.deleteShader(vertex);
+    gl.deleteShader(fragment);
+    if (!linked) return null;
     gl.useProgram(program);
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -164,10 +167,11 @@ class Renderer {
 
   remove(target: Target) {
     this.targets.delete(target);
-    if (this.targets.size === 0 && this.raf) {
-      cancelAnimationFrame(this.raf);
-      this.raf = 0;
-    }
+    if (this.targets.size) return;
+    cancelAnimationFrame(this.raf);
+    this.raf = 0;
+    this.theme?.disconnect();
+    this.theme = null;
   }
 
   private tick = (now: number) => {

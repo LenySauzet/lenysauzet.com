@@ -5,6 +5,7 @@ import { SelectionFrame } from '@/components/shared/SelectionFrame';
 import { focusRing, pageGrid } from '@/components/shared/styles';
 import siteConfig from '@/config/site';
 import { CONTENT_LOCALE, otherLocale, otherVersionOf } from '@/i18n/locales';
+import { askEnabled } from '@/lib/ask/enabled';
 import { buildInfo } from '@/lib/build-info';
 import { cn } from '@/lib/utils';
 
@@ -50,7 +51,7 @@ export function Footer({ className }: { className?: string }) {
     <footer className={cn(pageGrid, className)}>
       <RisingBand lane="first" />
 
-      <div className="flex flex-col gap-8 pt-8 pb-36 sm:pb-36 lg:col-start-3">
+      <div className={cn('flex flex-col gap-8 pt-8 lg:col-start-3', askEnabled() ? 'pb-36' : 'pb-32 sm:pb-16')}>
         <section data-presence="metadata" aria-labelledby="metadata-heading" className="flex flex-col gap-4">
           <h2 id="metadata-heading" className={LABEL}>
             {t('metadata')}

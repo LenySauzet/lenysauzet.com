@@ -40,9 +40,18 @@ interface ConversationProps {
   onRestart: () => void;
   onRetry: () => void;
   onClose: (byKeyboard: boolean) => void;
+  className?: string;
 }
 
-export function Conversation({ messages, status, avatarRef, onRestart, onRetry, onClose }: ConversationProps) {
+export function Conversation({
+  messages,
+  status,
+  avatarRef,
+  onRestart,
+  onRetry,
+  onClose,
+  className,
+}: ConversationProps) {
   const t = useTranslations('Ask');
   const log = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
@@ -102,7 +111,7 @@ export function Conversation({ messages, status, avatarRef, onRestart, onRetry, 
   };
 
   return (
-    <section aria-label={t('conversation')}>
+    <section aria-label={t('conversation')} className={className}>
       <header className="flex items-center gap-3 py-3 pr-3 pl-4">
         <Orb count={1} size={56} className="-my-2.5 -ml-2" />
         <span className="flex min-w-0 flex-1 flex-col">
@@ -192,9 +201,10 @@ interface HeaderButtonProps {
   label: string;
   icon: typeof AnimatedCloseIcon;
   onClick: (event: MouseEvent) => void;
+  className?: string;
 }
 
-function HeaderButton({ label, icon: Icon, onClick }: HeaderButtonProps) {
+function HeaderButton({ label, icon: Icon, onClick, className }: HeaderButtonProps) {
   const { icon, trigger } = useAnimatedIcon();
 
   return (
@@ -204,7 +214,7 @@ function HeaderButton({ label, icon: Icon, onClick }: HeaderButtonProps) {
       title={label}
       onClick={onClick}
       {...trigger}
-      className={cn('size-8', quietButton)}
+      className={cn('size-8', quietButton, className)}
     >
       <Icon ref={icon} className="size-[17px]" />
     </button>

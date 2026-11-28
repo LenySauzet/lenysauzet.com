@@ -25,9 +25,14 @@ const CLUSTER_EVERY_MS = 1400;
 const COPIED_FOR_MS = 1600;
 const SPIN = 0.55;
 
-export const UserMessage = memo(function UserMessage({ message }: { message: Message }) {
+export const UserMessage = memo(function UserMessage({ message, className }: { message: Message; className?: string }) {
   return (
-    <p className="relative max-w-[85%] rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]">
+    <p
+      className={cn(
+        'relative max-w-[85%] rounded-2xl rounded-br-md bg-foreground/[0.06] px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-[inset_0_1px_0_oklch(from_var(--glare)_l_c_h/0.04)]',
+        className
+      )}
+    >
       {textOf(message)}
       <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] p-px" style={BUBBLE_RIM} />
     </p>
@@ -40,6 +45,7 @@ interface AssistantMessageProps {
   done: boolean;
   onRetry?: () => void;
   avatarRef?: Ref<HTMLSpanElement>;
+  className?: string;
 }
 
 export const AssistantMessage = memo(function AssistantMessage({
@@ -48,6 +54,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   done,
   onRetry,
   avatarRef,
+  className,
 }: AssistantMessageProps) {
   const t = useTranslations('Ask');
   const [clustered, setClustered] = useState(false);
@@ -59,7 +66,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   }, [thinking]);
 
   return (
-    <div className="flex items-start gap-3">
+    <div className={cn('flex items-start gap-3', className)}>
       <span ref={avatarRef} className="relative -mt-2.5 -ml-1 size-11 shrink-0">
         <motion.span
           className="absolute top-1/2 left-1/2 -translate-1/2"
@@ -210,7 +217,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       type="button"
-      aria-label={label}
+      aria-label={t('copy')}
       title={label}
       {...trigger}
       onClick={copy}

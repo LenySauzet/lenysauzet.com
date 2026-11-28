@@ -26,7 +26,6 @@ const FIELD_MAX = 200;
 const ACTIONS_ROOM = 84;
 const ACTIONS_ROW = 44;
 const SIDE_PADDING = 20;
-// Safari confirms an IME composition with an Enter whose isComposing is false, but keyCode 229.
 const COMPOSING = 229;
 
 interface ComposerProps {
@@ -42,6 +41,7 @@ interface ComposerProps {
   writeDelay: number;
   onFocus: FocusEventHandler<HTMLTextAreaElement>;
   onPointerDown: PointerEventHandler<HTMLTextAreaElement>;
+  className?: string;
 }
 
 export function Composer({
@@ -57,6 +57,7 @@ export function Composer({
   writeDelay,
   onFocus,
   onPointerDown,
+  className,
 }: ComposerProps) {
   const t = useTranslations('Ask');
   const mirror = useRef<HTMLSpanElement>(null);
@@ -79,9 +80,14 @@ export function Composer({
     setHeight(overflows ? Math.min(content, FIELD_MAX) : BAR);
   }, [draft, width, stacked, inputRef]);
 
+  const send = () => {
+    dictation.cancel();
+    onSend();
+  };
+
   const submit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onSend();
+    send();
   };
 
   return (
@@ -90,7 +96,8 @@ export function Composer({
       className={cn(
         'relative shrink-0 transition-[margin,background-color,box-shadow,border-radius] duration-300',
         framed && 'mx-1.5 mb-1.5 bg-foreground/[0.04] ring-1 ring-foreground/10 ring-inset',
-        framed && (stacked ? 'rounded-[20px]' : 'rounded-full')
+        framed && (stacked ? 'rounded-[20px]' : 'rounded-full'),
+        className
       )}
     >
       <AnimatePresence>
@@ -109,9 +116,7 @@ export function Composer({
                 <Spelled text={t('placeholder')} />
               </span>
             ) : (
-              <span>
-                <WrittenTwice text={t('placeholder')} delay={writeDelay} />
-              </span>
+              <WrittenTwice text={t('placeholder')} delay={writeDelay} />
             )}
           </motion.span>
         )}
@@ -136,7 +141,7 @@ export function Composer({
             const composing = event.nativeEvent.isComposing || event.nativeEvent.keyCode === COMPOSING;
             if (event.key !== 'Enter' || event.shiftKey || composing) return;
             event.preventDefault();
-            onSend();
+            send();
           }}
           onFocus={onFocus}
           onPointerDown={onPointerDown}
@@ -168,7 +173,7 @@ export function Composer({
                 aria-pressed={dictation.listening}
                 title={dictation.listening ? t('stopDictating') : t('dictate')}
                 onClick={() => {
-                  spokenAfter.current = draft.trim() ? `${draft.trimEnd()} ` : '';
+                  if (!dictation.listening) spokenAfter.current = draft.trim() ? `${draft.trimEnd()} ` : '';
                   dictation.toggle();
                 }}
                 className={cn(

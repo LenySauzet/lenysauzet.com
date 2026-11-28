@@ -46,9 +46,21 @@ glass bar, then into a conversation. Answers are scripted for now.
   counts in the log's scroll height under `clip-path`, so the log scrolled mid-arrival
   and the first bubble bounced. `overflow-clip-margin` lets a blurred entrance breathe
   (not in WebKit, which clips it square).
-- **The log stays pinned to the bottom** by a frame loop while sticking; any upward
-  wheel, touch or key releases it, the bottom catches it again. "Jump to latest" glides
-  there with Motion: a native smooth scroll is overwritten by the pin on the next frame.
+- **The log stays pinned to the bottom** by a `ResizeObserver` on the log and its
+  content while sticking; any upward wheel, touch or key releases it, the bottom catches
+  it again. "Jump to latest" glides there with Motion: a native smooth scroll is
+  overwritten by the next pin.
+- **Enter sends unless a composition is open**, and Safari confirms an IME composition
+  with an Enter whose `isComposing` is false but whose `keyCode` is 229: both are checked.
+- **The placeholder keeps one span per letter at rest**, as while it writes itself:
+  Safari does not kern across elements, so a single run at the end tightened the text
+  and it jumped left.
+- **Dictation stops when the question is sent**, or its next result would write the
+  sent text back into the emptied field; what was typed before is kept only from the
+  click that starts it.
+- **The bar is hidden in production** until it answers for real (`askEnabled`):
+  `ASK_ENABLED=true` shows it there, `false` hides it everywhere. Setting it before V1
+  ships the scripted replies, which answer every other question with the Tolk.ai one.
 - **`--fade` is registered with a `px` initial value**: a `rem` one is rejected, and an
   unregistered property does not interpolate, so the log's bottom fade snapped.
 - **No `mix-blend-mode` over the glass**: it isolates the panel and its backdrop blur

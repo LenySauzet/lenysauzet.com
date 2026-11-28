@@ -4,6 +4,7 @@ import { motion, useMotionTemplate, useMotionValue, useReducedMotion } from 'mot
 import { useEffect, useRef, type RefObject } from 'react';
 
 import { paintGlow } from '@/lib/orb/glow';
+import { cn } from '@/lib/utils';
 
 import { RING } from './styles';
 
@@ -13,6 +14,7 @@ const SPHERE_SHARE = 0.47;
 interface LightProps {
   frame: RefObject<HTMLElement | null>;
   avatar: RefObject<HTMLElement | null>;
+  className?: string;
 }
 
 function useAvatarPoint({ frame, avatar }: LightProps) {
@@ -43,7 +45,7 @@ function useAvatarPoint({ frame, avatar }: LightProps) {
   return { x, y, size, width, height };
 }
 
-export function Aura(refs: LightProps) {
+export function Aura({ className, ...refs }: LightProps) {
   const { x, y, size, width, height } = useAvatarPoint(refs);
   const canvas = useRef<HTMLCanvasElement>(null);
   const still = useReducedMotion();
@@ -75,7 +77,7 @@ export function Aura(refs: LightProps) {
   return (
     <motion.div
       aria-hidden
-      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
+      className={cn('pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]', className)}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.9, ease: 'easeInOut' } }}
@@ -98,7 +100,7 @@ export function Aura(refs: LightProps) {
 const LAVENDER = (alpha: number) => `oklch(from var(--primary) calc(l + 0.24) 0.1 calc(h + 32) / ${alpha})`;
 const MILK = (alpha: number) => `oklch(from var(--glare) l c h / ${alpha})`;
 
-export function EdgeLight(refs: LightProps) {
+export function EdgeLight({ className, ...refs }: LightProps) {
   const { y } = useAvatarPoint(refs);
   const still = useReducedMotion();
   const background = useMotionTemplate`radial-gradient(ellipse 30px 260px at 0px ${y}px, ${LAVENDER(0.55)}, ${MILK(0.12)} 55%, transparent), oklch(from var(--foreground) l c h / 0)`;
@@ -106,7 +108,7 @@ export function EdgeLight(refs: LightProps) {
   return (
     <motion.span
       aria-hidden
-      className="pointer-events-none absolute inset-0 rounded-[inherit] p-px"
+      className={cn('pointer-events-none absolute inset-0 rounded-[inherit] p-px', className)}
       style={{ ...RING, background }}
       initial={{ opacity: 0 }}
       animate={{ opacity: still ? 1 : [0.7, 1, 0.7] }}

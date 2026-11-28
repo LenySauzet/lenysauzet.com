@@ -162,7 +162,10 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
   open over the next avatar. Until a logo is on the CDN the initial shows.
 - **The shine is CSS alone**: a registered `--sweep` animated in `@keyframes`, painted
   through `shine-text` and `shine-border`. The text's band dims in dark and lightens in
-  light (`--shine-text`), the rim's is `--shine-rim`. Reduced motion parks it.
+  light (`--shine-text`), the rim's is `--shine-rim`. Reduced motion parks it. It runs
+  on a span inside the element that transitions, never on that element: WebKit starts
+  no transition on an element with a running CSS animation, and Book a call's row leapt
+  sideways in Safari.
 - **The status pages share `StatusPage`**: the status as a hairline outline of
   Departure Mono (stroked at twice its width, then covered by the same text in
   `--background`, so only the outer half shows), the serif title, the copy, faded

@@ -194,8 +194,12 @@ export function useWake(bar: RefObject<HTMLElement | null>, { held, focused, pla
       animate(glow, level, { duration: 0.6 });
       animate(shineX, shine, { duration: 0.8, ease: EASE_SNAP });
     };
+    const settle = () => {
+      glow.stop();
+      shineX.stop();
+    };
     rest();
-    if (still || coarse) return;
+    if (still || coarse) return settle;
     let aiming = false;
     const onMove = (event: PointerEvent) => {
       const element = bar.current;
@@ -213,7 +217,10 @@ export function useWake(bar: RefObject<HTMLElement | null>, { held, focused, pla
       animate(glow, over ? 1 : 0.85, { duration: 0.4 });
     };
     window.addEventListener('pointermove', onMove, { passive: true });
-    return () => window.removeEventListener('pointermove', onMove);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      settle();
+    };
   }, [written, lit, focused, still, coarse, bar, glow, shineX]);
 
   return { phase, written, shineX, glow, writeDelay: WRITE_DELAY };

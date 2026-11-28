@@ -3,6 +3,7 @@
 import { motion } from 'motion/react';
 
 import { blurred, EASE_OUT } from '@/lib/motion';
+import { cn } from '@/lib/utils';
 
 const BLURRED_LETTER = blurred(6);
 const PACE = { step: 0.015, pass: 0.8 };
@@ -15,12 +16,13 @@ interface LettersProps {
   text: string;
   delay?: number;
   step?: number;
+  className?: string;
 }
 
-export function Letters({ text, delay = 0, step = 0.022 }: LettersProps) {
+export function Letters({ text, delay = 0, step = 0.022, className }: LettersProps) {
   return (
     <>
-      <span aria-hidden>
+      <span aria-hidden className={className}>
         {[...text].map((letter, index) => (
           <motion.span
             key={index}
@@ -37,18 +39,17 @@ export function Letters({ text, delay = 0, step = 0.022 }: LettersProps) {
   );
 }
 
-// Safari does not kern across elements, so text that rests after WrittenTwice keeps its spans or shifts left.
-export const Spelled = ({ text }: { text: string }) => (
-  <>
+export const Spelled = ({ text, className }: { text: string; className?: string }) => (
+  <span className={cn(className)}>
     {[...text].map((letter, index) => (
       <span key={index}>{letter}</span>
     ))}
-  </>
+  </span>
 );
 
-export function WrittenTwice({ text, delay = 0 }: { text: string; delay?: number }) {
+export function WrittenTwice({ text, delay = 0, className }: { text: string; delay?: number; className?: string }) {
   return (
-    <>
+    <span className={cn(className)}>
       {[...text].map((letter, index) => (
         <motion.span
           key={index}
@@ -68,6 +69,6 @@ export function WrittenTwice({ text, delay = 0 }: { text: string; delay?: number
           {letter}
         </motion.span>
       ))}
-    </>
+    </span>
   );
 }

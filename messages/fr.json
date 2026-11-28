@@ -102,7 +102,7 @@
   "Ask": {
     "title": "Demander à Lény",
     "subtitle": "Assistant IA · connaît mon parcours",
-    "placeholder": "Demande-moi n’importe quoi…",
+    "placeholder": "Demandez-moi ce que vous voulez…",
     "thinking": "Réflexion…",
     "newChat": "Nouvelle conversation",
     "close": "Fermer",
@@ -113,12 +113,12 @@
     "copied": "Copiée",
     "latest": "Aller en bas",
     "conversation": "Conversation avec Lény",
-    "error": "Un problème est survenu. Réessaie dans un instant.",
+    "error": "Un problème est survenu. Réessayez dans un instant.",
     "retry": "Réessayer",
     "topics": {
-      "role": "Ton rôle chez Tolk.ai ?",
-      "availability": "Es-tu disponible ?",
-      "project": "Ton projet IA phare ?"
+      "role": "Votre rôle chez Tolk.ai ?",
+      "availability": "Êtes-vous disponible ?",
+      "project": "Votre projet IA phare ?"
     },
     "demo": {
       "available": "Oui. Mon alternance chez Tolk.ai s’est terminée en septembre 2026 et je cherche maintenant un poste d’ingénieur IA ou full-stack, à Montpellier ou en télétravail. Le plus simple est d’en parler de vive voix.",

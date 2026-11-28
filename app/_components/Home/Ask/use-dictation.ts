@@ -3,6 +3,8 @@
 import { useLocale } from 'next-intl';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
+import { SPEECH_LOCALES } from '@/i18n/locales';
+
 interface Recognition {
   lang: string;
   interimResults: boolean;
@@ -24,8 +26,6 @@ const recognitionClass = () => {
   };
   return scope.SpeechRecognition ?? scope.webkitSpeechRecognition;
 };
-
-const LANGUAGES = { en: 'en-US', fr: 'fr-FR' } as const;
 
 const never = () => () => {};
 
@@ -68,7 +68,7 @@ export function useDictation(onText: (text: string) => void) {
       recognition.current = null;
       setListening(false);
     };
-    session.lang = LANGUAGES[locale];
+    session.lang = SPEECH_LOCALES[locale];
     session.interimResults = true;
     session.continuous = false;
     session.onresult = (event) => {

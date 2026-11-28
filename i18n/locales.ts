@@ -9,6 +9,8 @@ export const CONTENT_LOCALE: Locale = 'en';
 
 export const OPEN_GRAPH_LOCALES: Record<Locale, string> = { en: 'en_US', fr: 'fr_FR' };
 
+export const SPEECH_LOCALES: Record<Locale, string> = { en: 'en-US', fr: 'fr-FR' };
+
 export const otherLocale = (locale: Locale): Locale =>
   routing.locales.find((language) => language !== locale) ?? routing.defaultLocale;
 
