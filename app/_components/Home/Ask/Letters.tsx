@@ -37,6 +37,7 @@ export function Letters({ text, delay = 0, step = 0.022 }: LettersProps) {
   );
 }
 
+// Safari does not kern across elements, so text that rests after WrittenTwice keeps its spans or shifts left.
 export const Spelled = ({ text }: { text: string }) => (
   <>
     {[...text].map((letter, index) => (
