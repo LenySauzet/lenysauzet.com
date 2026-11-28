@@ -19,16 +19,22 @@ glass bar, then into a conversation. Answers are scripted for now.
   only with its first words: the thinking row is drawn from `isThinking`, never from
   an empty message. The real backend replaces its body, nothing else.
   `lib/ask/demo.ts` is the stand-in; its sentences are in `messages/` (`Ask.demo`).
-  Beside them it gives `step` (what a transient `data-status` part names, "Reading my
-  resume…", shown instead of "Thinking…" until the first words), `failure` and `stop`
-  (`useChat`'s, keeping what was written).
+  Beside them it gives `step`, `failure` and `stop` (`useChat`'s, keeping what was
+  written). A `step` is a key (`Step`), never text: the server's transient `data-status`
+  part names it and `Ask.steps` words it in the visitor's language, shown and announced
+  instead of "Thinking…" until the first words.
+- **Stop is the send button while an answer is on its way**: it ignores the second click
+  of a double click (it lands there just after sending), gives the field its focus back,
+  and a question stopped before its first words says so and offers a retry.
 - **A refusal is a `Failure`** (`disabled`, `rate-limited`, `unavailable`, `invalid`,
   the codes `/api/ask` answers with), each with its sentence in `Ask.errors`;
   `remediesOf` decides what follows it: a retry only for `unavailable`, a call and an
   email for `unavailable` and `disabled`. An error without a code is `unavailable`.
 - **The visitor is told it is an AI** (AI Act, article 50): the header reads "AI
-  version of Lény · can be wrong", and the log opens on a sentence that also says
-  conversations are not kept. That sentence must stay true: `/api/ask` never stores text.
+  version of Lény · can be wrong", and the log opens on a sentence that also says this
+  site does not keep conversations. That sentence must stay true: `/api/ask` never
+  stores text. The header wraps rather than truncates: "can be wrong" is the part a
+  phone would cut.
 - **`useWake` decides when the bar is open**: at the top or bottom of the page, under
   reduced motion, while it holds focus, text or an open conversation, when the cursor
   comes near (`lib/ask/zones.ts`: a narrow band wakes it, a wider one keeps it, so it

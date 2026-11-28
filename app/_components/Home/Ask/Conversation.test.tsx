@@ -34,7 +34,7 @@ describe('Conversation', () => {
   it('tells the visitor it is an AI that can be wrong, and that nothing is kept', () => {
     show([question], 'submitted');
     expect(screen.getByText('AI version of Lény · can be wrong')).toBeInTheDocument();
-    expect(screen.getByText(/conversations are not kept/)).toBeInTheDocument();
+    expect(screen.getByText(/This site does not keep your conversations\./)).toBeInTheDocument();
   });
 
   it('names the step it is on instead of thinking', () => {
@@ -42,7 +42,7 @@ describe('Conversation', () => {
       <Conversation
         messages={[question]}
         status="submitted"
-        step="Reading my resume…"
+        step="resume"
         avatarRef={createRef()}
         onRestart={vi.fn()}
         onRetry={vi.fn()}
@@ -51,6 +51,14 @@ describe('Conversation', () => {
       { wrapper: InEnglish }
     );
     expect(screen.getByRole('status')).toHaveTextContent('Reading my resume…');
+  });
+
+  it('says an answer stopped before its first words, and asks it again', () => {
+    const onRetry = show([question], 'ready');
+    expect(screen.getByRole('status')).toHaveTextContent('Stopped.');
+    expect(screen.queryByRole('link', { name: 'Email me' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 
   it('treats an unexplained failure as unavailable: try again, or reach Lény directly', () => {

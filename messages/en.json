@@ -101,10 +101,14 @@
   },
   "Ask": {
     "title": "Ask Lény",
-    "subtitle": "AI version of Lény · can be wrong",
-    "intro": "This is the AI version of Lény. It answers from what he has written about his work, it can be wrong, and conversations are not kept.",
+    "subtitle": "AI version of Lény · can be wrong",
+    "intro": "This is the AI version of Lény. It answers from what he has written about his work and it can be wrong. This site does not keep your conversations.",
     "placeholder": "Ask me anything…",
     "thinking": "Thinking…",
+    "steps": {
+      "resume": "Reading my resume…",
+      "projects": "Reading my projects…"
+    },
     "newChat": "New chat",
     "close": "Close",
     "send": "Send",
@@ -119,9 +123,10 @@
       "unavailable": "I can’t answer right now. Try again in a moment, or reach me directly.",
       "disabled": "I’m not answering here for now. You can reach me directly.",
       "rate-limited": "That’s a lot of questions in a short time. Give me a minute.",
-      "invalid": "I couldn’t read that question. Try a shorter one."
+      "invalid": "I couldn’t take that question. Try rephrasing it, or start a new chat."
     },
     "retry": "Try again",
+    "stopped": "Stopped.",
     "email": "Email me",
     "topics": {
       "role": "Your role at Tolk.ai?",
@@ -133,11 +138,7 @@
       "availableSource": "Resume · Experience",
       "tolk": "At Tolk.ai, I owned the ingestion and retrieval pipelines the product rests on: 600 million indexed words and 4.3 million conversations served. I also opened e-commerce as a market, with knowledge bases that keep themselves current, now 80% of the live knowledge base.",
       "tolkSource": "Resume · Tolk.ai",
-      "built": "Outside work, I build my own products. Ankhora, a Meta Quest platform where an expert’s voice and gestures are captured once and replayed in 3D for every new hire. GitGlow, an open-source editor that turns a project into a polished cover. And Travel Order Resolver, a train planner you simply talk to, in French.",
-      "steps": {
-        "resume": "Reading my resume…",
-        "projects": "Reading my projects…"
-      }
+      "built": "Beyond my work at Tolk.ai, I have built Ankhora, a Meta Quest platform where an expert’s voice and gestures are captured once and replayed in 3D for every new hire, a team project at Epitech that I led. GitGlow, my own open-source editor that turns a project into a polished cover. And Travel Order Resolver, my first natural language project at Epitech: a train planner you simply talk to, in French."
     }
   }
 }

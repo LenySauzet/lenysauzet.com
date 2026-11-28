@@ -2,7 +2,7 @@ import type { Locale } from 'next-intl';
 
 import siteConfig from '@/config/site';
 
-import type { Part } from './conversation';
+import type { Part, Step } from './conversation';
 
 export interface DemoSentences {
   available: string;
@@ -12,10 +12,8 @@ export interface DemoSentences {
   built: string;
 }
 
-export type DemoStep = 'resume' | 'projects';
-
 export interface DemoReply {
-  step: DemoStep;
+  step: Step;
   parts: Part[];
 }
 

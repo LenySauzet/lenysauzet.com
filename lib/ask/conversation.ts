@@ -12,6 +12,8 @@ export interface Message {
 
 export type Status = 'ready' | 'submitted' | 'streaming' | 'error';
 
+export type Step = 'resume' | 'projects';
+
 export type Failure = 'disabled' | 'rate-limited' | 'unavailable' | 'invalid';
 
 export const remediesOf = (failure: Failure) => ({

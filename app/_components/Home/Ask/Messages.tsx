@@ -29,6 +29,7 @@ import {
   wordsOf,
   type Failure,
   type Message,
+  type Step,
 } from '@/lib/ask/conversation';
 import { blurred, EASE_SNAP, sharp } from '@/lib/motion';
 import { cn } from '@/lib/utils';
@@ -59,9 +60,10 @@ export const UserMessage = memo(function UserMessage({ message, className }: { m
 interface AssistantMessageProps {
   message?: Message;
   thinking: boolean;
-  step?: string;
+  step?: Step;
   done: boolean;
   failure?: Failure;
+  stopped?: boolean;
   onRetry?: () => void;
   avatarRef?: Ref<HTMLSpanElement>;
   className?: string;
@@ -73,6 +75,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   step,
   done,
   failure,
+  stopped,
   onRetry,
   avatarRef,
   className,
@@ -106,10 +109,10 @@ export const AssistantMessage = memo(function AssistantMessage({
             style={SHIMMER_TEXT}
             exit={{ opacity: 0, filter: 'blur(6px)', x: -4, transition: { duration: 0.2 } }}
           >
-            <Letters text={step ?? t('thinking')} delay={0.18} step={0.03} />
+            <Letters text={t(step ? `steps.${step}` : 'thinking')} delay={0.18} stagger={0.03} />
           </motion.span>
         ) : (
-          <Answer key="answer" message={message} done={done} failure={failure} onRetry={onRetry} />
+          <Answer key="answer" message={message} done={done} failure={failure} stopped={stopped} onRetry={onRetry} />
         )}
       </AnimatePresence>
     </div>
@@ -122,10 +125,11 @@ interface AnswerProps {
   message?: Message;
   done: boolean;
   failure?: Failure;
+  stopped?: boolean;
   onRetry?: () => void;
 }
 
-function Answer({ message, done, failure, onRetry }: AnswerProps) {
+function Answer({ message, done, failure, stopped, onRetry }: AnswerProps) {
   const t = useTranslations('Ask');
   const text = message ? textOf(message) : '';
   const words = useMemo(() => wordsOf(text), [text]);
@@ -142,15 +146,17 @@ function Answer({ message, done, failure, onRetry }: AnswerProps) {
         </p>
       )}
       <AnimatePresence>
-        {failure ? (
+        {failure || stopped ? (
           <motion.div
             key="failed"
             {...EXTRAS}
             transition={{ duration: 0.4, ease: EASE_SNAP }}
             className={cn('flex flex-col items-start gap-2.5', text && 'pt-3')}
           >
-            <p className="text-sm leading-relaxed text-subtle-foreground">{t(`errors.${failure}`)}</p>
-            <Remedies failure={failure} onRetry={onRetry} />
+            <p className="text-sm leading-relaxed text-subtle-foreground">
+              {failure ? t(`errors.${failure}`) : t('stopped')}
+            </p>
+            <Remedies {...(failure ? remediesOf(failure) : { retry: true, contact: false })} onRetry={onRetry} />
           </motion.div>
         ) : (
           done &&
@@ -187,11 +193,17 @@ function Answer({ message, done, failure, onRetry }: AnswerProps) {
   );
 }
 
-function Remedies({ failure, onRetry, className }: { failure: Failure; onRetry?: () => void; className?: string }) {
+interface RemediesProps {
+  retry: boolean;
+  contact: boolean;
+  onRetry?: () => void;
+  className?: string;
+}
+
+function Remedies({ retry, contact, onRetry, className }: RemediesProps) {
   const t = useTranslations('Ask');
   const commands = useTranslations('Commands');
   const book = useBooking();
-  const { retry, contact } = remediesOf(failure);
   if (!(retry && onRetry) && !contact) return null;
 
   return (

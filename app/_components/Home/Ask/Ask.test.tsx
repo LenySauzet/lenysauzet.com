@@ -72,6 +72,21 @@ describe('Ask', () => {
     expect(field).toHaveValue('');
   });
 
+  it('stops an answer from the keyboard and gives the field its focus back', () => {
+    const field = visit();
+    act(() => field.focus());
+    settle(1000);
+    fireEvent.change(field, { target: { value: 'Are you available?' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+
+    const stop = screen.getByRole('button', { name: 'Stop answering' });
+    act(() => stop.focus());
+    fireEvent.click(stop);
+    settle(8000);
+    expect(field).toHaveFocus();
+    expect(screen.getByRole('status')).toHaveTextContent('Stopped.');
+  });
+
   it('closes one layer per Escape and opens again on the conversation it left', () => {
     const field = visit();
     act(() => field.focus());

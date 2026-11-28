@@ -15,11 +15,11 @@ export const writingDuration = (text: string) => text.length * PACE.step + PACE.
 interface LettersProps {
   text: string;
   delay?: number;
-  step?: number;
+  stagger?: number;
   className?: string;
 }
 
-export function Letters({ text, delay = 0, step = 0.022, className }: LettersProps) {
+export function Letters({ text, delay = 0, stagger = 0.022, className }: LettersProps) {
   return (
     <>
       <span aria-hidden className={className}>
@@ -28,7 +28,7 @@ export function Letters({ text, delay = 0, step = 0.022, className }: LettersPro
             key={index}
             initial={BLURRED_LETTER}
             animate={{ opacity: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
-            transition={{ duration: 0.5, delay: delay + index * step, ease: EASE_OUT }}
+            transition={{ duration: 0.5, delay: delay + index * stagger, ease: EASE_OUT }}
           >
             {letter}
           </motion.span>

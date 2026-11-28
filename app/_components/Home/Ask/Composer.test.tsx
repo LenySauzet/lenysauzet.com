@@ -108,4 +108,12 @@ describe('Composer while an answer is on its way', () => {
     expect(onStop).toHaveBeenCalledOnce();
     expect(onSend).not.toHaveBeenCalled();
   });
+
+  it('ignores the second click of a double click, which lands on stop just after sending', () => {
+    const onStop = vi.fn();
+    render(<Field onStop={onStop} busy />, { wrapper: InEnglish });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stop answering' }), { detail: 2 });
+    expect(onStop).not.toHaveBeenCalled();
+  });
 });

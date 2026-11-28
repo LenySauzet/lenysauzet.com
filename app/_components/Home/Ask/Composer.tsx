@@ -68,6 +68,9 @@ export function Composer({
   const spokenAfter = useRef('');
   const dictation = useDictation((spoken) => onDraft(spokenAfter.current + spoken));
   const typed = draft.trim().length > 0;
+  const action = busy
+    ? { type: 'button' as const, label: t('stop'), icon: StopIcon, size: 14 }
+    : { type: 'submit' as const, label: t('send'), icon: ArrowUp02Icon, size: 16 };
 
   useLayoutEffect(() => {
     const textarea = inputRef.current;
@@ -198,17 +201,19 @@ export function Composer({
                   transition={SNAPPY}
                 >
                   <motion.button
-                    type={busy ? 'button' : 'submit'}
-                    aria-label={busy ? t('stop') : t('send')}
-                    title={busy ? t('stop') : undefined}
-                    onClick={busy ? onStop : undefined}
+                    type={action.type}
+                    aria-label={action.label}
+                    title={action.label}
+                    onClick={(event) => {
+                      if (busy && event.detail < 2) onStop();
+                    }}
                     initial={{ scale: 0, opacity: 0, filter: 'blur(6px)' }}
                     animate={{ scale: 1, opacity: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
                     exit={{ scale: 0, opacity: 0, filter: 'blur(6px)' }}
                     transition={{ ...SNAPPY, delay: 0.08, filter: { duration: 0.3, delay: 0.08 } }}
                     className={cn('grid size-8 shrink-0 place-items-center rounded-full', glassButton)}
                   >
-                    <HugeiconsIcon icon={busy ? StopIcon : ArrowUp02Icon} size={busy ? 14 : 16} strokeWidth={2} />
+                    <HugeiconsIcon icon={action.icon} size={action.size} strokeWidth={2} />
                   </motion.button>
                 </motion.span>
               )}

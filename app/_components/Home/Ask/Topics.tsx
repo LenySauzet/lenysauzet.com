@@ -56,7 +56,7 @@ export function Topics({ onPick, className }: { onPick: (question: string) => vo
               transition={{ ...MORPH, delay }}
             >
               <HugeiconsIcon icon={icon} size={13} strokeWidth={2} />
-              <Letters text={label} delay={delay + 0.05} step={0.018} />
+              <Letters text={label} delay={delay + 0.05} stagger={0.018} />
             </motion.span>
           </motion.button>
         );

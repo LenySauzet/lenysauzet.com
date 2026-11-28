@@ -216,7 +216,10 @@ function AskBar({ className }: { className?: string }) {
                 draft={draft}
                 onDraft={setDraft}
                 onSend={() => ask(draft)}
-                onStop={stop}
+                onStop={() => {
+                  stop();
+                  input.current?.focus();
+                }}
                 busy={busy}
                 lit={lit}
                 written={written}

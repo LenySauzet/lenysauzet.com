@@ -49,7 +49,7 @@ describe('useConversation', () => {
   it('names the step it is on while thinking, and lets it go once it writes', () => {
     const { result } = start();
     act(() => result.current.send('What have you built?'));
-    expect(result.current.step).toBe('Reading my projects…');
+    expect(result.current.step).toBe('projects');
 
     act(() => vi.advanceTimersByTime(1800));
     expect(result.current.step).toBeUndefined();

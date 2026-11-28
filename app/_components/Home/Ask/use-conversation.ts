@@ -4,7 +4,7 @@ import { useLocale, useMessages } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getPathname } from '@/i18n/navigation';
-import { isBusy, textOf, wordsOf, type Failure, type Message, type Status } from '@/lib/ask/conversation';
+import { isBusy, textOf, wordsOf, type Failure, type Message, type Status, type Step } from '@/lib/ask/conversation';
 import { demoReply } from '@/lib/ask/demo';
 
 const THINKING_MS = 1800;
@@ -15,7 +15,7 @@ export function useConversation() {
   const { demo } = useMessages().Ask;
   const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus] = useState<Status>('ready');
-  const [step, setStep] = useState<string>();
+  const [step, setStep] = useState<Step>();
   const [failure, setFailure] = useState<Failure>();
   const timers = useRef<number[]>([]);
   const count = useRef(0);
@@ -41,7 +41,7 @@ export function useConversation() {
 
       setFailure(undefined);
       setStatus('submitted');
-      setStep(demo.steps[reply.step]);
+      setStep(reply.step);
       words.forEach((_, index) =>
         later(THINKING_MS + index * WORD_MS, () => {
           if (index === 0) {
