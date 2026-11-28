@@ -45,4 +45,26 @@ describe('useConversation', () => {
     expect(result.current.messages).toEqual([]);
     expect(result.current.status).toBe('ready');
   });
+
+  it('names the step it is on while thinking, and lets it go once it writes', () => {
+    const { result } = start();
+    act(() => result.current.send('What have you built?'));
+    expect(result.current.step).toBe('Reading my projects…');
+
+    act(() => vi.advanceTimersByTime(1800));
+    expect(result.current.step).toBeUndefined();
+  });
+
+  it('stops mid-answer and keeps what was written, ready for the next question', () => {
+    const { result } = start();
+    act(() => result.current.send('Are you available?'));
+    act(() => vi.advanceTimersByTime(1800 + 38 * 3));
+    const written = textOf(result.current.messages[1]!);
+
+    act(() => result.current.stop());
+    act(() => vi.advanceTimersByTime(10000));
+    expect(result.current.status).toBe('ready');
+    expect(textOf(result.current.messages[1]!)).toBe(written);
+    expect(written.length).toBeGreaterThan(0);
+  });
 });

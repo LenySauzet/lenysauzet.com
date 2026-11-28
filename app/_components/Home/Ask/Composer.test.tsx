@@ -31,7 +31,15 @@ class FakeRecognition {
   }
 }
 
-function Field({ onSend = vi.fn() }: { onSend?: () => void }) {
+function Field({
+  onSend = vi.fn(),
+  onStop = vi.fn(),
+  busy = false,
+}: {
+  onSend?: () => void;
+  onStop?: () => void;
+  busy?: boolean;
+}) {
   const [draft, setDraft] = useState('');
   return (
     <Composer
@@ -42,7 +50,8 @@ function Field({ onSend = vi.fn() }: { onSend?: () => void }) {
         onSend();
         setDraft('');
       }}
-      busy={false}
+      onStop={onStop}
+      busy={busy}
       lit
       written
       framed={false}
@@ -85,5 +94,18 @@ describe('Composer dictation', () => {
     expect(onSend).toHaveBeenCalledOnce();
     expect(session.abort).toHaveBeenCalled();
     expect(field().value).toBe('');
+  });
+});
+
+describe('Composer while an answer is on its way', () => {
+  it('turns send into stop, and stops the answer without sending', () => {
+    const onSend = vi.fn();
+    const onStop = vi.fn();
+    render(<Field onSend={onSend} onStop={onStop} busy />, { wrapper: InEnglish });
+
+    expect(screen.queryByRole('button', { name: 'Send' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Stop answering' }));
+    expect(onStop).toHaveBeenCalledOnce();
+    expect(onSend).not.toHaveBeenCalled();
   });
 });

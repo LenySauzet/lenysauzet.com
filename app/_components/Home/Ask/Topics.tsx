@@ -1,6 +1,6 @@
 'use client';
 
-import { AiBrain01Icon, Briefcase01Icon, Calendar03Icon } from '@hugeicons/core-free-icons';
+import { Briefcase01Icon, Calendar03Icon, Layers01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -15,7 +15,7 @@ import { glass } from './styles';
 const TOPICS = [
   { key: 'role', icon: Briefcase01Icon },
   { key: 'availability', icon: Calendar03Icon },
-  { key: 'project', icon: AiBrain01Icon },
+  { key: 'built', icon: Layers01Icon },
 ] as const;
 
 const STAGGER = 0.05;

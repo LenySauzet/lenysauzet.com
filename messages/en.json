@@ -101,30 +101,43 @@
   },
   "Ask": {
     "title": "Ask Lény",
-    "subtitle": "AI assistant · knows my work",
+    "subtitle": "AI version of Lény · can be wrong",
+    "intro": "This is the AI version of Lény. It answers from what he has written about his work, it can be wrong, and conversations are not kept.",
     "placeholder": "Ask me anything…",
     "thinking": "Thinking…",
     "newChat": "New chat",
     "close": "Close",
     "send": "Send",
+    "stop": "Stop answering",
     "dictate": "Dictate",
     "stopDictating": "Stop dictating",
     "copy": "Copy answer",
     "copied": "Copied",
     "latest": "Jump to latest",
     "conversation": "Conversation with Lény",
-    "error": "Something went wrong. Try again in a moment.",
+    "errors": {
+      "unavailable": "I can’t answer right now. Try again in a moment, or reach me directly.",
+      "disabled": "I’m not answering here for now. You can reach me directly.",
+      "rate-limited": "That’s a lot of questions in a short time. Give me a minute.",
+      "invalid": "I couldn’t read that question. Try a shorter one."
+    },
     "retry": "Try again",
+    "email": "Email me",
     "topics": {
       "role": "Your role at Tolk.ai?",
       "availability": "Are you available?",
-      "project": "Best AI project?"
+      "built": "What have you built?"
     },
     "demo": {
       "available": "Yes. My work-study at Tolk.ai ended in September 2026, and I am now looking for an AI or full-stack engineering role, in Montpellier or remote. The quickest way forward is a short call.",
       "availableSource": "Resume · Experience",
       "tolk": "At Tolk.ai, I owned the ingestion and retrieval pipelines the product rests on: 600 million indexed words and 4.3 million conversations served. I also opened e-commerce as a market, with knowledge bases that keep themselves current, now 80% of the live knowledge base.",
-      "tolkSource": "Resume · Tolk.ai"
+      "tolkSource": "Resume · Tolk.ai",
+      "built": "Outside work, I build my own products. Ankhora, a Meta Quest platform where an expert’s voice and gestures are captured once and replayed in 3D for every new hire. GitGlow, an open-source editor that turns a project into a polished cover. And Travel Order Resolver, a train planner you simply talk to, in French.",
+      "steps": {
+        "resume": "Reading my resume…",
+        "projects": "Reading my projects…"
+      }
     }
   }
 }

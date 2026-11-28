@@ -12,6 +12,13 @@ export interface Message {
 
 export type Status = 'ready' | 'submitted' | 'streaming' | 'error';
 
+export type Failure = 'disabled' | 'rate-limited' | 'unavailable' | 'invalid';
+
+export const remediesOf = (failure: Failure) => ({
+  retry: failure === 'unavailable',
+  contact: failure === 'unavailable' || failure === 'disabled',
+});
+
 export interface Turn {
   question: Message;
   answer?: Message;
@@ -32,6 +39,8 @@ export const isThinking = (messages: Message[], status: Status) => {
   const last = messages.at(-1);
   return isBusy(status) && (!last || last.role === 'user' || !textOf(last));
 };
+
+export const wordsOf = (text: string) => text.split(/(?<=\s)/);
 
 export const isExternal = (source: Source) => /^https?:\/\//.test(source.url);
 

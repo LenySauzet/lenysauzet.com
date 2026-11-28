@@ -1,6 +1,13 @@
 'use client';
 
-import { Calendar03Icon, Download01Icon, File01Icon, RefreshIcon, Tick02Icon } from '@hugeicons/core-free-icons';
+import {
+  Calendar03Icon,
+  Download01Icon,
+  File01Icon,
+  Mail01Icon,
+  RefreshIcon,
+  Tick02Icon,
+} from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -8,11 +15,21 @@ import { memo, useEffect, useMemo, useState, type Ref } from 'react';
 
 import { AnimatedCopyIcon } from '@/components/icons/AnimatedCopyIcon';
 import { focusRing } from '@/components/shared/styles';
+import siteConfig from '@/config/site';
 import { useAnimatedIcon } from '@/hooks/use-animated-icon';
 import { useBooking } from '@/hooks/use-booking';
 import { useResumeAnchor } from '@/hooks/use-resume-anchor';
-import { actionOf, isExternal, labelOf, sourcesOf, textOf, type Message } from '@/lib/ask/conversation';
-import { wordsOf } from '@/lib/ask/demo';
+import {
+  actionOf,
+  isExternal,
+  labelOf,
+  remediesOf,
+  sourcesOf,
+  textOf,
+  wordsOf,
+  type Failure,
+  type Message,
+} from '@/lib/ask/conversation';
 import { blurred, EASE_SNAP, sharp } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
@@ -42,7 +59,9 @@ export const UserMessage = memo(function UserMessage({ message, className }: { m
 interface AssistantMessageProps {
   message?: Message;
   thinking: boolean;
+  step?: string;
   done: boolean;
+  failure?: Failure;
   onRetry?: () => void;
   avatarRef?: Ref<HTMLSpanElement>;
   className?: string;
@@ -51,7 +70,9 @@ interface AssistantMessageProps {
 export const AssistantMessage = memo(function AssistantMessage({
   message,
   thinking,
+  step,
   done,
+  failure,
   onRetry,
   avatarRef,
   className,
@@ -80,15 +101,15 @@ export const AssistantMessage = memo(function AssistantMessage({
       <AnimatePresence mode="wait" initial={false}>
         {thinking ? (
           <motion.span
-            key="thinking"
+            key={step ?? 'thinking'}
             className="shimmer pt-1 pl-7 text-sm"
             style={SHIMMER_TEXT}
             exit={{ opacity: 0, filter: 'blur(6px)', x: -4, transition: { duration: 0.2 } }}
           >
-            <Letters text={t('thinking')} delay={0.18} step={0.03} />
+            <Letters text={step ?? t('thinking')} delay={0.18} step={0.03} />
           </motion.span>
         ) : (
-          <Answer key="answer" message={message} done={done} onRetry={onRetry} />
+          <Answer key="answer" message={message} done={done} failure={failure} onRetry={onRetry} />
         )}
       </AnimatePresence>
     </div>
@@ -100,10 +121,11 @@ const EXTRAS = { initial: { ...blurred(8), y: 4 }, animate: { ...sharp, y: 0 } }
 interface AnswerProps {
   message?: Message;
   done: boolean;
+  failure?: Failure;
   onRetry?: () => void;
 }
 
-function Answer({ message, done, onRetry }: AnswerProps) {
+function Answer({ message, done, failure, onRetry }: AnswerProps) {
   const t = useTranslations('Ask');
   const text = message ? textOf(message) : '';
   const words = useMemo(() => wordsOf(text), [text]);
@@ -120,18 +142,15 @@ function Answer({ message, done, onRetry }: AnswerProps) {
         </p>
       )}
       <AnimatePresence>
-        {onRetry ? (
+        {failure ? (
           <motion.div
             key="failed"
             {...EXTRAS}
             transition={{ duration: 0.4, ease: EASE_SNAP }}
             className={cn('flex flex-col items-start gap-2.5', text && 'pt-3')}
           >
-            <p className="text-sm leading-relaxed text-subtle-foreground">{t('error')}</p>
-            <button type="button" onClick={onRetry} className={ACTION}>
-              <HugeiconsIcon icon={RefreshIcon} size={13} strokeWidth={2} />
-              {t('retry')}
-            </button>
+            <p className="text-sm leading-relaxed text-subtle-foreground">{t(`errors.${failure}`)}</p>
+            <Remedies failure={failure} onRetry={onRetry} />
           </motion.div>
         ) : (
           done &&
@@ -164,6 +183,37 @@ function Answer({ message, done, onRetry }: AnswerProps) {
           )
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function Remedies({ failure, onRetry, className }: { failure: Failure; onRetry?: () => void; className?: string }) {
+  const t = useTranslations('Ask');
+  const commands = useTranslations('Commands');
+  const book = useBooking();
+  const { retry, contact } = remediesOf(failure);
+  if (!(retry && onRetry) && !contact) return null;
+
+  return (
+    <div className={cn('flex flex-wrap gap-2', className)}>
+      {retry && onRetry && (
+        <button type="button" onClick={onRetry} className={ACTION}>
+          <HugeiconsIcon icon={RefreshIcon} size={13} strokeWidth={2} />
+          {t('retry')}
+        </button>
+      )}
+      {contact && (
+        <>
+          <button type="button" onClick={book} className={ACTION}>
+            <HugeiconsIcon icon={Calendar03Icon} size={13} strokeWidth={2} />
+            {commands('bookCall')}
+          </button>
+          <a href={`mailto:${siteConfig.email}`} className={ACTION}>
+            <HugeiconsIcon icon={Mail01Icon} size={13} strokeWidth={2} />
+            {t('email')}
+          </a>
+        </>
+      )}
     </div>
   );
 }

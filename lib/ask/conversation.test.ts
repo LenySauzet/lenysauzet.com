@@ -1,12 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
-import { isBusy, isThinking, labelOf, turnsOf, type Message } from './conversation';
+import { isBusy, isThinking, labelOf, remediesOf, turnsOf, wordsOf, type Message } from './conversation';
 
 const user = (id: string, text = 'Hi'): Message => ({ id, role: 'user', parts: [{ type: 'text', text }] });
 const assistant = (id: string, text = ''): Message => ({
   id,
   role: 'assistant',
   parts: text ? [{ type: 'text', text }] : [],
+});
+
+describe('remediesOf', () => {
+  it('offers a retry only when trying again can help, and a direct contact when the assistant cannot answer', () => {
+    expect(remediesOf('unavailable')).toEqual({ retry: true, contact: true });
+    expect(remediesOf('disabled')).toEqual({ retry: false, contact: true });
+    expect(remediesOf('rate-limited')).toEqual({ retry: false, contact: false });
+    expect(remediesOf('invalid')).toEqual({ retry: false, contact: false });
+  });
+});
+
+describe('wordsOf', () => {
+  it('splits words with their spaces, so joining them gives the text back', () => {
+    expect(wordsOf('one two  three').join('')).toBe('one two  three');
+  });
 });
 
 describe('turnsOf', () => {

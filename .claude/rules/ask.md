@@ -19,6 +19,16 @@ glass bar, then into a conversation. Answers are scripted for now.
   only with its first words: the thinking row is drawn from `isThinking`, never from
   an empty message. The real backend replaces its body, nothing else.
   `lib/ask/demo.ts` is the stand-in; its sentences are in `messages/` (`Ask.demo`).
+  Beside them it gives `step` (what a transient `data-status` part names, "Reading my
+  resume…", shown instead of "Thinking…" until the first words), `failure` and `stop`
+  (`useChat`'s, keeping what was written).
+- **A refusal is a `Failure`** (`disabled`, `rate-limited`, `unavailable`, `invalid`,
+  the codes `/api/ask` answers with), each with its sentence in `Ask.errors`;
+  `remediesOf` decides what follows it: a retry only for `unavailable`, a call and an
+  email for `unavailable` and `disabled`. An error without a code is `unavailable`.
+- **The visitor is told it is an AI** (AI Act, article 50): the header reads "AI
+  version of Lény · can be wrong", and the log opens on a sentence that also says
+  conversations are not kept. That sentence must stay true: `/api/ask` never stores text.
 - **`useWake` decides when the bar is open**: at the top or bottom of the page, under
   reduced motion, while it holds focus, text or an open conversation, when the cursor
   comes near (`lib/ask/zones.ts`: a narrow band wakes it, a wider one keeps it, so it
@@ -31,8 +41,8 @@ glass bar, then into a conversation. Answers are scripted for now.
   the field. Closing from the keyboard gives the field back its focus; focusing it from
   outside reopens the conversation it left.
 - **Screen readers hear each answer once**: the log is not live (VoiceOver ignores
-  `aria-busy` and would read every streamed word); a status line says "Thinking…", then
-  the finished answer.
+  `aria-busy` and would read every streamed word); a status line says the step or
+  "Thinking…", then the finished answer or the refusal.
 - **The orb** is one WebGL context for every orb on the page (`lib/orb/renderer.ts`):
   browsers cap contexts, and a long conversation would open one per answer. The thinking
   glow is a canvas painted from `lib/orb/glow.ts`, inverted in the light theme.

@@ -1,30 +1,42 @@
 import { describe, expect, it } from 'vitest';
 
 import { actionOf, sourcesOf, textOf } from './conversation';
-import { demoReply, wordsOf } from './demo';
+import { demoReply } from './demo';
 
-const sentences = { available: 'Yes.', availableSource: 'Resume', tolk: 'At Tolk.ai.', tolkSource: 'Resume · Tolk' };
-const message = (question: string, locale: 'en' | 'fr' = 'en') => ({
-  id: 'a',
-  role: 'assistant' as const,
-  parts: demoReply(question, locale, sentences, '/resume'),
-});
+const sentences = {
+  available: 'Yes.',
+  availableSource: 'Resume',
+  tolk: 'At Tolk.ai.',
+  tolkSource: 'Resume · Tolk',
+  built: 'Ankhora, GitGlow.',
+};
+const reply = (question: string, locale: 'en' | 'fr' = 'en') => {
+  const { step, parts } = demoReply(question, locale, sentences, '/resume');
+  return { step, message: { id: 'a', role: 'assistant' as const, parts } };
+};
 
 describe('the demo replies', () => {
-  it('answers availability with a call to book', () => {
-    expect(textOf(message('Are you available?'))).toBe('Yes.');
-    expect(actionOf(message('Are you available?'))).toBe('book');
-    expect(actionOf(message('Es-tu disponible ?', 'fr'))).toBe('book');
+  it('answers availability from the resume, with a call to book', () => {
+    const { step, message } = reply('Are you available?');
+    expect(step).toBe('resume');
+    expect(textOf(message)).toBe('Yes.');
+    expect(actionOf(message)).toBe('book');
+    expect(actionOf(reply('Êtes-vous disponible ?', 'fr').message)).toBe('book');
+  });
+
+  it('answers what was built from the projects, each one a source', () => {
+    const { step, message } = reply('What have you built?');
+    expect(step).toBe('projects');
+    expect(textOf(message)).toBe('Ankhora, GitGlow.');
+    expect(sourcesOf(message).map((source) => source.title)).toEqual(['Ankhora', 'GitGlow', 'Travel Order Resolver']);
+    expect(actionOf(message)).toBeUndefined();
+    expect(reply('Qu’avez-vous construit ?', 'fr').step).toBe('projects');
   });
 
   it('answers anything else with the work at Tolk.ai and the resume', () => {
-    const reply = message('Your role at Tolk.ai?');
-    expect(textOf(reply)).toBe('At Tolk.ai.');
-    expect(sourcesOf(reply).map((source) => source.title)).toEqual(['Resume · Tolk', 'tolk.ai']);
-    expect(actionOf(reply)).toBe('resume');
-  });
-
-  it('splits words with their spaces, so joining them gives the text back', () => {
-    expect(wordsOf('one two  three').join('')).toBe('one two  three');
+    const { message } = reply('Your role at Tolk.ai?');
+    expect(textOf(message)).toBe('At Tolk.ai.');
+    expect(sourcesOf(message).map((source) => source.title)).toEqual(['Resume · Tolk', 'tolk.ai']);
+    expect(actionOf(message)).toBe('resume');
   });
 });

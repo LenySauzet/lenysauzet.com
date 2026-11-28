@@ -18,7 +18,7 @@ import {
 import { AnimatedCloseIcon } from '@/components/icons/AnimatedCloseIcon';
 import { AnimatedRefreshIcon } from '@/components/icons/AnimatedRefreshIcon';
 import { useAnimatedIcon } from '@/hooks/use-animated-icon';
-import { isThinking, textOf, turnsOf, type Message, type Status } from '@/lib/ask/conversation';
+import { isThinking, textOf, turnsOf, type Failure, type Message, type Status } from '@/lib/ask/conversation';
 import { EASE_SNAP } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +36,8 @@ const byKeyboard = (event: MouseEvent) => event.detail === 0;
 interface ConversationProps {
   messages: Message[];
   status: Status;
+  step?: string;
+  failure?: Failure;
   avatarRef: RefObject<HTMLSpanElement | null>;
   onRestart: () => void;
   onRetry: () => void;
@@ -46,6 +48,8 @@ interface ConversationProps {
 export function Conversation({
   messages,
   status,
+  step,
+  failure,
   avatarRef,
   onRestart,
   onRetry,
@@ -62,11 +66,12 @@ export function Conversation({
   const turns = useMemo(() => turnsOf(messages), [messages]);
   const thinking = isThinking(messages, status);
   const failed = status === 'error';
+  const reason = failure ?? 'unavailable';
   const latest = turns.at(-1)?.answer;
   const announcement = thinking
-    ? t('thinking')
+    ? (step ?? t('thinking'))
     : failed
-      ? t('error')
+      ? t(`errors.${reason}`)
       : status === 'ready' && latest
         ? textOf(latest)
         : '';
@@ -144,6 +149,7 @@ export function Conversation({
           style={{ '--fade': away ? FADE : '0px' } as CSSProperties}
         >
           <div ref={content} className="flex flex-col">
+            <p className="pb-4 text-center text-xs leading-relaxed text-balance text-subtle-foreground">{t('intro')}</p>
             {turns.map(({ question, answer }, index) => {
               const last = index === turns.length - 1;
               const pending = last && (thinking || failed);
@@ -157,8 +163,10 @@ export function Conversation({
                       <AssistantMessage
                         message={answer}
                         thinking={last && thinking}
+                        step={last ? step : undefined}
                         done={!last || status === 'ready'}
-                        onRetry={last && failed ? onRetry : undefined}
+                        failure={last && failed ? reason : undefined}
+                        onRetry={onRetry}
                         avatarRef={last ? avatarRef : undefined}
                       />
                     </Arrival>

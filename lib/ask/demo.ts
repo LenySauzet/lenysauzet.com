@@ -1,5 +1,7 @@
 import type { Locale } from 'next-intl';
 
+import siteConfig from '@/config/site';
+
 import type { Part } from './conversation';
 
 export interface DemoSentences {
@@ -7,6 +9,14 @@ export interface DemoSentences {
   availableSource: string;
   tolk: string;
   tolkSource: string;
+  built: string;
+}
+
+export type DemoStep = 'resume' | 'projects';
+
+export interface DemoReply {
+  step: DemoStep;
+  parts: Part[];
 }
 
 const ABOUT_AVAILABILITY: Record<Locale, RegExp> = {
@@ -14,20 +24,43 @@ const ABOUT_AVAILABILITY: Record<Locale, RegExp> = {
   fr: /dispo|libre|poste|cdi|freelance/i,
 };
 
-export function demoReply(question: string, locale: Locale, sentences: DemoSentences, resume: string): Part[] {
-  if (ABOUT_AVAILABILITY[locale].test(question)) {
-    return [
-      { type: 'text', text: sentences.available },
-      { type: 'source-url', sourceId: 'resume', url: resume, title: sentences.availableSource },
-      { type: 'data-action', data: 'book' },
-    ];
-  }
-  return [
-    { type: 'text', text: sentences.tolk },
-    { type: 'source-url', sourceId: 'resume', url: resume, title: sentences.tolkSource },
-    { type: 'source-url', sourceId: 'tolk', url: 'https://tolk.ai', title: 'tolk.ai' },
-    { type: 'data-action', data: 'resume' },
-  ];
-}
+const ABOUT_PROJECTS: Record<Locale, RegExp> = {
+  en: /built|project|made/i,
+  fr: /construit|projet|réalis/i,
+};
 
-export const wordsOf = (text: string) => text.split(/(?<=\s)/);
+const PROJECTS: Part[] = [
+  { type: 'source-url', sourceId: 'ankhora', url: `${siteConfig.social.github}/Ankhora`, title: 'Ankhora' },
+  { type: 'source-url', sourceId: 'gitglow', url: 'https://gitglow.lenysauzet.com', title: 'GitGlow' },
+  {
+    type: 'source-url',
+    sourceId: 'travel-order-resolver',
+    url: `${siteConfig.social.github}/travel-order-resolver`,
+    title: 'Travel Order Resolver',
+  },
+];
+
+export function demoReply(question: string, locale: Locale, sentences: DemoSentences, resume: string): DemoReply {
+  if (ABOUT_AVAILABILITY[locale].test(question)) {
+    return {
+      step: 'resume',
+      parts: [
+        { type: 'text', text: sentences.available },
+        { type: 'source-url', sourceId: 'resume', url: resume, title: sentences.availableSource },
+        { type: 'data-action', data: 'book' },
+      ],
+    };
+  }
+  if (ABOUT_PROJECTS[locale].test(question)) {
+    return { step: 'projects', parts: [{ type: 'text', text: sentences.built }, ...PROJECTS] };
+  }
+  return {
+    step: 'resume',
+    parts: [
+      { type: 'text', text: sentences.tolk },
+      { type: 'source-url', sourceId: 'resume', url: resume, title: sentences.tolkSource },
+      { type: 'source-url', sourceId: 'tolk', url: 'https://tolk.ai', title: 'tolk.ai' },
+      { type: 'data-action', data: 'resume' },
+    ],
+  };
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUp02Icon, Mic02Icon } from '@hugeicons/core-free-icons';
+import { ArrowUp02Icon, Mic02Icon, StopIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -33,6 +33,7 @@ interface ComposerProps {
   draft: string;
   onDraft: (draft: string) => void;
   onSend: () => void;
+  onStop: () => void;
   busy: boolean;
   lit: boolean;
   written: boolean;
@@ -49,6 +50,7 @@ export function Composer({
   draft,
   onDraft,
   onSend,
+  onStop,
   busy,
   lit,
   written,
@@ -186,7 +188,7 @@ export function Composer({
               </button>
             )}
             <AnimatePresence initial={false}>
-              {typed && (
+              {(typed || busy) && (
                 <motion.span
                   key="send"
                   className="flex items-center pl-1"
@@ -196,16 +198,17 @@ export function Composer({
                   transition={SNAPPY}
                 >
                   <motion.button
-                    type="submit"
-                    aria-label={t('send')}
-                    disabled={busy}
+                    type={busy ? 'button' : 'submit'}
+                    aria-label={busy ? t('stop') : t('send')}
+                    title={busy ? t('stop') : undefined}
+                    onClick={busy ? onStop : undefined}
                     initial={{ scale: 0, opacity: 0, filter: 'blur(6px)' }}
                     animate={{ scale: 1, opacity: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
                     exit={{ scale: 0, opacity: 0, filter: 'blur(6px)' }}
                     transition={{ ...SNAPPY, delay: 0.08, filter: { duration: 0.3, delay: 0.08 } }}
                     className={cn('grid size-8 shrink-0 place-items-center rounded-full', glassButton)}
                   >
-                    <HugeiconsIcon icon={ArrowUp02Icon} size={16} strokeWidth={2} />
+                    <HugeiconsIcon icon={busy ? StopIcon : ArrowUp02Icon} size={busy ? 14 : 16} strokeWidth={2} />
                   </motion.button>
                 </motion.span>
               )}
