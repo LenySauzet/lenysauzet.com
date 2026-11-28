@@ -49,11 +49,11 @@ const ORB: Record<Activity, { count: 1 | 2 | 4; spin: number; scale: number; x: 
 };
 
 const SWAP = {
-  initial: { opacity: 0, scale: 0.6, filter: 'blur(4px)' },
+  initial: { opacity: 0, scale: 0.5, filter: 'blur(6px)' },
   animate: { opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } },
-  exit: { opacity: 0, scale: 0.6, filter: 'blur(4px)' },
-  transition: { duration: 0.18, ease: EASE_SNAP },
-};
+  exit: { opacity: 0, scale: 0.5, filter: 'blur(6px)', transition: { duration: 0.15 } },
+  transition: { type: 'spring', duration: 0.4, bounce: 0.35, filter: { duration: 0.25 }, opacity: { duration: 0.2 } },
+} as const;
 
 const LABEL = {
   initial: { opacity: 0, filter: 'blur(6px)', x: 6 },
@@ -306,7 +306,7 @@ function Check({ className }: { className?: string }) {
         strokeLinejoin="round"
         initial={{ pathLength: still ? 1 : 0 }}
         animate={{ pathLength: 1 }}
-        transition={{ duration: 0.35, delay: 0.06, ease: EASE_SNAP }}
+        transition={{ duration: 0.4, delay: 0.12, ease: EASE_SNAP }}
       />
     </svg>
   );
@@ -340,7 +340,7 @@ function CopyButton({ text, className }: { text: string; className?: string }) {
         className
       )}
     >
-      <AnimatePresence mode="popLayout" initial={false}>
+      <AnimatePresence mode="wait" initial={false}>
         <motion.span key={copied ? 'copied' : 'copy'} className="grid place-items-center" {...SWAP}>
           {copied ? (
             <Check className="size-[15px] text-foreground" />

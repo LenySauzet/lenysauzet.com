@@ -96,6 +96,10 @@ glass bar, then into a conversation. Answers are scripted for now.
   unregistered property does not interpolate, so the log's bottom fade snapped.
 - **No `mix-blend-mode` over the glass**: it isolates the panel and its backdrop blur
   stops seeing the page.
+- **The rim's glow goes out when the bar is no longer lit**, in the effect that drives it:
+  the fold's own fade-out was stopped mid-way by that effect's cleanup, leaving a shine on
+  the capsule. Closing the conversation with the mouse drops the focus, so the bar folds
+  as it does when the visitor clicks elsewhere.
 - **The capsule closes on a spring that does not overshoot** (`SETTLE`): the island's
   `MORPH` would crush its 10px into a line.
 - **Hover and press change the bar's width by whole pixels**, never `scale`: a scaled

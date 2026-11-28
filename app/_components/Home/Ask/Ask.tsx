@@ -119,6 +119,7 @@ function AskBar({ className }: { className?: string }) {
   const close = (byKeyboard: boolean) => {
     setOpen(false);
     if (byKeyboard) input.current?.focus();
+    else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   };
 
   return (
