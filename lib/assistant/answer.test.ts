@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { sourcesOf, textOf, actionOf, type Message } from '@/lib/ask/conversation';
 import { sampleCorpus } from '@/test/ask';
 
-import { answer, answeredWithOffer, STREAM_FAILURE } from './answer';
+import { answer, STREAM_FAILURE } from './answer';
 import { parseAskRequest } from './request';
 
 const usage = {
@@ -89,6 +89,7 @@ describe('answer', () => {
     expect(JSON.stringify(prompt[0])).toContain('You are the AI version of Lény Sauzet');
     expect(JSON.stringify(prompt[0])).toContain('reading the portfolio in French');
     expect(model.doStreamCalls[0]!.maxOutputTokens).toBe(600);
+    expect(model.doStreamCalls.map((call) => call.toolChoice?.type)).toEqual(['required', 'none']);
   });
 
   it('logs the turn without a word of the conversation', async () => {
@@ -114,17 +115,5 @@ describe('answer', () => {
     expect(JSON.stringify(chunks)).not.toContain('sk-secret');
     expect(JSON.stringify(log.mock.calls)).not.toContain('sk-secret');
     expect(log.mock.calls.filter(([entry]) => entry.event === 'ask-error')).toHaveLength(1);
-  });
-});
-
-describe('answeredWithOffer', () => {
-  const step = (text: string, ...tools: string[]) => ({ text, toolCalls: tools.map((toolName) => ({ toolName })) });
-
-  it('ends the loop on a step that answers and offers, never on one that only reads or only offers', () => {
-    expect(answeredWithOffer({ steps: [step('Yes.', 'offer')] })).toBe(true);
-    expect(answeredWithOffer({ steps: [step('', 'offer')] })).toBe(false);
-    expect(answeredWithOffer({ steps: [step('Let me read.', 'read', 'offer')] })).toBe(false);
-    expect(answeredWithOffer({ steps: [step('Yes.')] })).toBe(false);
-    expect(answeredWithOffer({ steps: [] })).toBe(false);
   });
 });

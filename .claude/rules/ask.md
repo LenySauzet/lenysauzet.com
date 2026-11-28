@@ -31,11 +31,25 @@ glass bar, then into a conversation. Answers are scripted for now.
   the codes `/api/ask` answers with), each with its sentence in `Ask.errors`;
   `remediesOf` decides what follows it: a retry only for `unavailable`, a call and an
   email for `unavailable` and `disabled`. An error without a code is `unavailable`.
-- **The visitor is told it is an AI** (AI Act, article 50): the header reads "AI
-  version of Lény · can be wrong", and the log opens on a sentence that also says this
-  site does not keep conversations. That sentence must stay true: `/api/ask` never
-  stores text. The header wraps rather than truncates: "can be wrong" is the part a
-  phone would cut.
+- **The visitor is told it is an AI** (AI Act, article 50) before the first answer: the
+  header reads "AI assistant · knows my work", and the log opens on a sentence saying it
+  is Lény's AI version, that it can be wrong and that this site does not keep
+  conversations. That sentence must stay true: `/api/ask` never stores text. Because the
+  interface says it, the answers never do unless asked: the assistant speaks as Lény.
+- **A notice belongs to its question** (`notices`): a refusal or an answer stopped before
+  its first words stays under the question it concerns when the next one is asked; only
+  the latest offers a retry. The request carries only the last `SENT_MESSAGES`, so a long
+  conversation is never refused for its length.
+- **The orb says what the assistant is doing**: two spheres while it thinks, four while
+  it reads (a step is named), one turning while it writes, one at rest. The step's label
+  cross-fades as it changes.
+- **Answers are Markdown through Streamdown**, words blurring in as they stream: light
+  formatting only (paragraphs, bold, short lists), mapped to the prose styles in
+  `MARKDOWN`; links, headings and code are not asked of the model.
+- **The topics are centred while they fit** (`justify-center-safe`) and start-aligned when
+  they overflow, with a fade growing on the side that hides something (`edgesOf`).
+- **A sent question fades out of the field** rather than vanishing: a copy of its text
+  blurs away over the emptied field.
 - **`useWake` decides when the bar is open**: at the top or bottom of the page, under
   reduced motion, while it holds focus, text or an open conversation, when the cursor
   comes near (`lib/ask/zones.ts`: a narrow band wakes it, a wider one keeps it, so it

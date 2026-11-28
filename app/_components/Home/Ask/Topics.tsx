@@ -4,8 +4,10 @@ import { Briefcase01Icon, Calendar03Icon, Layers01Icon } from '@hugeicons/core-f
 import { HugeiconsIcon } from '@hugeicons/react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { focusRing } from '@/components/shared/styles';
+import { edgesOf, type Edges } from '@/lib/ask/edges';
 import { cn } from '@/lib/utils';
 
 import { Letters } from './Letters';
@@ -19,14 +21,34 @@ const TOPICS = [
 ] as const;
 
 const STAGGER = 0.05;
+const FADE = '40px';
 
 export function Topics({ onPick, className }: { onPick: (question: string) => void; className?: string }) {
   const t = useTranslations('Ask.topics');
+  const row = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState<Edges>({ start: false, end: false });
+
+  useLayoutEffect(() => {
+    const element = row.current;
+    if (!element) return;
+    const measure = () => setEdges(edgesOf(element));
+    measure();
+    const resized = new ResizeObserver(measure);
+    resized.observe(element);
+    for (const child of element.children) resized.observe(child);
+    element.addEventListener('scroll', measure, { passive: true });
+    return () => {
+      resized.disconnect();
+      element.removeEventListener('scroll', measure);
+    };
+  }, []);
 
   return (
     <div
+      ref={row}
+      style={{ '--fade-start': edges.start ? FADE : '0px', '--fade-end': edges.end ? FADE : '0px' } as CSSProperties}
       className={cn(
-        'flex justify-center gap-1.5 overflow-x-auto [scrollbar-width:none] max-sm:justify-start max-sm:[mask-image:linear-gradient(to_right,black_80%,transparent)]',
+        'flex justify-center-safe gap-1.5 overflow-x-auto [scrollbar-width:none] transition-[--fade-start,--fade-end] duration-300 [mask-image:linear-gradient(to_right,transparent,black_var(--fade-start),black_calc(100%-var(--fade-end)),transparent)]',
         className
       )}
     >

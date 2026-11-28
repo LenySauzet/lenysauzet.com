@@ -101,7 +101,7 @@
   },
   "Ask": {
     "title": "Demander à Lény",
-    "subtitle": "Version IA de Lény · peut se tromper",
+    "subtitle": "Assistant IA · connaît mon parcours",
     "intro": "Voici la version IA de Lény. Elle répond à partir de ce qu’il a écrit sur son travail et peut se tromper. Ce site ne conserve pas vos conversations.",
     "placeholder": "Demandez-moi ce que vous voulez…",
     "thinking": "Réflexion…",

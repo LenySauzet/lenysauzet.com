@@ -1,7 +1,7 @@
 import { evalite } from 'evalite';
 
 import { ask, type Case } from './harness';
-import { Cited, Faithful, Offered, Plain, Useful, Vouvoie } from './scorers';
+import { Cited, Faithful, InCharacter, NoUnaskedIntro, Offered, Plain, Useful, Vouvoie } from './scorers';
 
 const cases: Case[] = [
   {
@@ -141,6 +141,18 @@ const cases: Case[] = [
       'Pouvoir évoluer, une vision ambitieuse, des personnes bienveillantes avec qui échanger, présenter son travail et avoir des retours, autonomie dans une équipe organisée.',
   },
   {
+    input: 'Hello!',
+    locale: 'en',
+    expected:
+      'Greets back as Lény and asks what the visitor would like to know about his work, without introducing itself as an AI.',
+  },
+  {
+    input: 'Bonjour',
+    locale: 'fr',
+    expected:
+      'Salue en retour, en tant que Lény, et demande ce que le visiteur souhaite savoir sur son travail, sans se présenter comme une IA ; vouvoie.',
+  },
+  {
     input: 'Où êtes-vous basé ?',
     locale: 'fr',
     expected: 'À Montpellier, France ; ouvert au télétravail complet.',
@@ -150,5 +162,5 @@ const cases: Case[] = [
 evalite('Golden', {
   data: cases.map((input) => ({ input })),
   task: ask,
-  scorers: [Faithful, Useful, Cited, Offered, Plain, Vouvoie],
+  scorers: [Faithful, Useful, Cited, Offered, Plain, Vouvoie, InCharacter, NoUnaskedIntro],
 });

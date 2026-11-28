@@ -6,12 +6,15 @@ import { actionOf, sourcesOf, textOf, type Message } from '@/lib/ask/conversatio
 import { chunksOf, controlledTransport, refusingTransport } from '@/test/ask';
 import { InEnglish } from '@/test/intl';
 
-import { useConversation } from './use-conversation';
+import { requestBody, SENT_MESSAGES, useConversation } from './use-conversation';
 
 const start = (transport: ChatTransport<Message>) =>
   renderHook(() => useConversation(transport), { wrapper: InEnglish });
 
 const roles = (messages: Message[]) => messages.map((message) => message.role);
+
+const noticeOf = ({ messages, notices }: { messages: Message[]; notices: Record<string, string> }) =>
+  notices[messages.findLast((message) => message.role === 'user')?.id ?? ''];
 
 describe('useConversation', () => {
   it('thinks with no reply and names its step, streams once words arrive, then is ready with sources and action', async () => {
@@ -58,7 +61,7 @@ describe('useConversation', () => {
     const refused = start(refusingTransport('rate-limited'));
     act(() => refused.result.current.send('Hi'));
     await waitFor(() => expect(refused.result.current.status).toBe('error'));
-    expect(refused.result.current.failure).toBe('rate-limited');
+    expect(noticeOf(refused.result.current)).toBe('rate-limited');
 
     const { transport, line } = controlledTransport();
     const broken = start(transport);
@@ -66,7 +69,7 @@ describe('useConversation', () => {
     await waitFor(() => expect(broken.result.current.status).toBe('submitted'));
     await act(async () => line().fail('Something broke'));
     await waitFor(() => expect(broken.result.current.status).toBe('error'));
-    expect(broken.result.current.failure).toBe('unavailable');
+    expect(noticeOf(broken.result.current)).toBe('unavailable');
   });
 
   it('stops mid-answer and keeps what was written', async () => {
@@ -82,7 +85,7 @@ describe('useConversation', () => {
     act(() => result.current.stop());
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(textOf(result.current.messages[1]!)).toBe('Yes, ');
-    expect(result.current.failure).toBeUndefined();
+    expect(noticeOf(result.current)).toBeUndefined();
   });
 
   it('asks a refused question again on retry, and forgets everything on reset', async () => {
@@ -110,6 +113,49 @@ describe('useConversation', () => {
 
     act(() => result.current.reset());
     await waitFor(() => expect(result.current.messages).toEqual([]));
-    expect(result.current.failure).toBeUndefined();
+    expect(noticeOf(result.current)).toBeUndefined();
+  });
+
+  it('remembers a question stopped before its first words, and keeps a refusal on its own question', async () => {
+    const { transport } = controlledTransport();
+    let refuse = false;
+    const mixed: ChatTransport<Message> = {
+      sendMessages: (options) =>
+        refuse ? refusingTransport('rate-limited').sendMessages(options) : transport.sendMessages(options),
+      reconnectToStream: async () => null,
+    };
+    const { result } = start(mixed);
+    act(() => result.current.send('First?'));
+    await waitFor(() => expect(result.current.status).toBe('submitted'));
+    act(() => result.current.stop());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    const first = result.current.messages[0]!.id;
+    expect(result.current.notices[first]).toBe('stopped');
+
+    refuse = true;
+    act(() => result.current.send('Second?'));
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(noticeOf(result.current)).toBe('rate-limited');
+
+    const second = result.current.messages.findLast((message) => message.role === 'user')!.id;
+    refuse = false;
+    act(() => result.current.send('Third?'));
+    await waitFor(() => expect(result.current.status).toBe('submitted'));
+    expect(result.current.notices[first]).toBe('stopped');
+    expect(result.current.notices[second]).toBe('rate-limited');
+  });
+});
+
+describe('requestBody', () => {
+  it('sends only the latest messages, so a long conversation is never refused for its length', () => {
+    const many = Array.from({ length: 25 }, (_, index): Message => ({
+      id: `m${index}`,
+      role: index % 2 ? 'assistant' : 'user',
+      parts: [{ type: 'text', text: 'x' }],
+    }));
+    const body = requestBody(many, 'fr', { id: 'chat' });
+    expect(body.messages).toHaveLength(SENT_MESSAGES);
+    expect(body.messages.at(-1)!.id).toBe('m24');
+    expect(body).toMatchObject({ id: 'chat', surface: 'portfolio', locale: 'fr' });
   });
 });

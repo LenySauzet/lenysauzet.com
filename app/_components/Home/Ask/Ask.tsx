@@ -34,7 +34,7 @@ export function Ask({ className }: { className?: string }) {
 
 function AskBar({ className }: { className?: string }) {
   const t = useTranslations('Ask');
-  const { messages, status, step, failure, send, retry, stop, reset } = useConversation();
+  const { messages, status, step, notices, send, retry, stop, reset } = useConversation();
   const root = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
@@ -201,7 +201,7 @@ function AskBar({ className }: { className?: string }) {
                         messages={messages}
                         status={status}
                         step={step}
-                        failure={failure}
+                        notices={notices}
                         avatarRef={avatar}
                         onRestart={restart}
                         onRetry={retry}
@@ -239,9 +239,7 @@ function AskBar({ className }: { className?: string }) {
           </motion.div>
         </div>
         <AnimatePresence>
-          {offering && (
-            <Topics onPick={ask} className="absolute inset-x-0 bottom-full mb-2" />
-          )}
+          {offering && <Topics onPick={ask} className="absolute inset-x-0 bottom-full mb-2" />}
         </AnimatePresence>
       </div>
     </div>

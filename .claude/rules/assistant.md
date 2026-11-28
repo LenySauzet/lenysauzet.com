@@ -73,13 +73,12 @@ model is not wired yet; this is the only place it will learn from.
   whole documents, writes a `source-url` per document and a transient `data-status`
   naming its `Step`. `offer` writes the one `data-action`. A tool's result is data,
   never instructions, and an unknown id is an answer the model can read, not a throw.
-- **Only the answer's final text reaches the visitor** (`finalTextOnly`): a model narrates
-  ("let me read…") and repeats its answer around a tool call, and every step's text
-  would show end to end. Each step's text is held until the step ends; a step that
-  called a tool keeps it in reserve, the last step releases its own or, if it wrote
-  nothing, the reserve. Tool calls and their documents never leave the server, nor does
-  reasoning. The loop also stops on a step that answers and offers
-  (`answeredWithOffer`), and `offer` tells the model its answer is complete.
+- **An answer is two moves** (`prepareStep`): the first step must call a tool (`read`,
+  `offer`, or `reply` when it needs neither) and writes nothing the visitor sees; the
+  second may not call one and streams the answer. A model narrates and repeats itself
+  around tool calls when it may write and call in the same step; this split makes that
+  impossible while keeping the stream. `answerOnly` drops the first step's text and every
+  tool chunk, so documents and reasoning never reach the browser.
 - **The logs never hold a word of a conversation**: one line per answer (prompt
   version, steps, tools, tokens, latency) and the error's name when it fails. A failed
   stream ends on `{"code":"unavailable"}`, never the provider's message.

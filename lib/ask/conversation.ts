@@ -16,6 +16,8 @@ export type Status = 'ready' | 'submitted' | 'streaming' | 'error';
 
 export type Failure = 'disabled' | 'rate-limited' | 'unavailable' | 'invalid';
 
+export type Notice = Failure | 'stopped';
+
 const FAILURES: readonly Failure[] = ['disabled', 'rate-limited', 'unavailable', 'invalid'];
 
 export function failureFrom(error: unknown): Failure {

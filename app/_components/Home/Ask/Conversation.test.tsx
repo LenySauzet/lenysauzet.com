@@ -2,19 +2,19 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { Failure, Message, Status } from '@/lib/ask/conversation';
+import type { Message, Notice, Status } from '@/lib/ask/conversation';
 import { InEnglish } from '@/test/intl';
 
 import { Conversation } from './Conversation';
 
 const question: Message = { id: 'q', role: 'user', parts: [{ type: 'text', text: 'Are you available?' }] };
 
-const show = (messages: Message[], status: Status, onRetry = vi.fn(), failure?: Failure) => {
+const show = (messages: Message[], status: Status, onRetry = vi.fn(), notice?: Notice) => {
   render(
     <Conversation
       messages={messages}
       status={status}
-      failure={failure}
+      notices={notice ? { [question.id]: notice } : {}}
       avatarRef={createRef()}
       onRestart={vi.fn()}
       onRetry={onRetry}
@@ -33,7 +33,8 @@ describe('Conversation', () => {
 
   it('tells the visitor it is an AI that can be wrong, and that nothing is kept', () => {
     show([question], 'submitted');
-    expect(screen.getByText('AI version of Lény · can be wrong')).toBeInTheDocument();
+    expect(screen.getByText('AI assistant · knows my work')).toBeInTheDocument();
+    expect(screen.getByText(/This is the AI version of Lény\..*it can be wrong/)).toBeInTheDocument();
     expect(screen.getByText(/This site does not keep your conversations\./)).toBeInTheDocument();
   });
 
@@ -43,6 +44,7 @@ describe('Conversation', () => {
         messages={[question]}
         status="submitted"
         step="resume"
+        notices={{}}
         avatarRef={createRef()}
         onRestart={vi.fn()}
         onRetry={vi.fn()}
@@ -54,15 +56,15 @@ describe('Conversation', () => {
   });
 
   it('says an answer stopped before its first words, and asks it again', () => {
-    const onRetry = show([question], 'ready');
+    const onRetry = show([question], 'ready', vi.fn(), 'stopped');
     expect(screen.getByRole('status')).toHaveTextContent('Stopped.');
     expect(screen.queryByRole('link', { name: 'Email me' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
-  it('treats an unexplained failure as unavailable: try again, or reach Lény directly', () => {
-    const onRetry = show([question], 'error');
+  it('offers a retry and a direct contact when the assistant is unavailable', () => {
+    const onRetry = show([question], 'error', vi.fn(), 'unavailable');
     expect(screen.getByRole('status')).toHaveTextContent('I can’t answer right now.');
     expect(screen.getByRole('button', { name: 'Book a call' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Email me' })).toHaveAttribute('href', 'mailto:contact@lenysauzet.com');

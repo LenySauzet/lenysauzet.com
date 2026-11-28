@@ -1,7 +1,7 @@
 import { evalite } from 'evalite';
 
 import { ask, type Case } from './harness';
-import { Admitted, Faithful, Offered, Plain, Reasoned, Useful, Vouvoie } from './scorers';
+import { Admitted, Faithful, InCharacter, NoUnaskedIntro, Offered, Plain, Reasoned, Useful, Vouvoie } from './scorers';
 
 const inferable: Case[] = [
   {
@@ -119,11 +119,11 @@ const unanswerable: Case[] = [
 evalite('Inference', {
   data: inferable.map((input) => ({ input })),
   task: ask,
-  scorers: [Useful, Faithful, Reasoned, Offered, Plain, Vouvoie],
+  scorers: [Useful, Faithful, Reasoned, Offered, Plain, Vouvoie, InCharacter, NoUnaskedIntro],
 });
 
 evalite('Unanswerable', {
   data: unanswerable.map((input) => ({ input })),
   task: ask,
-  scorers: [Admitted, Faithful, Plain, Vouvoie],
+  scorers: [Admitted, Faithful, Plain, Vouvoie, InCharacter, NoUnaskedIntro],
 });
