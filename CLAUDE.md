@@ -14,6 +14,7 @@ bun lint
 bun run type-check
 bun run test          # Vitest; `bun test` is Bun's own runner and will not work
 bun run knowledge     # What the assistant knows: untold projects, the blog, the prompt core's size
+bun run evals         # The assistant against its evals; real model calls, so it costs (see assistant.md)
 ```
 
 In `workers/presence`, its own package and lockfile: `bun run dev` (wrangler on 8787,
@@ -73,6 +74,7 @@ default, `'use client'` only for state, effects or browser APIs. Languages are i
 | `i18n/`, `messages/` | The languages, their sentences, and the paths between them |
 | `content/projects.ts`, `content/clients.ts` | The work and the logos; a client may be the employer |
 | `content/knowledge/`, `lib/assistant/knowledge/` | What the assistant knows: the profile, a story per project, the FAQ, the blog read from its feed; see `.claude/rules/assistant.md` |
+| `app/api/ask/`, `lib/assistant/`, `evals/` | How it answers: the guards, the instructions, the `read` and `offer` tools, the stream, and its evals; same rule |
 | `lib/masonry.ts` | Tiles into columns, shortest first, and the lane contract the footer reads |
 | `lib/media/probe.ts` | An image's size and a 16px blur placeholder, read with sharp at build time |
 | `lib/media/cdn.ts` | A bare media path to its URL under `portfolio/` on the CDN |

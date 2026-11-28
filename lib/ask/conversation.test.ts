@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
-import { isBusy, isThinking, labelOf, remediesOf, turnsOf, wordsOf, type Message } from './conversation';
+import { failureFrom, isBusy, isThinking, labelOf, remediesOf, turnsOf, wordsOf, type Message } from './conversation';
 
 const user = (id: string, text = 'Hi'): Message => ({ id, role: 'user', parts: [{ type: 'text', text }] });
 const assistant = (id: string, text = ''): Message => ({
   id,
   role: 'assistant',
   parts: text ? [{ type: 'text', text }] : [],
+});
+
+describe('failureFrom', () => {
+  it('reads the code the server answered with, and calls anything else unavailable', () => {
+    expect(failureFrom(new Error('{"code":"rate-limited"}'))).toBe('rate-limited');
+    expect(failureFrom(new Error('{"code":"teapot"}'))).toBe('unavailable');
+    expect(failureFrom(new Error('Failed to fetch'))).toBe('unavailable');
+    expect(failureFrom(undefined)).toBe('unavailable');
+  });
 });
 
 describe('remediesOf', () => {

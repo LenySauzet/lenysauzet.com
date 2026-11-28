@@ -107,7 +107,8 @@
     "thinking": "Thinking…",
     "steps": {
       "resume": "Reading my resume…",
-      "projects": "Reading my projects…"
+      "projects": "Reading my projects…",
+      "posts": "Reading my articles…"
     },
     "newChat": "New chat",
     "close": "Close",
@@ -132,13 +133,6 @@
       "role": "Your role at Tolk.ai?",
       "availability": "Are you available?",
       "built": "What have you built?"
-    },
-    "demo": {
-      "available": "Yes. My work-study at Tolk.ai ended in September 2026, and I am now looking for an AI or full-stack engineering role, in Montpellier or remote. The quickest way forward is a short call.",
-      "availableSource": "Resume · Experience",
-      "tolk": "At Tolk.ai, I owned the ingestion and retrieval pipelines the product rests on: 600 million indexed words and 4.3 million conversations served. I also opened e-commerce as a market, with knowledge bases that keep themselves current, now 80% of the live knowledge base.",
-      "tolkSource": "Resume · Tolk.ai",
-      "built": "Beyond my work at Tolk.ai, I have built Ankhora, a Meta Quest platform where an expert’s voice and gestures are captured once and replayed in 3D for every new hire, a team project at Epitech that I led. GitGlow, my own open-source editor that turns a project into a polished cover. And Travel Order Resolver, my first natural language project at Epitech: a train planner you simply talk to, in French."
     }
   }
 }

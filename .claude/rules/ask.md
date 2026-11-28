@@ -13,12 +13,13 @@ glass bar, then into a conversation. Answers are scripted for now.
 
 ## Shape
 
-- **`useConversation` is the only seam to the model.** Its messages, parts
-  (`text`, `source-url`, `data-action`) and statuses (`ready`, `submitted`,
-  `streaming`, `error`) are the Vercel AI SDK's, and like `useChat` it adds the reply
-  only with its first words: the thinking row is drawn from `isThinking`, never from
-  an empty message. The real backend replaces its body, nothing else.
-  `lib/ask/demo.ts` is the stand-in; its sentences are in `messages/` (`Ask.demo`).
+- **`useConversation` is the only seam to the model**: `useChat` on `/api/ask`, with
+  `surface` and `locale` in the body. Its messages are the AI SDK's `UIMessage`, typed
+  with this assistant's data parts (`AskData`), and like `useChat` the reply appears only
+  with its first content: the thinking row is drawn from `isThinking`, never from an
+  empty message. A refusal arrives as the response body, `{ "code": … }`, which
+  `failureFrom` reads; anything else is `unavailable`. Tests feed it real SDK chunks
+  through a fake transport (`test/ask.ts`), and `Ask` through a stubbed `fetch`.
   Beside them it gives `step`, `failure` and `stop` (`useChat`'s, keeping what was
   written). A `step` is a key (`Step`), never text: the server's transient `data-status`
   part names it and `Ask.steps` words it in the visitor's language, shown and announced
