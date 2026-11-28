@@ -28,30 +28,33 @@ export function BookCall({ className }: { className?: string }) {
       onClick={book}
       className={cn(
         pillSurface,
-        'group shine shine-border cursor-pointer pr-5 pl-1.5 text-sm font-medium',
+        'group cursor-pointer pr-5 pl-1.5 text-sm font-medium',
         MEASURES,
         IN_PLACE,
         className
       )}
     >
-      <span className="relative size-8 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border">
-        <Image src={resolveMedia(siteConfig.author.avatar)} alt="" fill sizes="32px" className="object-cover" />
-      </span>
-      <span aria-hidden className={cn('shrink-0 transition-[width]', TRANSITION, SPACE)}>
-        <span
-          className={cn(
-            'flex w-max origin-left items-center gap-1.5 pl-1.5 transition-[scale,opacity,filter]',
-            TRANSITION,
-            FOLDED
-          )}
-        >
-          <span className="w-2 text-center text-subtle-foreground">+</span>
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-[0.6875rem] ring-1 ring-border">
-            {t('you')}
+      {/* The sweep runs inside: WebKit skips every transition of an element with a running animation. */}
+      <span className="shine shine-border flex items-center rounded-[inherit]">
+        <span className="relative size-8 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border">
+          <Image src={resolveMedia(siteConfig.author.avatar)} alt="" fill sizes="32px" className="object-cover" />
+        </span>
+        <span aria-hidden className={cn('shrink-0 transition-[width]', TRANSITION, SPACE)}>
+          <span
+            className={cn(
+              'flex w-max origin-left items-center gap-1.5 pl-1.5 transition-[scale,opacity,filter]',
+              TRANSITION,
+              FOLDED
+            )}
+          >
+            <span className="w-2 text-center text-subtle-foreground">+</span>
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-[0.6875rem] ring-1 ring-border">
+              {t('you')}
+            </span>
           </span>
         </span>
+        <span className="shine-text pl-2.5">{t('bookCall')}</span>
       </span>
-      <span className="shine-text pl-2.5">{t('bookCall')}</span>
     </button>
   );
 }
