@@ -1,7 +1,7 @@
 ---
 slug: my-quest
 title: Meta Quest Referral Hub
-year: '2026'
+year: '2025'
 status: shipped
 role: solo
 stack: [Next.js, React, TypeScript, Tailwind, shadcn/ui, Zustand, next-intl, React Hook Form, Zod, Crisp, Mailchimp]

@@ -1,7 +1,7 @@
 ---
 slug: robot-eyes
 title: Animated Robot Eyes
-year: '2026'
+year: '2023'
 status: shipped
 role: solo
 stack: [JavaScript, HTML, CSS]

@@ -1,7 +1,7 @@
 ---
 slug: hangman
 title: Hangman
-year: '2026'
+year: '2023'
 status: shipped
 role: solo
 stack: [Python, Pygame, NLTK, Google Translate API]

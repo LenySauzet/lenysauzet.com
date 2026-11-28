@@ -4,9 +4,14 @@ import { postUrlsOf, readBlog } from './blog';
 
 const BLOG = 'https://blog.test';
 
+const posts = (...slugs: string[]) =>
+  slugs.map((slug) => `<item><title>${slug}</title><link>${BLOG}/posts/${slug}</link></item>`).join('\n');
+
+const clean = (...slugs: string[]) => `<rss><channel><link>${BLOG}</link>${posts(...slugs)}</channel></rss>`;
+
 const feed = (...slugs: string[]) => `<rss><channel>
   <link>${BLOG}</link>
-  ${slugs.map((slug) => `<item><title>${slug}</title><link>${BLOG}/posts/${slug}</link></item>`).join('\n')}
+  ${posts(...slugs)}
   <item><link>https://elsewhere.test/posts/intruder</link></item>
   <item><link>${BLOG}/posts/shaders/comments</link></item>
 </channel></rss>`;
@@ -21,8 +26,24 @@ const fakeFetch =
   };
 
 describe('postUrlsOf', () => {
-  it('keeps the posts of this blog only, never the channel link', () => {
-    expect(postUrlsOf(feed('shaders', 'octrees'), BLOG)).toEqual([`${BLOG}/posts/shaders`, `${BLOG}/posts/octrees`]);
+  it('keeps the posts of this blog only, never the channel link, and names what it ignored', () => {
+    expect(postUrlsOf(feed('shaders', 'octrees'), BLOG)).toEqual({
+      urls: [`${BLOG}/posts/shaders`, `${BLOG}/posts/octrees`],
+      ignored: ['https://elsewhere.test/posts/intruder', `${BLOG}/posts/shaders/comments`],
+    });
+  });
+
+  it('reads a link in CDATA or with a trailing slash, and counts a repeated post once', () => {
+    const items = [
+      `<item><link><![CDATA[${BLOG}/posts/shaders/]]></link></item>`,
+      `<item rdf:about="x"><link>${BLOG}/posts/shaders</link></item>`,
+      '<item><title>No link</title></item>',
+    ];
+
+    expect(postUrlsOf(`<rss>${items.join('')}</rss>`, BLOG)).toEqual({
+      urls: [`${BLOG}/posts/shaders`],
+      ignored: ['an item without a link'],
+    });
   });
 });
 
@@ -31,7 +52,7 @@ describe('readBlog', () => {
     const reading = await readBlog(
       BLOG,
       fakeFetch({
-        [`${BLOG}/rss`]: feed('shaders'),
+        [`${BLOG}/rss`]: clean('shaders'),
         [`${BLOG}/posts/shaders/index.md`]: twin('Shaders'),
       })
     );
@@ -50,11 +71,31 @@ describe('readBlog', () => {
     expect(reading.warnings[0]).toMatch(/feed could not be read/);
   });
 
+  it('calls a feed that answers but lists no post incomplete, never an empty blog', async () => {
+    const reading = await readBlog(BLOG, fakeFetch({ [`${BLOG}/rss`]: '<html>Maintenance</html>' }));
+
+    expect(reading).toEqual({ posts: [], complete: false, warnings: ['The feed lists no post'] });
+  });
+
+  it('calls a feed with items it cannot place incomplete, so their posts are never reported missing', async () => {
+    const reading = await readBlog(
+      BLOG,
+      fakeFetch({ [`${BLOG}/rss`]: feed('shaders'), [`${BLOG}/posts/shaders/index.md`]: twin('Shaders') })
+    );
+
+    expect(reading.posts.map((post) => post.slug)).toEqual(['shaders']);
+    expect(reading.complete).toBe(false);
+    expect(reading.warnings).toEqual([
+      'The feed lists an item that is not a post of the blog: https://elsewhere.test/posts/intruder',
+      `The feed lists an item that is not a post of the blog: ${BLOG}/posts/shaders/comments`,
+    ]);
+  });
+
   it('keeps the posts that answered when one does not', async () => {
     const reading = await readBlog(
       BLOG,
       fakeFetch({
-        [`${BLOG}/rss`]: feed('shaders', 'octrees'),
+        [`${BLOG}/rss`]: clean('shaders', 'octrees'),
         [`${BLOG}/posts/shaders/index.md`]: twin('Shaders'),
       })
     );

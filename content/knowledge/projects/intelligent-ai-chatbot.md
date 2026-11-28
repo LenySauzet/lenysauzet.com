@@ -13,7 +13,7 @@ summary: >-
 
 ## Context
 
-Before language models made chatbots a commodity, a chatbot meant understanding intent. I built one from the ground up to learn how that works.
+Before language models made chatbots a commodity, a chatbot meant understanding intent. After a NeuralNine video on YouTube walking through the key ideas, I built one from the ground up, on my own, to learn how that works.
 
 ## What I built
 

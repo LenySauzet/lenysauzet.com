@@ -1,7 +1,7 @@
 ---
 slug: lms-platform
 title: LMS Platform
-year: '2026'
+year: '2024'
 status: shipped
 role: solo
 stack: [Next.js, React, TypeScript, Prisma, MySQL, Clerk, Stripe, Mux, shadcn/ui, React Hook Form, Zod]

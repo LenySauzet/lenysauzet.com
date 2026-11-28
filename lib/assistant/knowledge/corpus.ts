@@ -3,17 +3,18 @@ import { z } from 'zod';
 
 import {
   faqSchema,
-  PROJECT_SECTIONS,
   postSchema,
   profileSchema,
-  projectSchema,
+  REQUIRED_SECTIONS,
+  STORY_SECTIONS,
+  storySchema,
   type FaqFacts,
   type PostFacts,
   type Profile,
-  type ProjectFacts,
+  type StoryFacts,
 } from './schema';
 
-export interface Project extends ProjectFacts {
+export interface Story extends StoryFacts {
   id: `project:${string}`;
   body: string;
 }
@@ -30,11 +31,16 @@ export interface Post extends PostFacts {
   body: string;
 }
 
+export interface Blog {
+  posts: Post[];
+  complete: boolean;
+}
+
 export interface Corpus {
   profile: Profile;
-  projects: Project[];
+  stories: Story[];
   faq: Faq[];
-  posts: Post[];
+  blog: Blog;
 }
 
 export interface SourceFile {
@@ -49,12 +55,21 @@ export class KnowledgeError extends Error {
   }
 }
 
-const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
+const FRONTMATTER = /^---\r?\n(?:([\s\S]*?)\r?\n)?---(?:\r?\n|$)([\s\S]*)$/;
+const FENCED_CODE = /^(```|~~~)[\s\S]*?^\1/gm;
+
+function readYaml(file: string, text: string): unknown {
+  try {
+    return parseYaml(text);
+  } catch (error) {
+    throw new KnowledgeError(file, `invalid YAML: ${(error as Error).message}`);
+  }
+}
 
 export function splitFrontmatter(file: string, source: string) {
   const match = source.match(FRONTMATTER);
   if (!match) throw new KnowledgeError(file, 'missing frontmatter between --- lines');
-  return { data: parseYaml(match[1]!) as unknown, body: match[2]!.trim() };
+  return { data: readYaml(file, match[1] ?? ''), body: match[2]!.trim() };
 }
 
 function validate<T>(file: string, schema: z.ZodType<T>, data: unknown) {
@@ -63,28 +78,36 @@ function validate<T>(file: string, schema: z.ZodType<T>, data: unknown) {
   return result.data;
 }
 
-const stem = (name: string) => name.replace(/^.*\//, '').replace(/\.md$/, '');
-
-export const parseProfile = (file: SourceFile) => validate(file.name, profileSchema, parseYaml(file.source));
-
-export function parseProject(file: SourceFile): Project {
+function readEntry<T>(file: SourceFile, schema: z.ZodType<T>, key: (facts: T) => string) {
   const { data, body } = splitFrontmatter(file.name, file.source);
-  const facts = validate(file.name, projectSchema, data);
-  if (facts.slug !== stem(file.name))
-    throw new KnowledgeError(file.name, `slug "${facts.slug}" differs from the file name`);
-  if (!body) throw new KnowledgeError(file.name, 'the story is empty');
-  const unknown = headingsOf(body).filter((heading) => !PROJECT_SECTIONS.includes(heading));
+  const facts = validate(file.name, schema, data);
+  const stem = file.name.replace(/^.*\//, '').replace(/\.md$/, '');
+  if (key(facts) !== stem) throw new KnowledgeError(file.name, `"${key(facts)}" differs from the file name`);
+  if (!body) throw new KnowledgeError(file.name, 'the body is empty');
+  return { facts, body };
+}
+
+export const parseProfile = (file: SourceFile) =>
+  validate(file.name, profileSchema, readYaml(file.name, file.source));
+
+export function parseStory(file: SourceFile): Story {
+  const { facts, body } = readEntry(file, storySchema, (story) => story.slug);
+  const sections = headingsOf(body);
+  const order = sections.map((heading) => (STORY_SECTIONS as readonly string[]).indexOf(heading));
+  const unknown = sections.filter((_, index) => order[index] === -1);
   if (unknown.length) {
-    throw new KnowledgeError(file.name, `unknown sections ${unknown.join(', ')}; use ${PROJECT_SECTIONS.join(', ')}`);
+    throw new KnowledgeError(file.name, `unknown sections ${unknown.join(', ')}; use ${STORY_SECTIONS.join(', ')}`);
   }
+  if (order.some((position, index) => index > 0 && position <= order[index - 1]!)) {
+    throw new KnowledgeError(file.name, `sections out of order or repeated; keep ${STORY_SECTIONS.join(', ')}`);
+  }
+  const missing = REQUIRED_SECTIONS.filter((section) => !sections.includes(section));
+  if (missing.length) throw new KnowledgeError(file.name, `missing sections ${missing.join(', ')}`);
   return { ...facts, id: `project:${facts.slug}`, body };
 }
 
 export function parseFaq(file: SourceFile): Faq {
-  const { data, body } = splitFrontmatter(file.name, file.source);
-  const facts = validate(file.name, faqSchema, data);
-  if (facts.id !== stem(file.name)) throw new KnowledgeError(file.name, `id "${facts.id}" differs from the file name`);
-  if (!body) throw new KnowledgeError(file.name, 'the answer is empty');
+  const { facts, body } = readEntry(file, faqSchema, (faq) => faq.id);
   return { ...facts, id: `faq:${facts.id}`, answer: body };
 }
 
@@ -96,6 +119,6 @@ export function parsePost(slug: string, url: string, source: string): Post {
 }
 
 export const headingsOf = (markdown: string) =>
-  [...markdown.replace(/```[\s\S]*?```/g, '').matchAll(/^## (.+)$/gm)].map((match) => match[1]!.trim());
+  [...markdown.replace(FENCED_CODE, '').matchAll(/^## (.+)$/gm)].map((match) => match[1]!.trim());
 
 export const estimateTokens = (text: string) => Math.ceil(text.length / 4);

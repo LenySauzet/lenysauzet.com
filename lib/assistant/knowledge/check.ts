@@ -1,29 +1,28 @@
-import type { Project as Shown } from '@/content/projects';
+import type { Project as Card } from '@/content/projects';
 
 import { estimateTokens, type Corpus } from './corpus';
 
 export const CORE_TOKEN_BUDGET = 20_000;
 
-export function problemsOf(corpus: Corpus, shown: Shown[], postsKnown: boolean) {
+export function problemsOf(corpus: Corpus, cards: Card[]) {
   const problems: string[] = [];
-  const postSlugs = new Set(corpus.posts.map((post) => post.slug));
+  const published = new Set(corpus.blog.posts.map((post) => post.slug));
 
-  for (const project of corpus.projects) {
-    const card = shown.find((entry) => entry.slug === project.slug);
+  for (const story of corpus.stories) {
+    const file = `projects/${story.slug}.md`;
+    const card = cards.find((entry) => entry.slug === story.slug);
     if (!card) {
-      problems.push(`projects/${project.slug}.md has no entry in content/projects.ts`);
+      problems.push(`${file} has no entry in content/projects.ts`);
       continue;
     }
-    if (card.title !== project.title)
-      problems.push(`projects/${project.slug}.md is titled "${project.title}", its card "${card.title}"`);
-    if (card.year !== project.year)
-      problems.push(`projects/${project.slug}.md is from ${project.year}, its card from ${card.year}`);
-    if (card.action?.kind === 'article' && !project.blogPosts.includes(card.action.slug)) {
-      problems.push(`projects/${project.slug}.md does not list "${card.action.slug}", the article its card links to`);
+    if (card.title !== story.title) problems.push(`${file} is titled "${story.title}", its card "${card.title}"`);
+    if (card.year !== story.year) problems.push(`${file} is from ${story.year}, its card from ${card.year}`);
+    if (card.action?.kind === 'article' && !story.blogPosts.includes(card.action.slug)) {
+      problems.push(`${file} does not list "${card.action.slug}", the article its card links to`);
     }
-    if (postsKnown) {
-      for (const post of project.blogPosts.filter((slug) => !postSlugs.has(slug))) {
-        problems.push(`projects/${project.slug}.md lists "${post}", which the blog does not publish`);
+    if (corpus.blog.complete) {
+      for (const post of story.blogPosts.filter((slug) => !published.has(slug))) {
+        problems.push(`${file} lists "${post}", which the blog does not publish`);
       }
     }
   }
@@ -31,15 +30,15 @@ export function problemsOf(corpus: Corpus, shown: Shown[], postsKnown: boolean) 
   return problems;
 }
 
-export const untold = (corpus: Corpus, shown: Shown[]) =>
-  shown.filter((card) => !corpus.projects.some((project) => project.slug === card.slug)).map((card) => card.slug);
+export const untold = (corpus: Corpus, cards: Card[]) =>
+  cards.filter((card) => !corpus.stories.some((story) => story.slug === card.slug)).map((card) => card.slug);
 
 export const coreTokens = (corpus: Corpus) =>
   estimateTokens(
     JSON.stringify({
       profile: corpus.profile,
-      projects: corpus.projects.map(({ id, title, year, stack, summary }) => ({ id, title, year, stack, summary })),
+      stories: corpus.stories.map(({ id, title, year, stack, summary }) => ({ id, title, year, stack, summary })),
       faq: corpus.faq.map(({ id, question, answer }) => ({ id, question, answer })),
-      posts: corpus.posts.map(({ id, title, description, date }) => ({ id, title, description, date })),
+      posts: corpus.blog.posts.map(({ id, title, description, date }) => ({ id, title, description, date })),
     })
   );

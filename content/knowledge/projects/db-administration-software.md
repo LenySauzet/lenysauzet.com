@@ -1,7 +1,7 @@
 ---
 slug: db-administration-software
 title: DB Administration Software
-year: '2026'
+year: '2023'
 status: shipped
 role: solo
 stack: [C#, .NET, Windows Forms, MySQL, SQL]

@@ -1,7 +1,7 @@
 ---
 slug: gitglow
 title: GitGlow
-year: '2026'
+year: '2024'
 status: shipped
 role: solo
 stack: [Next.js, React, TypeScript, Tailwind, shadcn/ui, Zustand, Motion, dnd-kit, Google Fonts API]

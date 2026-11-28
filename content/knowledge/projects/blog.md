@@ -1,7 +1,7 @@
 ---
 slug: blog
 title: The Blog
-year: '2026'
+year: '2025'
 status: shipped
 role: solo
 stack: [Next.js, React, TypeScript, MDX, Tailwind, shadcn/ui, Motion, WebGL 2, Recharts, Sandpack, Vitest, Cloudflare R2, Vercel]

@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { parseFaq, parseProfile, parseProject, type SourceFile } from './corpus';
+import { parseFaq, parseProfile, parseStory, type SourceFile } from './corpus';
 
 export const KNOWLEDGE_ROOT = path.join(process.cwd(), 'content', 'knowledge');
 
@@ -25,7 +25,7 @@ export async function readKnowledge(root = KNOWLEDGE_ROOT) {
     name: 'profile.yaml',
     source: await readFile(path.join(root, 'profile.yaml'), 'utf8'),
   });
-  const projects = (await filesIn(root, 'projects')).map(parseProject);
+  const stories = (await filesIn(root, 'projects')).map(parseStory);
   const faq = (await filesIn(root, 'faq')).map(parseFaq);
-  return { profile, projects, faq };
+  return { profile, stories, faq };
 }

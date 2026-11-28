@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-const month = z.string().regex(/^\d{4}(-(0[1-9]|1[0-2]))?$/, 'a year as YYYY or a month as YYYY-MM');
+const yearOrMonth = z.string().regex(/^\d{4}(-(0[1-9]|1[0-2]))?$/, 'a year as YYYY or a month as YYYY-MM');
 const day = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a day as YYYY-MM-DD');
 const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'a kebab-case slug');
 const text = z.string().trim().min(1);
 
-const period = z.object({ start: month, end: month.optional() });
+const period = z.object({ start: yearOrMonth, end: yearOrMonth.optional() });
 
 export const profileSchema = z.strictObject({
   headline: text,
@@ -70,9 +70,10 @@ export const profileSchema = z.strictObject({
     .default([]),
 });
 
-export const PROJECT_SECTIONS = ['Context', 'What I built', 'Hard parts', 'Results', 'What I would do differently'];
+export const STORY_SECTIONS = ['Context', 'What I built', 'Hard parts', 'Results', 'What I would do differently'] as const;
+export const REQUIRED_SECTIONS = ['Context', 'What I built'] as const;
 
-export const projectSchema = z.strictObject({
+export const storySchema = z.strictObject({
   slug,
   title: text,
   year: z.string().regex(/^\d{4}$/),
@@ -100,6 +101,6 @@ export const postSchema = z.object({
 });
 
 export type Profile = z.infer<typeof profileSchema>;
-export type ProjectFacts = z.infer<typeof projectSchema>;
+export type StoryFacts = z.infer<typeof storySchema>;
 export type FaqFacts = z.infer<typeof faqSchema>;
 export type PostFacts = z.infer<typeof postSchema>;
