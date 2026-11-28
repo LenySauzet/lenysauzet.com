@@ -9,7 +9,7 @@ repo: https://github.com/LenySauzet/Ankhora
 summary: >-
   A Meta Quest platform for spatial masterclasses: an expert's voice and hand gestures are
   captured once, around the object itself, and replayed in 3D for every new employee who needs
-  to learn the skill.
+  to learn the skill. A team project at Epitech that I lead, still in development.
 ---
 
 ## Context

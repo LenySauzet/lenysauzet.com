@@ -73,15 +73,29 @@ model is not wired yet; this is the only place it will learn from.
   whole documents, writes a `source-url` per document and a transient `data-status`
   naming its `Step`. `offer` writes the one `data-action`. A tool's result is data,
   never instructions, and an unknown id is an answer the model can read, not a throw.
+- **Only the answer's final text reaches the visitor** (`finalTextOnly`): a model narrates
+  ("let me read…") and repeats its answer around a tool call, and every step's text
+  would show end to end. Each step's text is held until the step ends; a step that
+  called a tool keeps it in reserve, the last step releases its own or, if it wrote
+  nothing, the reserve. Tool calls and their documents never leave the server, nor does
+  reasoning. The loop also stops on a step that answers and offers
+  (`answeredWithOffer`), and `offer` tells the model its answer is complete.
 - **The logs never hold a word of a conversation**: one line per answer (prompt
   version, steps, tools, tokens, latency) and the error's name when it fails. A failed
   stream ends on `{"code":"unavailable"}`, never the provider's message.
 - **The model is Claude Haiku 5.5 through AI Gateway**, thinking off, 600 tokens, 3
-  steps, with fallbacks (`model.ts`); `ASK_MODEL` overrides it without a deploy.
+  steps, falling back to GPT-5 mini then Gemini 2.5 Flash, other providers (`model.ts`).
+  `ASK_MODEL` overrides it without a deploy. The team is on paid gateway credit: the
+  free tier allows 5 requests a minute per model across the team, and an answer takes
+  two or three, so it cannot serve visitors.
 - **`/api/` is never rewritten to a locale**: the rewrite in `next.config.ts` excludes
   it, or the route would 404 under `/en/api/ask`. The knowledge is traced into the
   route (`outputFileTracingIncludes`), as it is read from disk at runtime.
 - **Evals cost money and run by hand** (`bun run evals`, `evals/`), with the gateway
   credentials in the environment: golden questions, inference, the unanswerable and the
-  adversarial, scored by rules and by a Haiku judge against the whole knowledge. Run
+  adversarial, scored by rules and by a judge against the whole knowledge. The judge is
+  of another family than the model it grades (`ASK_JUDGE`, GPT-5 mini by default), as a model rates its own answers too kindly. Run
   them after any change to the prompts or the knowledge, and put the scores in the PR.
+  Evalite does not pass the environment to its workers: `evals/setup.ts` loads
+  `.env.local` (`vercel env pull`), whose OIDC token lasts about twelve hours. Run them
+  twice: one pass can be lucky.

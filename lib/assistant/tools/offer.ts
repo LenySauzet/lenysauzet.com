@@ -13,7 +13,7 @@ export function offerTool(writer: UIMessageStreamWriter<Message>) {
       if (offered) return 'A button is already shown under this answer.';
       offered = true;
       writer.write({ type: 'data-action', data: action });
-      return `The ${action === 'book' ? 'booking' : 'resume'} button is shown under your answer.`;
+      return `The ${action === 'book' ? 'booking' : 'resume'} button is shown under your answer. Your answer is complete: do not write anything more.`;
     },
   });
 }

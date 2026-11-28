@@ -29,7 +29,11 @@ export function libraryOf(corpus: Corpus, resume: { title: string; url: string }
       title: story.title,
       url: story.app ?? story.repo ?? siteConfig.url,
       step: 'projects',
-      content: `${story.summary}\n\n${story.body}`,
+      content: [
+        `Year: ${story.year} · Status: ${story.status} · My role: ${story.role} · Stack: ${story.stack.join(', ')}`,
+        story.summary,
+        story.body,
+      ].join('\n\n'),
     });
   }
   for (const post of corpus.blog.posts) {

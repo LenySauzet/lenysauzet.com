@@ -11,9 +11,10 @@ import {
 import { getPathname } from '@/i18n/navigation';
 import type { Message } from '@/lib/ask/conversation';
 
+import { finalTextOnly } from './final-text';
 import { buildInstructions } from './instructions';
 import type { Corpus } from './knowledge/corpus';
-import { MAX_OUTPUT_TOKENS, MAX_STEPS, providerOptions } from './model';
+import { MAX_OUTPUT_TOKENS, MAX_STEPS, providerOptions, REASONING } from './model';
 import { PROMPT_VERSION } from './prompts/version';
 import { exchangesOf, type AskRequest } from './request';
 import { offerTool } from './tools/offer';
@@ -22,6 +23,16 @@ import { libraryOf, readTool } from './tools/read';
 const RESUME_TITLE = { en: 'Resume', fr: 'CV' } as const;
 
 export const STREAM_FAILURE = JSON.stringify({ code: 'unavailable' });
+
+export const answeredWithOffer = ({ steps }: { steps: { text: string; toolCalls: { toolName: string }[] }[] }) => {
+  const last = steps.at(-1);
+  return (
+    !!last &&
+    last.text.trim() !== '' &&
+    last.toolCalls.length > 0 &&
+    last.toolCalls.every((call) => call.toolName === 'offer')
+  );
+};
 
 export interface AnswerInput {
   request: AskRequest;
@@ -48,14 +59,15 @@ export function answer({ request, corpus, model, signal, today, log = console.in
   const stream = createUIMessageStream<Message>({
     execute: async ({ writer }) => {
       writer.write({ type: 'start' });
+      const tools = { read: readTool(library, writer), offer: offerTool(writer) };
       const result = streamText({
         model,
         instructions: buildInstructions({ corpus, locale, today: today ?? new Date().toISOString().slice(0, 10) }),
         messages: await convertToModelMessages(exchangesOf(request)),
-        tools: { read: readTool(library, writer), offer: offerTool(writer) },
-        stopWhen: isStepCount(MAX_STEPS),
+        tools,
+        stopWhen: [isStepCount(MAX_STEPS), answeredWithOffer],
         maxOutputTokens: MAX_OUTPUT_TOKENS,
-        reasoning: 'none',
+        reasoning: REASONING,
         abortSignal: signal,
         providerOptions,
         onError: ({ error }) => failed(error),
@@ -73,7 +85,14 @@ export function answer({ request, corpus, model, signal, today, log = console.in
             ms: Date.now() - started,
           }),
       });
-      writer.merge(toUIMessageStream({ stream: result.stream, sendStart: false, onError: () => STREAM_FAILURE }));
+      writer.merge(
+        toUIMessageStream<typeof tools, Message>({
+          stream: result.stream,
+          sendStart: false,
+          sendReasoning: false,
+          onError: () => STREAM_FAILURE,
+        }).pipeThrough(finalTextOnly())
+      );
     },
     onError: failed,
   });

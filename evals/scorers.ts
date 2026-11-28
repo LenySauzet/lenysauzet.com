@@ -28,13 +28,14 @@ export const Plain = createScorer<Case, Reply>({
       MARKDOWN.test(output.text) && 'markdown',
       URL.test(output.text) && 'a URL',
       sentences > 7 && `${sentences} sentences`,
+      /[a-zà-ÿ][.!?…][A-ZÀ-Ý]/u.test(output.text) && 'text glued across steps',
       !output.text.trim() && 'no text',
     ].filter(Boolean);
     return { score: problems.length ? 0 : 1, metadata: { problems } };
   },
 });
 
-const TUTOIEMENT = /\b(tu|toi|ton|ta|tes|te)\b|\bt['’]/i;
+const TUTOIEMENT = /(?<!\p{L})(tu|toi|ton|ta|tes|te|t['’])(?!\p{L})/iu;
 
 export const Vouvoie = createScorer<Case, Reply>({
   name: 'Vouvoie in French',
