@@ -34,7 +34,7 @@ describe('Ask', () => {
     expect(screen.queryByRole('button', { name: 'Are you available?' })).toBeNull();
   });
 
-  it('asks a topic, keeps the field focused, thinks, then answers with its action and a copy', () => {
+  it('asks a topic, keeps the field focused, names its step, then answers with its action and a copy', () => {
     const field = visit();
     act(() => field.focus());
     const topic = screen.getByRole('button', { name: 'Are you available?' });
@@ -44,8 +44,8 @@ describe('Ask', () => {
 
     const log = screen.getByRole('log');
     expect(log).toHaveTextContent('Are you available?');
-    expect(log).toHaveTextContent('Thinking…');
-    expect(screen.getByRole('status')).toHaveTextContent('Thinking…');
+    expect(log).toHaveTextContent('Reading my resume…');
+    expect(screen.getByRole('status')).toHaveTextContent('Reading my resume…');
 
     settle(2000);
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
@@ -70,6 +70,21 @@ describe('Ask', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(screen.getByRole('log')).toHaveTextContent('What did you build?');
     expect(field).toHaveValue('');
+  });
+
+  it('stops an answer from the keyboard and gives the field its focus back', () => {
+    const field = visit();
+    act(() => field.focus());
+    settle(1000);
+    fireEvent.change(field, { target: { value: 'Are you available?' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+
+    const stop = screen.getByRole('button', { name: 'Stop answering' });
+    act(() => stop.focus());
+    fireEvent.click(stop);
+    settle(8000);
+    expect(field).toHaveFocus();
+    expect(screen.getByRole('status')).toHaveTextContent('Stopped.');
   });
 
   it('closes one layer per Escape and opens again on the conversation it left', () => {

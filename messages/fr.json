@@ -101,30 +101,44 @@
   },
   "Ask": {
     "title": "Demander à Lény",
-    "subtitle": "Assistant IA · connaît mon parcours",
+    "subtitle": "Version IA de Lény · peut se tromper",
+    "intro": "Voici la version IA de Lény. Elle répond à partir de ce qu’il a écrit sur son travail et peut se tromper. Ce site ne conserve pas vos conversations.",
     "placeholder": "Demandez-moi ce que vous voulez…",
     "thinking": "Réflexion…",
+    "steps": {
+      "resume": "Je lis mon CV…",
+      "projects": "Je lis mes projets…"
+    },
     "newChat": "Nouvelle conversation",
     "close": "Fermer",
     "send": "Envoyer",
+    "stop": "Arrêter la réponse",
     "dictate": "Dicter",
     "stopDictating": "Arrêter la dictée",
     "copy": "Copier la réponse",
     "copied": "Copiée",
     "latest": "Aller en bas",
     "conversation": "Conversation avec Lény",
-    "error": "Un problème est survenu. Réessayez dans un instant.",
+    "errors": {
+      "unavailable": "Je ne peux pas répondre pour le moment. Réessayez dans un instant, ou contactez-moi directement.",
+      "disabled": "Je ne réponds pas ici pour le moment. Vous pouvez me contacter directement.",
+      "rate-limited": "Cela fait beaucoup de questions en peu de temps. Laissez-moi une minute.",
+      "invalid": "Je n’ai pas pu traiter cette question. Reformulez-la, ou commencez une nouvelle conversation."
+    },
     "retry": "Réessayer",
+    "stopped": "Réponse interrompue.",
+    "email": "M’écrire",
     "topics": {
       "role": "Votre rôle chez Tolk.ai ?",
       "availability": "Êtes-vous disponible ?",
-      "project": "Votre projet IA phare ?"
+      "built": "Qu’avez-vous construit ?"
     },
     "demo": {
       "available": "Oui. Mon alternance chez Tolk.ai s’est terminée en septembre 2026 et je cherche maintenant un poste d’ingénieur IA ou full-stack, à Montpellier ou en télétravail. Le plus simple est d’en parler de vive voix.",
       "availableSource": "CV · Expérience",
       "tolk": "Chez Tolk.ai, j’ai pris en charge les pipelines d’ingestion et de recherche sur lesquels repose le produit : 600 millions de mots indexés et 4,3 millions de conversations servies. J’ai aussi ouvert le marché du e-commerce avec des bases de connaissances qui se mettent à jour seules, aujourd’hui 80 % de la base en production.",
-      "tolkSource": "CV · Tolk.ai"
+      "tolkSource": "CV · Tolk.ai",
+      "built": "En plus de mon travail chez Tolk.ai, j’ai construit Ankhora, une plateforme Meta Quest où la voix et les gestes d’un expert sont capturés une fois, puis rejoués en 3D pour chaque nouvel employé, un projet d’équipe à Epitech que j’ai mené. GitGlow, mon propre éditeur open source qui transforme un projet en une couverture soignée. Et Travel Order Resolver, mon premier projet de langage naturel à Epitech : un planificateur de trajets en train à qui l’on parle simplement, en français."
     }
   }
 }

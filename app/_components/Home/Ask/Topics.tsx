@@ -1,6 +1,6 @@
 'use client';
 
-import { AiBrain01Icon, Briefcase01Icon, Calendar03Icon } from '@hugeicons/core-free-icons';
+import { Briefcase01Icon, Calendar03Icon, Layers01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -15,7 +15,7 @@ import { glass } from './styles';
 const TOPICS = [
   { key: 'role', icon: Briefcase01Icon },
   { key: 'availability', icon: Calendar03Icon },
-  { key: 'project', icon: AiBrain01Icon },
+  { key: 'built', icon: Layers01Icon },
 ] as const;
 
 const STAGGER = 0.05;
@@ -56,7 +56,7 @@ export function Topics({ onPick, className }: { onPick: (question: string) => vo
               transition={{ ...MORPH, delay }}
             >
               <HugeiconsIcon icon={icon} size={13} strokeWidth={2} />
-              <Letters text={label} delay={delay + 0.05} step={0.018} />
+              <Letters text={label} delay={delay + 0.05} stagger={0.018} />
             </motion.span>
           </motion.button>
         );

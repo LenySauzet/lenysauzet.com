@@ -18,7 +18,15 @@ import {
 import { AnimatedCloseIcon } from '@/components/icons/AnimatedCloseIcon';
 import { AnimatedRefreshIcon } from '@/components/icons/AnimatedRefreshIcon';
 import { useAnimatedIcon } from '@/hooks/use-animated-icon';
-import { isThinking, textOf, turnsOf, type Message, type Status } from '@/lib/ask/conversation';
+import {
+  isThinking,
+  textOf,
+  turnsOf,
+  type Failure,
+  type Message,
+  type Status,
+  type Step,
+} from '@/lib/ask/conversation';
 import { EASE_SNAP } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +44,8 @@ const byKeyboard = (event: MouseEvent) => event.detail === 0;
 interface ConversationProps {
   messages: Message[];
   status: Status;
+  step?: Step;
+  failure?: Failure;
   avatarRef: RefObject<HTMLSpanElement | null>;
   onRestart: () => void;
   onRetry: () => void;
@@ -46,6 +56,8 @@ interface ConversationProps {
 export function Conversation({
   messages,
   status,
+  step,
+  failure,
   avatarRef,
   onRestart,
   onRetry,
@@ -62,14 +74,18 @@ export function Conversation({
   const turns = useMemo(() => turnsOf(messages), [messages]);
   const thinking = isThinking(messages, status);
   const failed = status === 'error';
+  const reason = failure ?? 'unavailable';
   const latest = turns.at(-1)?.answer;
+  const stopped = status === 'ready' && turns.length > 0 && !latest;
   const announcement = thinking
-    ? t('thinking')
+    ? t(step ? `steps.${step}` : 'thinking')
     : failed
-      ? t('error')
-      : status === 'ready' && latest
-        ? textOf(latest)
-        : '';
+      ? t(`errors.${reason}`)
+      : stopped
+        ? t('stopped')
+        : status === 'ready' && latest
+          ? textOf(latest)
+          : '';
 
   useEffect(() => {
     stick.current = true;
@@ -116,7 +132,7 @@ export function Conversation({
         <Orb count={1} size={56} className="-my-2.5 -ml-2" />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="text-sm leading-5 text-foreground">{t('title')}</span>
-          <span className="truncate text-xs leading-4 text-subtle-foreground">{t('subtitle')}</span>
+          <span className="text-xs leading-4 text-pretty text-subtle-foreground">{t('subtitle')}</span>
         </span>
         <HeaderButton label={t('newChat')} icon={AnimatedRefreshIcon} onClick={onRestart} />
         <HeaderButton label={t('close')} icon={AnimatedCloseIcon} onClick={(event) => onClose(byKeyboard(event))} />
@@ -144,9 +160,10 @@ export function Conversation({
           style={{ '--fade': away ? FADE : '0px' } as CSSProperties}
         >
           <div ref={content} className="flex flex-col">
+            <p className="pb-4 text-center text-xs leading-relaxed text-balance text-subtle-foreground">{t('intro')}</p>
             {turns.map(({ question, answer }, index) => {
               const last = index === turns.length - 1;
-              const pending = last && (thinking || failed);
+              const pending = last && (thinking || failed || stopped);
               return (
                 <Fragment key={question.id}>
                   <Arrival className={cn('items-end', index > 0 && 'pt-2')}>
@@ -157,8 +174,11 @@ export function Conversation({
                       <AssistantMessage
                         message={answer}
                         thinking={last && thinking}
+                        step={last ? step : undefined}
                         done={!last || status === 'ready'}
-                        onRetry={last && failed ? onRetry : undefined}
+                        failure={last && failed ? reason : undefined}
+                        stopped={last && stopped}
+                        onRetry={onRetry}
                         avatarRef={last ? avatarRef : undefined}
                       />
                     </Arrival>

@@ -34,7 +34,7 @@ export function Ask({ className }: { className?: string }) {
 
 function AskBar({ className }: { className?: string }) {
   const t = useTranslations('Ask');
-  const { messages, status, send, retry, reset } = useConversation();
+  const { messages, status, step, failure, send, retry, stop, reset } = useConversation();
   const root = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
@@ -200,6 +200,8 @@ function AskBar({ className }: { className?: string }) {
                       <Conversation
                         messages={messages}
                         status={status}
+                        step={step}
+                        failure={failure}
                         avatarRef={avatar}
                         onRestart={restart}
                         onRetry={retry}
@@ -214,6 +216,10 @@ function AskBar({ className }: { className?: string }) {
                 draft={draft}
                 onDraft={setDraft}
                 onSend={() => ask(draft)}
+                onStop={() => {
+                  stop();
+                  input.current?.focus();
+                }}
                 busy={busy}
                 lit={lit}
                 written={written}
