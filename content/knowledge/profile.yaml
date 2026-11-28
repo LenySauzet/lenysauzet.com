@@ -1,0 +1,187 @@
+headline: AI & Software Engineer
+summary: >-
+  I build software end to end, from the design of an interface to its life in production,
+  on whatever surface the problem needs: web, mobile, terminal or GPU. For nearly three years
+  I was an AI and full-stack engineer at Tolk.ai, in work-study, on Genii, its conversational
+  AI platform for businesses: I owned the ingestion and retrieval pipelines the product rests
+  on, and grew from the AI services to the whole stack, alongside an AI specialisation at
+  Epitech. Outside of work I ship my own products and write about what I learn on my blog.
+
+availability:
+  status: open
+  start: immediately
+  roles:
+    - AI engineer
+    - Full-stack engineer
+  locations:
+    - Montpellier, France
+    - Fully remote
+  contracts:
+    - permanent
+  workAuthorization: EU citizen, no visa needed to work in the European Union.
+
+languages:
+  - name: French
+    level: native
+  - name: English
+    level: Professional working proficiency, stronger in writing than speaking
+
+certifications:
+  - name: Cambridge English
+    issuer: Cambridge University Press & Assessment
+    status: planned
+
+education:
+  - school: Epitech Montpellier
+    degree: MSc. Expert in Information Systems, AI specialisation
+    location: Montpellier, France
+    start: '2023'
+    end: '2026'
+    details:
+      - French "Grande École", RNCP level 7, including the work-study with Tolk.ai from 2024.
+  - school: Lycée Marc Bloch
+    degree: BTS SIO, software development track (SLAM)
+    location: Sérignan, France
+    start: '2021'
+    end: '2023'
+    details:
+      - French two-year higher national diploma in IT services and software development.
+
+experience:
+  - company: Tolk.ai
+    role: AI & Software Engineer
+    location: Montpellier, France
+    arrangement: hybrid
+    contract: work-study
+    start: 2024-01
+    end: 2026-09
+    summary: >-
+      AI and full-stack engineer on Genii, Tolk.ai's conversational AI platform for businesses,
+      in a team of seventeen working in short cycles with code review on every change.
+    highlights:
+      - >-
+        Opened a new market: knowledge bases that keep themselves current made dynamic-catalogue
+        e-commerce possible. That pipeline carries 80% of the live knowledge base, 345,000 pages
+        across 90 customer projects.
+      - >-
+        Owned the ingestion and retrieval pipelines the product's credibility rests on, across
+        600 million indexed words and 4.3 million conversations served.
+      - >-
+        Turned raw conversation data into analytics customers pay for: 1.4 million conversations
+        summarised, classified by theme, scored for sentiment and resolution, and stripped of
+        personal data, automatically and at scale.
+      - >-
+        Generated follow-up questions automatically from every ingested document, 3.4 million of
+        them, linked back to their source passage, with nothing for the customer to configure.
+      - >-
+        Built a direct enterprise integration end to end that satisfied a customer's security team
+        and closed the contract.
+      - >-
+        Grew from a specialist on the AI services to the full stack, trusted with a feature from
+        the first conversation to production.
+      - Brought AI-assisted development into the team.
+    stack:
+      - TypeScript
+      - NX monorepo
+      - Hexagonal architecture and DDD
+      - Express
+      - PostgreSQL
+      - MongoDB
+      - Redis
+      - RabbitMQ
+      - Elasticsearch
+      - Pinecone
+      - Cohere reranking
+      - Azure OpenAI
+      - Mistral
+      - LangChain
+      - React
+      - Zustand
+      - shadcn/ui
+      - Tailwind
+      - Kubernetes
+      - ArgoCD
+      - Terraform
+      - Datadog
+
+skills:
+  - area: TypeScript
+    items:
+      - React, Next.js, Tailwind and shadcn/ui
+      - React Native and Expo
+      - TanStack, Motion
+      - Real-time 3D and shaders (WebGL, WebGPU)
+      - OpenTUI
+      - Vitest, Jest, Playwright
+  - area: Backend
+    items:
+      - Node.js and Bun services
+      - Monorepos (NX, Turborepo)
+      - Hexagonal architecture
+      - Queues and background jobs (RabbitMQ, Redis, Celery)
+  - area: AI and data
+    items:
+      - Machine learning, deep learning, NLP, computer vision, reinforcement learning
+      - Agentic LLM systems, RAG, semantic search
+      - Evaluation, guardrails, AI observability
+  - area: Python
+    items:
+      - Astral toolchain (uv, Ruff), FastAPI
+      - PyTorch, TensorFlow, scikit-learn, spaCy, pandas, Jupyter
+      - Typer and Rich, pytest
+  - area: Data and APIs
+    items:
+      - Type-safe APIs (tRPC, Hono)
+      - Drizzle, Prisma, Convex, PostgreSQL
+      - Vector and search engines (Pinecone, Qdrant, Elasticsearch)
+      - Pipelines and orchestration (Airflow)
+  - area: Infrastructure and observability
+    items:
+      - Docker, Kubernetes, Terraform, ArgoCD, Vercel, CI/CD
+      - OpenTelemetry, Prometheus, Datadog, Sentry, Langfuse
+  - area: AI-assisted development
+    items:
+      - Claude Code, Cursor, Codex, CodeRabbit
+      - MCP tooling and custom agents
+
+interests:
+  - Shipping my own products end to end, on whatever surface the problem needs (web, mobile, terminal, GPU, XR, on-device AI).
+  - Writing deep dives on my blog, with interactive playgrounds that make a hard topic usable.
+  - Reverse-engineering formats, rendering tricks and state-of-the-art codebases to see how they are really built.
+  - Following the designers, creative developers and 3D artists doing the best work on the web.
+
+recommendations:
+  - author: Matthieu Bietry
+    role: CTO and co-founder, Tolk.ai
+    relation: My direct manager during the work-study
+    date: 2026-10-05
+    language: fr
+    quote: >-
+      J'ai encadré Lény pendant ses deux ans en alternance au sein de l'équipe technique de
+      Tolk.ai. Lény est arrivé en tant que développeur sur l'intégration de nos briques IA dans
+      notre produit Genii. Sérieux, impliqué et réellement passionné, il a su mettre en place, et
+      en autonomie des fonctionnalités de plus en plus ambitieuses.
+  - author: Ulysse Bottello
+    role: Product Lead, Tolk.ai
+    relation: Senior to me at Tolk.ai, not my direct manager
+    date: 2026-09-30
+    language: fr
+    quote: >-
+      J'ai eu le plaisir de travailler avec Lény. Il a pris en charge certains des sujets les plus
+      complexes de notre produit : notre fonctionnalité cœur, toute la partie LLM et l'exploitation
+      de la donnée. Lény ne s'est jamais laissé arrêter par la complexité. Au contraire, il
+      s'appropriait chaque sujet et le suivait jusqu'au bout : pas seulement jusqu'à la mise en
+      production, mais jusqu'à son adoption et son succès. Au-delà du travail, collaborer avec lui a
+      toujours été un vrai plaisir. Je le recommande sans hésitation à toute équipe à la recherche
+      d'un développeur solide, autonome et profondément impliqué.
+  - author: Joey Galligani
+    role: Classmate, Epitech Montpellier
+    relation: Studied with me at Epitech Montpellier
+    date: 2026-09-21
+    language: fr
+    quote: >-
+      J'ai fait mes études à EPITECH Montpellier avec Lény, et c'est le genre de développeur qu'on
+      veut dans son équipe : curieux, autonome, et toujours prêt à s'arrêter sur le problème de
+      quelqu'un d'autre. Techniquement, il apprend vite et écrit du code propre. Humainement, il
+      reste calme quand ça chauffe et dit les choses franchement quand une piste ne mène nulle part.
+      Travailler avec lui a été un vrai plaisir. Je le recommande les yeux fermés.
