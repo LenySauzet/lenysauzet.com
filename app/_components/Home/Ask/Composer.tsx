@@ -17,7 +17,7 @@ import {
 import { focusRing } from '@/components/shared/styles';
 import { cn } from '@/lib/utils';
 
-import { RESTING_OPACITY, WrittenTwice } from './Letters';
+import { RESTING_OPACITY, Spelled, WrittenTwice } from './Letters';
 import { MORPH, SNAPPY } from './motion';
 import { BAR, glassButton } from './styles';
 import { useDictation } from './use-dictation';
@@ -105,7 +105,9 @@ export function Composer({
             transition={{ duration: 0.25 }}
           >
             {written ? (
-              <span style={{ opacity: RESTING_OPACITY }}>{t('placeholder')}</span>
+              <span style={{ opacity: RESTING_OPACITY }}>
+                <Spelled text={t('placeholder')} />
+              </span>
             ) : (
               <span>
                 <WrittenTwice text={t('placeholder')} delay={writeDelay} />

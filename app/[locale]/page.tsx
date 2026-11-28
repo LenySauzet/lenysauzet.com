@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 
 import { homeUrl } from '@/i18n/locales';
+import { askEnabled } from '@/lib/ask/enabled';
 import { serialize, structuredData } from '@/lib/seo/structured-data';
 
 import { Ask } from '../_components/Home/Ask';
@@ -25,7 +26,7 @@ export default async function Home() {
       <Footer />
       <Presence />
       <OtherVersion />
-      <Ask />
+      {askEnabled() && <Ask />}
     </>
   );
 }

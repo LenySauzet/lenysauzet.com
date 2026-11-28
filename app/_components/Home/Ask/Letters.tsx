@@ -37,6 +37,14 @@ export function Letters({ text, delay = 0, step = 0.022 }: LettersProps) {
   );
 }
 
+export const Spelled = ({ text }: { text: string }) => (
+  <>
+    {[...text].map((letter, index) => (
+      <span key={index}>{letter}</span>
+    ))}
+  </>
+);
+
 export function WrittenTwice({ text, delay = 0 }: { text: string; delay?: number }) {
   return (
     <>
